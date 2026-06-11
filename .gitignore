@@ -1,0 +1,22 @@
+# System files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Office temp files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+*.tmp
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CodeBuddy
+.codebuddy/
+
+# OS
+.DS_Store
