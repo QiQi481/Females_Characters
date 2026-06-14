@@ -91,7 +91,8 @@
   border-radius: 2px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   animation: letterDrop 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .dropped-letter-icon {
@@ -372,4 +373,84 @@
 @keyframes nextPulse {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
   50%      { opacity: 0.7; transform: translateY(2px); }
+}
+
+/* ========== 信件内容弹窗 ========== */
+.letter-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.letter-popup {
+  position: relative;
+  width: min(640px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #f5efe0 0%, #ede0cc 100%);
+  border: 2px solid #c4a97a;
+  border-radius: 4px;
+  padding: 2.5rem 2rem 2rem;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.letter-popup-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  background: none;
+  border: none;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.9rem;
+  color: #8a7a60;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.letter-popup-close:hover {
+  color: #3a2a1a;
+}
+
+.letter-popup-content {
+  text-align: center;
+}
+
+.letter-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.2rem;
+  line-height: 2.2;
+  color: #3a2a1a;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-align: left;
+}
+
+.letter-text-indent {
+  display: inline-block;
+  text-indent: 2em;
+}
+
+.letter-image-slot {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.15em;
+}
+
+.letter-clue-img {
+  display: block;
+  height: 3em;
+  width: auto;
+  border: 1px solid #d4c4a8;
+  border-radius: 2px;
+  background: #fff;
+  padding: 2px;
+  object-fit: contain;
 }

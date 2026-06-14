@@ -53,6 +53,7 @@ function Chapter1() {
   const [imgReady, setImgReady] = useState(false)
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const [letterDropped, setLetterDropped] = useState(false)
+  const [showLetterPopup, setShowLetterPopup] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
   const [narrationDone, setNarrationDone] = useState(false)
   const [dialogIndex, setDialogIndex] = useState(0)
@@ -119,7 +120,7 @@ function Chapter1() {
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || showBoundaryInfo || showLetterPopup || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -153,7 +154,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -241,7 +242,7 @@ function Chapter1() {
 
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
-            <div className="dropped-letter">
+            <div className="dropped-letter" onClick={() => setShowLetterPopup(true)}>
               <span className="dropped-letter-icon">&#9993;</span>
             </div>
           )}
@@ -331,6 +332,43 @@ function Chapter1() {
           </div>
         </div>
       )}
+
+      {/* 信件内容弹窗 */}
+      {showLetterPopup && (
+        <div className="letter-popup-overlay" onClick={() => setShowLetterPopup(false)}>
+          <div className="letter-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="letter-popup-close" onClick={() => setShowLetterPopup(false)}>
+              关闭
+            </button>
+
+            <div className="letter-popup-content">
+              <p className="letter-text">
+                XXXXX：<br />
+                <span className="letter-text-indent">
+                  <span className="letter-image-slot">
+                    {/* TODO: 替换为实际图片路径 */}
+                    <img
+                      src="/assets/FirstLevel/letter.png"
+                      alt="线索图1"
+                      className="letter-clue-img"
+                    />
+                  </span>
+                  <span className="letter-image-slot">
+                    {/* TODO: 替换为实际图片路径 */}
+                    <img
+                      src="/assets/FirstLevel/letter.png"
+                      alt="线索图2"
+                      className="letter-clue-img"
+                    />
+                  </span>
+                  ！XXX...
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
