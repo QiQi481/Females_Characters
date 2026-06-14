@@ -37,6 +37,7 @@ const DIALOG_LINES: DialogLine[] = [
   { speaker: '我',    text: '这本书交给我吧。我帮你把剩下的工作完成。' },
   { speaker: '阿禾', text: '您愿意？' },
   { speaker: '我',    text: '我答应你。' },
+  { speaker: '阿禾', text: '有一些字 我有一些想法，但是我不太确定，也许您能够识别正确的选项' },
 ]
 
 /** 第二段旁白 — 对话结束后触发 */
@@ -65,6 +66,16 @@ function Chapter1() {
   const [narration2Index, setNarration2Index] = useState(0)
   const [narration2Active, setNarration2Active] = useState(false)
   const [narration2Done, setNarration2Done] = useState(false)
+  // Quiz 状态
+  const [quizActive, setQuizActive] = useState(false)
+  const [quizImageOpen, setQuizImageOpen] = useState(false)
+  const [quizChoicesOpen, setQuizChoicesOpen] = useState(false)
+  const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null)
+  const [quizNarrationOpen, setQuizNarrationOpen] = useState(false)
+  const [quizLetterMode, setQuizLetterMode] = useState(false)
+  const [quizDone, setQuizDone] = useState(false)
+  // Quiz 相关弹窗是否开启（用于暂停 WASD）
+  const isQuizBusy = quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -123,7 +134,7 @@ function Chapter1() {
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo || showLetterPopup || showBookPopup || showBookSystem || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || showBoundaryInfo || showLetterPopup || showBookPopup || showBookSystem || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -157,7 +168,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, showBookSystem, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, showBookSystem, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -207,6 +218,55 @@ function Chapter1() {
     } else {
       setNarration2Done(true)
     }
+  }
+
+  // 关闭信件弹窗 — 首次关闭触发 Quiz，Quiz 内错误后关闭则继续流程
+  const closeLetterPopup = () => {
+    setShowLetterPopup(false)
+    if (quizLetterMode) {
+      // 错误后强制打开的信件关闭 → 展示旁白提示
+      setQuizLetterMode(false)
+      setQuizNarrationOpen(true)
+    } else if (!quizActive && !quizDone) {
+      // 首次关闭信件 → 触发 Quiz
+      setQuizActive(true)
+      setQuizImageOpen(true)
+    }
+  }
+
+  // 关闭 Quiz 图片弹窗 → 进入选择题
+  const closeQuizImage = () => {
+    setQuizImageOpen(false)
+    setQuizChoicesOpen(true)
+  }
+
+  // 选择答案
+  const handleQuizChoice = (choice: string) => {
+    setQuizChoicesOpen(false)
+    if (choice === 'A') {
+      setQuizFeedback('correct')
+    } else {
+      setQuizFeedback('wrong')
+    }
+  }
+
+  // 关闭反馈 → 正确则结束 Quiz，错误则强制打开信件
+  const closeQuizFeedback = () => {
+    const isCorrect = quizFeedback === 'correct'
+    setQuizFeedback(null)
+    if (isCorrect) {
+      setQuizActive(false)
+      setQuizDone(true)
+    } else {
+      setQuizLetterMode(true)
+      setShowLetterPopup(true)
+    }
+  }
+
+  // 关闭 Quiz 旁白 → 回到选择题
+  const closeQuizNarration = () => {
+    setQuizNarrationOpen(false)
+    setQuizChoicesOpen(true)
   }
 
   return (
@@ -393,9 +453,9 @@ function Chapter1() {
 
       {/* 信件内容弹窗 */}
       {showLetterPopup && (
-        <div className="letter-popup-overlay" onClick={() => setShowLetterPopup(false)}>
+        <div className="letter-popup-overlay" onClick={closeLetterPopup}>
           <div className="letter-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="letter-popup-close" onClick={() => setShowLetterPopup(false)}>
+            <button className="letter-popup-close" onClick={closeLetterPopup}>
               关闭
             </button>
 
@@ -423,6 +483,85 @@ function Chapter1() {
                 </span>
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Quiz 流程 ===== */}
+
+      {/* Quiz 图片弹窗 — 阿禾说话 + 占位图 */}
+      {quizImageOpen && (
+        <div className="quiz-image-overlay" onClick={closeQuizImage}>
+          <div className="quiz-image-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="quiz-image-close" onClick={closeQuizImage}>关闭</button>
+            <p className="quiz-image-text">
+              这一个女书字，我知道是指人，但是到底指的是谁呢
+            </p>
+            <div className="quiz-image-wrapper">
+              {/* TODO: 替换为实际女书字图片 */}
+              <img
+                src="/assets/FirstLevel/location.png"
+                alt="女书字"
+                className="quiz-image-placeholder"
+              />
+            </div>
+            <span className="quiz-click-hint">点击任意处继续</span>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz 选择题 */}
+      {quizChoicesOpen && (
+        <div className="quiz-choices-overlay">
+          <div className="quiz-choices-panel">
+            <p className="quiz-choices-title">请选择正确的含义：</p>
+            <div className="quiz-choices-grid">
+              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('A')}>
+                <span className="quiz-choice-key">A</span>
+                <span className="quiz-choice-label">你</span>
+              </button>
+              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('B')}>
+                <span className="quiz-choice-key">B</span>
+                <span className="quiz-choice-label">我</span>
+              </button>
+              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('C')}>
+                <span className="quiz-choice-key">C</span>
+                <span className="quiz-choice-label">她</span>
+              </button>
+              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('D')}>
+                <span className="quiz-choice-key">D</span>
+                <span className="quiz-choice-label">他</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz 反馈 — 阿禾回应 */}
+      {quizFeedback !== null && (
+        <div className="quiz-feedback-overlay" onClick={closeQuizFeedback}>
+          <div className="quiz-feedback-box" onClick={(e) => e.stopPropagation()}>
+            <div className="quiz-feedback-speaker">
+              阿禾 <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="quiz-feedback-text">
+              {quizFeedback === 'correct'
+                ? '嗯，也许您是对的'
+                : '嗯，我不太确定'}
+            </p>
+            <span className="quiz-click-hint">点击继续</span>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz 旁白 — 错误后提示重新思考 */}
+      {quizNarrationOpen && (
+        <div className="narration-overlay" onClick={closeQuizNarration}>
+          <div className="narration-box">
+            <p className="narration-line">
+              一般来讲，信的语法是怎样的呢？
+            </p>
+            <span className="narration-click-hint">点击继续</span>
           </div>
         </div>
       )}

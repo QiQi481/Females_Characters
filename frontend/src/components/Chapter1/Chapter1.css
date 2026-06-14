@@ -626,3 +626,208 @@
   letter-spacing: 0.15em;
   margin: 0;
 }
+
+/* ========== Quiz 图片弹窗 ========== */
+.quiz-image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-image-popup {
+  position: relative;
+  width: min(500px, 88vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem 1.5rem;
+  background: linear-gradient(180deg, #2a1f14 0%, #1e150d 100%);
+  border: 2px solid rgba(201, 168, 124, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.35s ease;
+}
+
+.quiz-image-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  padding: 2px 12px;
+  border: 1px solid rgba(201, 168, 124, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #c9a87c;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quiz-image-close:hover {
+  background: rgba(139, 69, 48, 0.5);
+  color: #e8d5b8;
+  border-color: rgba(201, 168, 124, 0.6);
+}
+
+.quiz-image-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: #d4c4a8;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin: 0 0 1.2em;
+}
+
+.quiz-image-wrapper {
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+
+.quiz-image-placeholder {
+  display: block;
+  width: 100%;
+  max-height: 35vh;
+  object-fit: contain;
+  border: 1px solid rgba(201, 168, 124, 0.4);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.quiz-click-hint {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.8rem;
+  color: rgba(200, 180, 150, 0.4);
+  letter-spacing: 0.15em;
+  animation: hintPulse 2.5s ease-in-out infinite;
+}
+
+/* ========== Quiz 选择题 ========== */
+.quiz-choices-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8vh;
+  background: rgba(10, 6, 2, 0.45);
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-choices-panel {
+  width: min(560px, 90vw);
+  padding: 1.5rem 1.5rem 1.8rem;
+  background: rgba(25, 18, 12, 0.9);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  animation: slideUp 0.35s ease;
+}
+
+.quiz-choices-title {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.1rem;
+  color: #d4c4a8;
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin: 0 0 1.2em;
+}
+
+.quiz-choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8em;
+}
+
+.quiz-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.75em 1.2em;
+  background: rgba(40, 30, 20, 0.7);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.quiz-choice-btn:hover {
+  background: rgba(60, 40, 25, 0.85);
+  border-color: rgba(201, 168, 124, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.quiz-choice-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: rgba(180, 150, 110, 0.2);
+  border: 1px solid rgba(180, 150, 110, 0.4);
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #d4c4a8;
+  flex-shrink: 0;
+}
+
+.quiz-choice-label {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.15rem;
+  color: #ede5d3;
+  letter-spacing: 0.15em;
+}
+
+/* ========== Quiz 反馈 ========== */
+.quiz-feedback-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12vh;
+  background: rgba(10, 6, 2, 0.5);
+  cursor: pointer;
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-feedback-box {
+  position: relative;
+  width: min(600px, 88vw);
+  padding: 1.5rem 2rem 1.8rem;
+  background: rgba(25, 18, 12, 0.88);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+  animation: slideUp 0.35s ease;
+  text-align: center;
+}
+
+.quiz-feedback-speaker {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.05rem;
+  color: #d4c4a8;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.6em;
+}
+
+.quiz-feedback-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.15rem;
+  color: #ede5d3;
+  letter-spacing: 0.1em;
+  margin: 0 0 1em;
+}
