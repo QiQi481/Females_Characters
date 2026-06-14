@@ -1,0 +1,170 @@
+/* ========== 导言容器 ========== */
+.prologue {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+}
+
+/* ========== 背景层 ========== */
+.prologue-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/assets/nushu/main_menu_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #e8dcc4;
+  z-index: 0;
+}
+
+/* ========== 卷轴容器 ========== */
+.prologue-scroll {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  animation: prologueFadeIn 0.8s ease;
+}
+
+@keyframes prologueFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ========== 卷轴内容区 ========== */
+.scroll-inner {
+  width: min(680px, 85vw);
+  max-height: 62vh;
+  overflow-y: auto;
+  padding: 3rem 3.5rem;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 246, 237, 0.95) 0%,
+    rgba(245, 238, 220, 0.95) 50%,
+    rgba(240, 230, 210, 0.95) 100%
+  );
+  border: 2px solid #c9a87c;
+  border-radius: 6px;
+  box-shadow:
+    0 4px 30px rgba(60, 30, 10, 0.25),
+    0 0 0 12px rgba(200, 170, 130, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  position: relative;
+}
+
+/* 卷轴上下装饰条 */
+.scroll-inner::before,
+.scroll-inner::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c9a87c 20%,
+    #8b4530 50%,
+    #c9a87c 80%,
+    transparent
+  );
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.scroll-inner::before { top: 1.2rem; }
+.scroll-inner::after  { bottom: 1.2rem; }
+
+/* 自定义滚动条 */
+.scroll-inner::-webkit-scrollbar {
+  width: 5px;
+}
+.scroll-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-inner::-webkit-scrollbar-thumb {
+  background: #c9a87c;
+  border-radius: 3px;
+}
+
+/* ========== 文本 ========== */
+.prologue-text {
+  color: #3a2a1a;
+  font-size: 1.15rem;
+  line-height: 2.1;
+  letter-spacing: 0.06em;
+}
+
+.prologue-text p {
+  margin: 0 0 1.2em;
+  text-indent: 2em;
+}
+
+.prologue-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* ========== 继续按钮区域 ========== */
+.prologue-action {
+  margin-top: 2.2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.prologue-btn {
+  padding: 0.7em 3.5em;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.2rem;
+  color: #8b4530;
+  letter-spacing: 0.4em;
+  transition: all 0.25s ease;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 280 56'%3E%3Cpath d='M28 4 L252 4 Q260 4 264 10 Q268 16 268 24 Q268 32 262 38 L256 44 Q250 52 238 52 L42 52 Q30 52 24 44 L18 38 Q12 32 12 24 Q12 16 16 10 Q20 4 28 4 Z' fill='none' stroke='%23a85c42' stroke-width='1.5'/%3E%3Cpath d='M18 14 Q22 8 30 6 M262 14 Q258 8 250 6 M16 34 Q12 40 18 46 M264 34 Q268 40 262 46' fill='none' stroke='%23c97a5e' stroke-width='0.9'/%3E%3Ccircle cx='14' cy='24' r='3.5' fill='%23c97a5e'/%3E%3Ccircle cx='266' cy='24' r='3.5' fill='%23c97a5e'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.prologue-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.08);
+}
+
+.prologue-btn:active {
+  transform: scale(0.98);
+}
+
+/* ========== 响应式 ========== */
+@media (max-height: 700px) {
+  .scroll-inner {
+    max-height: 68vh;
+    padding: 2rem 2.5rem;
+  }
+  .prologue-text {
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+}
+
+@media (max-width: 480px) {
+  .scroll-inner {
+    width: 90vw;
+    padding: 2rem 1.8rem;
+  }
+  .prologue-text {
+    font-size: 0.95rem;
+    line-height: 1.85;
+  }
+  .prologue-btn {
+    font-size: 1rem;
+    padding: 0.6em 2.5em;
+  }
+}
