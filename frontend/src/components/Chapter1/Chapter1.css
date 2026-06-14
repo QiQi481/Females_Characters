@@ -699,6 +699,33 @@
   margin-bottom: 1.5em;
 }
 
+/* Q4 双图画廊 */
+.quiz-image-gallery {
+  display: flex;
+  gap: 1.5em;
+  justify-content: center;
+  align-items: flex-start;
+  max-width: min(600px, 80vw);
+  animation: slideUp 0.35s ease;
+}
+
+.quiz-image-card {
+  flex: 1;
+  max-width: 280px;
+  padding: 0.8em;
+  background: rgba(40, 30, 20, 0.7);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+}
+
+.quiz-image-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 3px;
+  border: 1px solid rgba(201, 168, 124, 0.3);
+}
+
 .quiz-grid-img {
   display: block;
   width: 100%;

@@ -65,7 +65,7 @@ const MATCH_LEFT_ITEMS  = ['丝带笔触', '燕子', '冻僵的手', '读音']
 const MATCH_RIGHT_ITEMS = ['柳条', '温暖的风', '诗', '雪']
 
 /** Q3 匹配游戏 — 下方分类盒 */
-const MATCH_CATEGORIES = ['声与形', '时与触', '真与假']
+const MATCH_CATEGORIES = ['形与景', '触与候', '音与字']
 
 /** Q3 匹配游戏 — 每个词条放置后阿禾的补充对话 */
 const MATCH_COMMENTARY: Record<string, string> = {
@@ -78,6 +78,42 @@ const MATCH_COMMENTARY: Record<string, string> = {
   '冻僵的手': '我手冻僵了，写不稳',
   '读音': '好像有一个字念"纯"？',
 }
+
+/** Q3 匹配游戏 — 每个词条的正确分类 */
+const MATCH_CORRECT: Record<string, string> = {
+  '丝带笔触': '形与景',
+  '燕子': '形与景',
+  '柳条': '形与景',
+  '冻僵的手': '触与候',
+  '温暖的风': '触与候',
+  '雪': '触与候',
+  '读音': '音与字',
+  '诗': '音与字',
+}
+
+/** Q3 匹配游戏 — 全部分类词条 */
+const MATCH_ALL_ITEMS = [...MATCH_LEFT_ITEMS, ...MATCH_RIGHT_ITEMS]
+
+/** Q3 匹配游戏 — 分类完成时阿禾的补充对话 */
+const CATEGORY_COMPLETION: Record<string, { correct: string[]; commentary: string }> = {
+  '形与景': {
+    correct: ['丝带笔触', '燕子', '柳条'],
+    commentary: '丝带飘起来的样子……像柳条，窗外的燕子叽叽喳喳',
+  },
+  '触与候': {
+    correct: ['冻僵的手', '温暖的风', '雪'],
+    commentary: '那天好像下雪？我的手冻僵了写不稳，先生说它是微冷的',
+  },
+  '音与字': {
+    correct: ['读音', '诗'],
+    commentary: '我填错过很多次……',
+  },
+}
+
+/** Q4 最终问答 */
+const QUIZ_Q4_DIALOG = '现在你知道他们是什么意思了吗？'
+const QUIZ_Q4_CHOICES = ['春风', '冬风', '春雪', '冬雪']
+const QUIZ_Q4_CORRECT = 'A'
 
 /** 获取 Quiz 错误反馈文本 */
 const getQuizWrongFeedback = (question: number, choice: string): string => {
@@ -122,8 +158,13 @@ function Chapter1() {
   const [draggingItem, setDraggingItem] = useState<string | null>(null)
   const [dragOverCat, setDragOverCat] = useState<string | null>(null)
   const [matchCommentary, setMatchCommentary] = useState<string | null>(null) // 当前展示的阿禾补充对话
+  const [matchCategoryDone, setMatchCategoryDone] = useState<Set<string>>(new Set()) // 已触发完成对话的分类
+  const [matchCatCommentary, setMatchCatCommentary] = useState<string | null>(null) // 当前展示的分类完成对话
+  const [matchAllWrong, setMatchAllWrong] = useState(false) // 全部放置但错误
+  const [matchFinalStage, setMatchFinalStage] = useState(0) // Q4: 0=none, 1=阿禾提问, 2=展示图片, 3=选项
+  const [matchFinalFeedback, setMatchFinalFeedback] = useState<string | null>(null) // Q4 反馈
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
-  const isQuizBusy = matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
+  const isQuizBusy = matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -349,6 +390,11 @@ function Chapter1() {
       setDraggingItem(null)
       setDragOverCat(null)
       setMatchCommentary(null)
+      setMatchCatCommentary(null)
+      setMatchCategoryDone(new Set())
+      setMatchAllWrong(false)
+      setMatchFinalStage(0)
+      setMatchFinalFeedback(null)
       setMatchStep(1)
     }
   }
@@ -399,9 +445,108 @@ function Chapter1() {
     })
   }
 
+  // Q3 匹配游戏 — 检查进度（分类完成 / 全部完成 / 全部错误）
+  const checkMatchProgress = () => {
+    // 使用函数式更新获取最新 placements
+    setMatchPlacements((prev) => {
+      const allPlaced = MATCH_ALL_ITEMS.every((item) => prev[item] !== undefined)
+      const allCorrect = MATCH_ALL_ITEMS.every((item) => prev[item] === MATCH_CORRECT[item])
+
+      if (allPlaced) {
+        if (allCorrect) {
+          // 全部正确 → 进入 Q4
+          setTimeout(() => setMatchFinalStage(1), 0)
+        } else {
+          // 全部放置但错误 → 重置
+          setTimeout(() => {
+            setMatchAllWrong(true)
+          }, 0)
+        }
+        return prev
+      }
+
+      // 检查分类是否刚完成
+      setMatchCategoryDone((done) => {
+        const newDone = new Set(done)
+        for (const cat of MATCH_CATEGORIES) {
+          if (newDone.has(cat)) continue
+          const { correct } = CATEGORY_COMPLETION[cat]
+          const catItems = MATCH_ALL_ITEMS.filter((item) => prev[item] === cat)
+          const allCorrectInCat = correct.every((c) => catItems.includes(c))
+          const noExtra = catItems.every((item) => correct.includes(item))
+          if (allCorrectInCat && noExtra) {
+            newDone.add(cat)
+            setTimeout(() => setMatchCatCommentary(cat), 0)
+            break // 一次只弹一个分类对话
+          }
+        }
+        return newDone
+      })
+      return prev
+    })
+  }
+
   // Q3 匹配游戏 — 关闭阿禾补充对话
   const closeMatchCommentary = () => {
     setMatchCommentary(null)
+    checkMatchProgress()
+  }
+
+  // Q3 匹配游戏 — 关闭分类完成对话
+  const closeMatchCatCommentary = () => {
+    setMatchCatCommentary(null)
+    checkMatchProgress()
+  }
+
+  // Q3 匹配游戏 — 全错，重置
+  const closeMatchAllWrong = () => {
+    setMatchAllWrong(false)
+    setMatchPlacements({})
+    setMatchCategoryDone(new Set())
+    setMatchCommentary(null)
+    setMatchCatCommentary(null)
+  }
+
+  // Q4 — 从提问进入展示图片
+  const advanceQ4ToImages = () => {
+    setMatchFinalStage(2)
+  }
+
+  // Q4 — 从图片进入选项
+  const advanceQ4ToChoices = () => {
+    setMatchFinalStage(3)
+  }
+
+  // Q4 — 选择答案
+  const handleQ4Choice = (choiceIndex: number) => {
+    const label = String.fromCharCode(65 + choiceIndex) // A/B/C/D
+    if (label === QUIZ_Q4_CORRECT) {
+      setMatchFinalFeedback('correct')
+    } else {
+      setMatchFinalFeedback('wrong')
+    }
+  }
+
+  // Q4 — 关闭反馈
+  const closeQ4Feedback = () => {
+    if (matchFinalFeedback === 'correct') {
+      // 全部完成
+      setMatchFinalFeedback(null)
+      setMatchFinalStage(0)
+      setMatchActive(false)
+      setMatchStep(0)
+      setMatchPlacements({})
+      setDraggingItem(null)
+      setDragOverCat(null)
+      setMatchCommentary(null)
+      setMatchCatCommentary(null)
+      setMatchCategoryDone(new Set())
+      setQuizDone(true)
+    } else {
+      // 答错 → 回到选项
+      setMatchFinalFeedback(null)
+      setMatchFinalStage(3)
+    }
   }
 
   // Q3 匹配游戏 — 关闭匹配界面
@@ -412,6 +557,11 @@ function Chapter1() {
     setDraggingItem(null)
     setDragOverCat(null)
     setMatchCommentary(null)
+    setMatchCatCommentary(null)
+    setMatchCategoryDone(new Set())
+    setMatchAllWrong(false)
+    setMatchFinalStage(0)
+    setMatchFinalFeedback(null)
     setQuizDone(true)
   }
 
@@ -850,6 +1000,127 @@ function Chapter1() {
               <span className="dialog-flower">&#10047;</span>
             </div>
             <p className="dialog-text">{MATCH_COMMENTARY[matchCommentary] || '……'}</p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* Q3 分类完成对话 — 某分类正确集齐 */}
+      {matchCatCommentary !== null && (
+        <div className="dialog-overlay" style={{ zIndex: 106 }} onClick={closeMatchCatCommentary}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">{CATEGORY_COMPLETION[matchCatCommentary]?.commentary || ''}</p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* Q3 全错重置对话 */}
+      {matchAllWrong && (
+        <div className="dialog-overlay" style={{ zIndex: 106 }} onClick={closeMatchAllWrong}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">好像不太对，再试试吧</p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Q4 最终问答 ===== */}
+
+      {/* Q4 阿禾提问 */}
+      {matchFinalStage === 1 && (
+        <div className="dialog-overlay" style={{ zIndex: 107 }} onClick={advanceQ4ToImages}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">{QUIZ_Q4_DIALOG}</p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* Q4 展示两张图片 */}
+      {matchFinalStage === 2 && (
+        <div className="narration-overlay" style={{ zIndex: 107 }} onClick={advanceQ4ToChoices}>
+          <div className="quiz-image-gallery">
+            <div className="quiz-image-card">
+              <img src="/assets/FirstLevel/Q1Pic1.png" alt="图1" />
+            </div>
+            <div className="quiz-image-card">
+              <img src="/assets/FirstLevel/Q1Pic2.png" alt="图2" />
+            </div>
+          </div>
+          <span className="quiz-click-hint">点击继续</span>
+        </div>
+      )}
+
+      {/* Q4 选项 */}
+      {matchFinalStage === 3 && (
+        <div className="quiz-choices-overlay" style={{ zIndex: 107 }}>
+          <div className="quiz-choices-panel">
+            <p className="quiz-choices-title">{QUIZ_Q4_DIALOG}</p>
+            <div className="quiz-choices-grid">
+              {QUIZ_Q4_CHOICES.map((choice, i) => {
+                const key = String.fromCharCode(65 + i)
+                return (
+                  <button
+                    key={key}
+                    className="quiz-choice-btn"
+                    onClick={() => handleQ4Choice(i)}
+                  >
+                    <span className="quiz-choice-key">{key}</span>
+                    <span className="quiz-choice-label">{choice}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Q4 反馈 */}
+      {matchFinalFeedback !== null && (
+        <div className="dialog-overlay" style={{ zIndex: 108 }} onClick={closeQ4Feedback}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">
+              {matchFinalFeedback === 'correct'
+                ? '嗯，确实是这个'
+                : '嗯，我觉得不太对'}
+            </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
