@@ -838,7 +838,7 @@ function Chapter1() {
 
       {/* Q3 阿禾补充对话 — 放置词条后弹出 */}
       {matchCommentary !== null && (
-        <div className="dialog-overlay" onClick={closeMatchCommentary}>
+        <div className="dialog-overlay" style={{ zIndex: 105 }} onClick={closeMatchCommentary}>
           <img
             src="/assets/FirstLevel/AHe.png"
             alt="阿禾"
