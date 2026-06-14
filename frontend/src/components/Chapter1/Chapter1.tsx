@@ -67,6 +67,18 @@ const MATCH_RIGHT_ITEMS = ['柳条', '温暖的风', '诗', '雪']
 /** Q3 匹配游戏 — 下方分类盒 */
 const MATCH_CATEGORIES = ['声与形', '时与触', '真与假']
 
+/** Q3 匹配游戏 — 每个词条放置后阿禾的补充对话 */
+const MATCH_COMMENTARY: Record<string, string> = {
+  '柳条': '柳枝',
+  '温暖的风': '温暖的风',
+  '诗': '料X□□XX醒',
+  '雪': '那天下雪？不对……',
+  '丝带笔触': '先生写这个字时，笔画像丝带',
+  '燕子': '窗外有燕子叫',
+  '冻僵的手': '我手冻僵了，写不稳',
+  '读音': '好像有一个字念"纯"？',
+}
+
 /** 获取 Quiz 错误反馈文本 */
 const getQuizWrongFeedback = (question: number, choice: string): string => {
   if (question === 1) return '嗯，我不太确定'
@@ -106,8 +118,12 @@ function Chapter1() {
   // Q3 匹配游戏
   const [matchActive, setMatchActive] = useState(false)
   const [matchStep, setMatchStep] = useState(0) // 0=阿禾说话, 1=匹配界面
+  const [matchPlacements, setMatchPlacements] = useState<Record<string, string>>({})
+  const [draggingItem, setDraggingItem] = useState<string | null>(null)
+  const [dragOverCat, setDragOverCat] = useState<string | null>(null)
+  const [matchCommentary, setMatchCommentary] = useState<string | null>(null) // 当前展示的阿禾补充对话
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
-  const isQuizBusy = matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
+  const isQuizBusy = matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -329,14 +345,73 @@ function Chapter1() {
   // Q3 匹配游戏 — 阿禾说完话 → 展示匹配界面
   const advanceMatchStep = () => {
     if (matchStep === 0) {
+      setMatchPlacements({})
+      setDraggingItem(null)
+      setDragOverCat(null)
+      setMatchCommentary(null)
       setMatchStep(1)
     }
+  }
+
+  // Q3 拖拽处理
+  const handleMatchDragStart = (item: string, e: React.DragEvent) => {
+    setDraggingItem(item)
+    e.dataTransfer.setData('text/plain', item)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleMatchDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleMatchDrop = (category: string, e: React.DragEvent) => {
+    e.preventDefault()
+    const item = e.dataTransfer.getData('text/plain')
+    if (item) {
+      setMatchPlacements((prev) => ({ ...prev, [item]: category }))
+      // 放置后展示阿禾补充对话
+      setMatchCommentary(item)
+    }
+    setDraggingItem(null)
+    setDragOverCat(null)
+  }
+
+  const handleMatchDragEnd = () => {
+    setDraggingItem(null)
+    setDragOverCat(null)
+  }
+
+  const handleMatchDragEnter = (cat: string) => {
+    setDragOverCat(cat)
+  }
+
+  const handleMatchDragLeave = (cat: string) => {
+    setDragOverCat((prev) => (prev === cat ? null : prev))
+  }
+
+  // Q3 匹配游戏 — 从分类盒中移除某个已放置的词条
+  const removeMatchPlacement = (item: string) => {
+    setMatchPlacements((prev) => {
+      const next = { ...prev }
+      delete next[item]
+      return next
+    })
+  }
+
+  // Q3 匹配游戏 — 关闭阿禾补充对话
+  const closeMatchCommentary = () => {
+    setMatchCommentary(null)
   }
 
   // Q3 匹配游戏 — 关闭匹配界面
   const closeMatchGame = () => {
     setMatchActive(false)
     setMatchStep(0)
+    setMatchPlacements({})
+    setDraggingItem(null)
+    setDragOverCat(null)
+    setMatchCommentary(null)
     setQuizDone(true)
   }
 
@@ -696,27 +771,86 @@ function Chapter1() {
               {/* 左列 */}
               <div className="match-column">
                 {MATCH_LEFT_ITEMS.map((item, i) => (
-                  <div key={`L${i}`} className="match-item">{item}</div>
+                  <div
+                    key={`L${i}`}
+                    className={`match-item${draggingItem === item ? ' dragging' : ''}${matchPlacements[item] ? ' placed' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleMatchDragStart(item, e)}
+                    onDragEnd={handleMatchDragEnd}
+                  >
+                    {item}
+                  </div>
                 ))}
               </div>
               {/* 右列 */}
               <div className="match-column">
                 {MATCH_RIGHT_ITEMS.map((item, i) => (
-                  <div key={`R${i}`} className="match-item">{item}</div>
+                  <div
+                    key={`R${i}`}
+                    className={`match-item${draggingItem === item ? ' dragging' : ''}${matchPlacements[item] ? ' placed' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleMatchDragStart(item, e)}
+                    onDragEnd={handleMatchDragEnd}
+                  >
+                    {item}
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* 下半部分 — 三个分类盒 */}
             <div className="match-lower">
-              {MATCH_CATEGORIES.map((cat, i) => (
-                <div key={`C${i}`} className="match-category">
-                  <span className="match-cat-label">{cat}</span>
-                </div>
-              ))}
+              {MATCH_CATEGORIES.map((cat, i) => {
+                const catItems = [...MATCH_LEFT_ITEMS, ...MATCH_RIGHT_ITEMS].filter(
+                  (item) => matchPlacements[item] === cat
+                )
+                return (
+                  <div
+                    key={`C${i}`}
+                    className={`match-category${dragOverCat === cat ? ' drag-over' : ''}`}
+                    onDragOver={handleMatchDragOver}
+                    onDragEnter={() => handleMatchDragEnter(cat)}
+                    onDragLeave={() => handleMatchDragLeave(cat)}
+                    onDrop={(e) => handleMatchDrop(cat, e)}
+                  >
+                    <span className="match-cat-label">{cat}</span>
+                    {catItems.length > 0 && (
+                      <div className="match-cat-items">
+                        {catItems.map((item, j) => (
+                          <span
+                            key={j}
+                            className="match-cat-chip"
+                            title="点击移除"
+                            onClick={() => removeMatchPlacement(item)}
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
+          </div>
+        </div>
+      )}
 
-            <span className="quiz-click-hint">系统开发中，敬请期待</span>
+      {/* Q3 阿禾补充对话 — 放置词条后弹出 */}
+      {matchCommentary !== null && (
+        <div className="dialog-overlay" onClick={closeMatchCommentary}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">{MATCH_COMMENTARY[matchCommentary] || '……'}</p>
+            <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
       )}

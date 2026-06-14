@@ -869,13 +869,29 @@
   background: rgba(60, 45, 30, 0.5);
   border: 1px solid rgba(180, 150, 110, 0.3);
   border-radius: 5px;
-  cursor: default;
+  cursor: grab;
   transition: all 0.2s;
+  user-select: none;
 }
 
 .match-item:hover {
   background: rgba(80, 60, 40, 0.6);
   border-color: rgba(201, 168, 124, 0.5);
+}
+
+.match-item:active {
+  cursor: grabbing;
+}
+
+.match-item.dragging {
+  opacity: 0.35;
+  transform: scale(0.95);
+}
+
+.match-item.placed {
+  opacity: 0.45;
+  border-style: dashed;
+  background: rgba(45, 35, 25, 0.35);
 }
 
 /* 下半部分 — 三个分类盒 */
@@ -889,13 +905,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 4.5em;
   padding: 0.8em 0.5em;
+  gap: 0.5em;
   background: rgba(30, 20, 12, 0.5);
   border: 2px dashed rgba(180, 150, 110, 0.4);
   border-radius: 8px;
   transition: all 0.2s;
+}
+
+.match-category.drag-over {
+  background: rgba(60, 45, 25, 0.5);
+  border-color: rgba(201, 168, 124, 0.7);
+  border-style: solid;
+  box-shadow: 0 0 12px rgba(201, 168, 124, 0.15);
 }
 
 .match-cat-label {
@@ -903,6 +927,32 @@
   font-size: 1.1rem;
   color: #c9a87c;
   letter-spacing: 0.2em;
+}
+
+/* 分类盒内已放置词条 */
+.match-cat-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  justify-content: center;
+}
+
+.match-cat-chip {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.8rem;
+  color: #ede5d3;
+  background: rgba(80, 60, 40, 0.5);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.match-cat-chip:hover {
+  background: rgba(139, 69, 48, 0.45);
+  border-color: rgba(200, 160, 120, 0.5);
 }
 
 /* ========== Quiz 反馈（复用 dialog-overlay 样式） ========== */
