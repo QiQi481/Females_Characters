@@ -675,16 +675,6 @@
   border-color: rgba(201, 168, 124, 0.6);
 }
 
-.quiz-image-text {
-  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: 1.15rem;
-  line-height: 1.9;
-  color: #d4c4a8;
-  letter-spacing: 0.1em;
-  text-align: center;
-  margin: 0 0 1.2em;
-}
-
 .quiz-image-wrapper {
   width: 100%;
   margin-bottom: 1.5em;
@@ -789,45 +779,4 @@
   letter-spacing: 0.15em;
 }
 
-/* ========== Quiz 反馈 ========== */
-.quiz-feedback-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 12vh;
-  background: rgba(10, 6, 2, 0.5);
-  cursor: pointer;
-  animation: fadeIn 0.3s ease;
-}
-
-.quiz-feedback-box {
-  position: relative;
-  width: min(600px, 88vw);
-  padding: 1.5rem 2rem 1.8rem;
-  background: rgba(25, 18, 12, 0.88);
-  border: 1px solid rgba(180, 150, 110, 0.35);
-  border-radius: 6px;
-  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(6px);
-  animation: slideUp 0.35s ease;
-  text-align: center;
-}
-
-.quiz-feedback-speaker {
-  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: 1.05rem;
-  color: #d4c4a8;
-  letter-spacing: 0.15em;
-  margin-bottom: 0.6em;
-}
-
-.quiz-feedback-text {
-  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: 1.15rem;
-  color: #ede5d3;
-  letter-spacing: 0.1em;
-  margin: 0 0 1em;
-}
+/* ========== Quiz 反馈（复用 dialog-overlay 样式） ========== */

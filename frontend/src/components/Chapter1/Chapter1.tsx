@@ -69,6 +69,7 @@ function Chapter1() {
   // Quiz 状态
   const [quizActive, setQuizActive] = useState(false)
   const [quizImageOpen, setQuizImageOpen] = useState(false)
+  const [quizImageStep, setQuizImageStep] = useState(0) // 0=阿禾说话, 1=展示图片
   const [quizChoicesOpen, setQuizChoicesOpen] = useState(false)
   const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null)
   const [quizNarrationOpen, setQuizNarrationOpen] = useState(false)
@@ -229,15 +230,28 @@ function Chapter1() {
       setQuizNarrationOpen(true)
     } else if (!quizActive && !quizDone) {
       // 首次关闭信件 → 触发 Quiz
-      setQuizActive(true)
-      setQuizImageOpen(true)
+      startQuizImage()
     }
   }
 
-  // 关闭 Quiz 图片弹窗 → 进入选择题
+  // 关闭 Quiz 图片弹窗
   const closeQuizImage = () => {
-    setQuizImageOpen(false)
-    setQuizChoicesOpen(true)
+    if (quizImageStep === 0) {
+      // 阿禾说完话 → 展示图片
+      setQuizImageStep(1)
+    } else {
+      // 看完图片 → 进入选择题
+      setQuizImageOpen(false)
+      setQuizImageStep(0)
+      setQuizChoicesOpen(true)
+    }
+  }
+
+  // 开始 Quiz 图片阶段
+  const startQuizImage = () => {
+    setQuizActive(true)
+    setQuizImageOpen(true)
+    setQuizImageStep(0)
   }
 
   // 选择答案
@@ -489,14 +503,31 @@ function Chapter1() {
 
       {/* ===== Quiz 流程 ===== */}
 
-      {/* Quiz 图片弹窗 — 阿禾说话 + 占位图 */}
-      {quizImageOpen && (
+      {/* Quiz 图片弹窗 */}
+      {quizImageOpen && quizImageStep === 0 && (
+        <div className="dialog-overlay" onClick={closeQuizImage}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">
+              这一个女书字，我知道是指人，但是到底指的是谁呢
+            </p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {quizImageOpen && quizImageStep === 1 && (
         <div className="quiz-image-overlay" onClick={closeQuizImage}>
           <div className="quiz-image-popup" onClick={(e) => e.stopPropagation()}>
             <button className="quiz-image-close" onClick={closeQuizImage}>关闭</button>
-            <p className="quiz-image-text">
-              这一个女书字，我知道是指人，但是到底指的是谁呢
-            </p>
             <div className="quiz-image-wrapper">
               {/* TODO: 替换为实际女书字图片 */}
               <img
@@ -537,19 +568,25 @@ function Chapter1() {
         </div>
       )}
 
-      {/* Quiz 反馈 — 阿禾回应 */}
+      {/* Quiz 反馈 — 阿禾回应（统一对话界面） */}
       {quizFeedback !== null && (
-        <div className="quiz-feedback-overlay" onClick={closeQuizFeedback}>
-          <div className="quiz-feedback-box" onClick={(e) => e.stopPropagation()}>
-            <div className="quiz-feedback-speaker">
-              阿禾 <span className="dialog-flower">&#10047;</span>
+        <div className="dialog-overlay" onClick={closeQuizFeedback}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
             </div>
-            <p className="quiz-feedback-text">
+            <p className="dialog-text">
               {quizFeedback === 'correct'
                 ? '嗯，也许您是对的'
                 : '嗯，我不太确定'}
             </p>
-            <span className="quiz-click-hint">点击继续</span>
+            <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
       )}
