@@ -8,11 +8,23 @@ const SCENE_SCALE = 2.5
 
 const SCENE_IMG = '/assets/FirstLevel/mainscene.png'
 
+/** 开场旁白，逐句展示 */
+const NARRATION_LINES = [
+  '1985年的某一天',
+  '你来到了江永做田野调查，考察学习女书文字',
+  '一名叫阿禾的女人听说村里来了"专家"，迫切地将一份资料带到了你的身前',
+  '你不是什么专家，你只是一个研究字的学生',
+  '你在书本上见过女书的拓片，但从未真正阅读过一份活的三朝书',
+  '你认得它的形状，却不认得它的语言',
+]
+
 function Chapter1() {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
   const [imgReady, setImgReady] = useState(false)
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
+  const [narrationIndex, setNarrationIndex] = useState(0)
+  const [narrationDone, setNarrationDone] = useState(false)
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -69,9 +81,9 @@ function Chapter1() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // 动画帧 — WASD 平移（弹窗打开时暂停）
+  // 动画帧 — WASD 平移（旁白/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo) return
+    if (!imgReady || showBoundaryInfo || !narrationDone) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -105,7 +117,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, narrationDone])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -117,6 +129,15 @@ function Chapter1() {
       y: Math.max(0, centerY),
     })
   }, [imgReady, maxX, maxY])
+
+  // 旁白点击：下一句 / 结束
+  const handleNarrationClick = () => {
+    if (narrationIndex < NARRATION_LINES.length - 1) {
+      setNarrationIndex((i) => i + 1)
+    } else {
+      setNarrationDone(true)
+    }
+  }
 
   return (
     <div className="chapter1">
@@ -155,10 +176,24 @@ function Chapter1() {
         </div>
       )}
 
-      {/* WASD 提示 */}
-      <div className="chapter1-hint">
-        <span>W A S D</span> 移动视角
-      </div>
+      {/* WASD 提示 — 旁白结束后才显示 */}
+      {narrationDone && (
+        <div className="chapter1-hint">
+          <span>W A S D</span> 移动视角
+        </div>
+      )}
+
+      {/* 开场旁白 */}
+      {!narrationDone && (
+        <div className="narration-overlay" onClick={handleNarrationClick}>
+          <div className="narration-box">
+            <p className="narration-line" key={narrationIndex}>
+              {NARRATION_LINES[narrationIndex]}
+            </p>
+            <span className="narration-click-hint">点击继续</span>
+          </div>
+        </div>
+      )}
 
       {/* 石碑信息弹窗 */}
       {showBoundaryInfo && (
