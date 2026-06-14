@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AboutModal from './AboutModal'
+import SettingsModal from './SettingsModal'
 import './MainMenu.css'
 
 interface MainMenuProps {
@@ -11,10 +12,16 @@ interface MainMenuProps {
 
 function MainMenu({ onStartGame, onContinueGame, onSettings, onAbout }: MainMenuProps) {
   const [showAbout, setShowAbout] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleAbout = () => {
     setShowAbout(true)
     onAbout()
+  }
+
+  const handleSettings = () => {
+    setShowSettings(true)
+    onSettings()
   }
 
   return (
@@ -41,7 +48,7 @@ function MainMenu({ onStartGame, onContinueGame, onSettings, onAbout }: MainMenu
           <button className="menu-btn btn-continue" onClick={onContinueGame}>
             继续游戏
           </button>
-          <button className="menu-btn btn-settings" onClick={onSettings}>
+          <button className="menu-btn btn-settings" onClick={handleSettings}>
             设置
           </button>
           <button className="menu-btn btn-about" onClick={handleAbout}>
@@ -55,6 +62,9 @@ function MainMenu({ onStartGame, onContinueGame, onSettings, onAbout }: MainMenu
 
       {/* 关于女书弹窗 */}
       <AboutModal visible={showAbout} onClose={() => setShowAbout(false)} />
+
+      {/* 设置弹窗 */}
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }
