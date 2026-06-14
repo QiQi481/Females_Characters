@@ -55,6 +55,8 @@ function Chapter1() {
   const [letterDropped, setLetterDropped] = useState(false)
   const [showLetterPopup, setShowLetterPopup] = useState(false)
   const [showBookPopup, setShowBookPopup] = useState(false)
+  const [bookPopupShown, setBookPopupShown] = useState(false)
+  const [showBookSystem, setShowBookSystem] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
   const [narrationDone, setNarrationDone] = useState(false)
   const [dialogIndex, setDialogIndex] = useState(0)
@@ -121,7 +123,7 @@ function Chapter1() {
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo || showLetterPopup || showBookPopup || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || showBoundaryInfo || showLetterPopup || showBookPopup || showBookSystem || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -155,7 +157,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, showBookSystem, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -194,6 +196,7 @@ function Chapter1() {
   // 关闭三朝书，继续对话
   const handleBookPopupClose = () => {
     setShowBookPopup(false)
+    setBookPopupShown(true)
     setDialogIndex((i) => i + 1)
   }
 
@@ -266,6 +269,16 @@ function Chapter1() {
         </div>
       )}
 
+      {/* 三朝书系统按钮 — 展示过三朝书后固定在顶部中央 */}
+      {bookPopupShown && (
+        <button
+          className="chapter1-book-btn"
+          onClick={() => setShowBookSystem(true)}
+        >
+          三朝书
+        </button>
+      )}
+
       {/* 开场旁白 */}
       {!narrationDone && (
         <div className="narration-overlay" onClick={handleNarrationClick}>
@@ -335,6 +348,21 @@ function Chapter1() {
                 className="book-placeholder-img"
               />
               <p className="book-placeholder-hint">三朝书</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 三朝书系统弹窗 */}
+      {showBookSystem && (
+        <div className="book-system-overlay" onClick={() => setShowBookSystem(false)}>
+          <div className="book-system-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="book-system-close" onClick={() => setShowBookSystem(false)}>
+              关闭
+            </button>
+            <div className="book-system-content">
+              <p className="book-system-placeholder">三朝书</p>
+              <p className="book-system-hint">系统开发中，敬请期待</p>
             </div>
           </div>
         </div>
