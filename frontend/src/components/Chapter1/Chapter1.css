@@ -690,6 +690,25 @@
   background: rgba(0, 0, 0, 0.25);
 }
 
+/* Q2 四图网格 */
+.quiz-image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+
+.quiz-grid-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid rgba(201, 168, 124, 0.4);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
 .quiz-click-hint {
   font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
   font-size: 0.8rem;

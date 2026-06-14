@@ -48,6 +48,23 @@ const NARRATION2_LINES = [
   '你和阿禾开始在村口转悠。信箱、老树、石墙……每一处都像藏着话，又都沉默不语。你知道答案可能就在某个最不起眼的角落，只是还没找到读懂它的方式。',
 ]
 
+/** Quiz 题目数据 */
+
+const QUIZ_Q1_DIALOG = '这一个女书字，我知道是指人，但是到底指的是谁呢'
+const QUIZ_Q1_CHOICES = ['你', '我', '她', '他']
+const QUIZ_Q1_CORRECT = 'A'
+
+const QUIZ_Q2_DIALOG = '这四个字，我知道分别是"忘记"和"记得"的意思，可是到底谁是谁呢？'
+const QUIZ_Q2_CHOICES = ['忘记、记得', '记得、忘记', '忘得、记记', '记记、忘得']
+const QUIZ_Q2_CORRECT = 'A'
+
+/** 获取 Quiz 错误反馈文本 */
+const getQuizWrongFeedback = (question: number, choice: string): string => {
+  if (question === 1) return '嗯，我不太确定'
+  if (choice === 'B') return '嗯，我不太确定'
+  return '......真的有这种词存在吗？'
+}
+
 function Chapter1() {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
@@ -68,10 +85,12 @@ function Chapter1() {
   const [narration2Done, setNarration2Done] = useState(false)
   // Quiz 状态
   const [quizActive, setQuizActive] = useState(false)
+  const [quizQuestion, setQuizQuestion] = useState(1) // 当前题目序号 1/2
   const [quizImageOpen, setQuizImageOpen] = useState(false)
   const [quizImageStep, setQuizImageStep] = useState(0) // 0=阿禾说话, 1=展示图片
   const [quizChoicesOpen, setQuizChoicesOpen] = useState(false)
   const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null)
+  const [quizLastChoice, setQuizLastChoice] = useState('')
   const [quizNarrationOpen, setQuizNarrationOpen] = useState(false)
   const [quizLetterMode, setQuizLetterMode] = useState(false)
   const [quizDone, setQuizDone] = useState(false)
@@ -225,22 +244,18 @@ function Chapter1() {
   const closeLetterPopup = () => {
     setShowLetterPopup(false)
     if (quizLetterMode) {
-      // 错误后强制打开的信件关闭 → 展示旁白提示
       setQuizLetterMode(false)
       setQuizNarrationOpen(true)
     } else if (!quizActive && !quizDone) {
-      // 首次关闭信件 → 触发 Quiz
-      startQuizImage()
+      startQuizImage(1)
     }
   }
 
   // 关闭 Quiz 图片弹窗
   const closeQuizImage = () => {
     if (quizImageStep === 0) {
-      // 阿禾说完话 → 展示图片
       setQuizImageStep(1)
     } else {
-      // 看完图片 → 进入选择题
       setQuizImageOpen(false)
       setQuizImageStep(0)
       setQuizChoicesOpen(true)
@@ -248,36 +263,50 @@ function Chapter1() {
   }
 
   // 开始 Quiz 图片阶段
-  const startQuizImage = () => {
+  const startQuizImage = (q: number) => {
+    setQuizQuestion(q)
     setQuizActive(true)
     setQuizImageOpen(true)
     setQuizImageStep(0)
   }
 
+  // 获取当前题目的正确选项
+  const currentCorrect = quizQuestion === 1 ? QUIZ_Q1_CORRECT : QUIZ_Q2_CORRECT
+
   // 选择答案
   const handleQuizChoice = (choice: string) => {
     setQuizChoicesOpen(false)
-    if (choice === 'A') {
+    setQuizLastChoice(choice)
+    if (choice === currentCorrect) {
       setQuizFeedback('correct')
     } else {
       setQuizFeedback('wrong')
     }
   }
 
-  // 关闭反馈 → 正确则结束 Quiz，错误则强制打开信件
+  // 关闭反馈 → Q1 正确则开始 Q2，Q2 正确则结束，错误则重试
   const closeQuizFeedback = () => {
     const isCorrect = quizFeedback === 'correct'
     setQuizFeedback(null)
     if (isCorrect) {
-      setQuizActive(false)
-      setQuizDone(true)
-    } else {
+      if (quizQuestion === 1) {
+        startQuizImage(2)
+      } else {
+        setQuizActive(false)
+        setQuizDone(true)
+      }
+    } else if (quizQuestion === 1) {
+      // Q1 错误：展示信件 + 旁白提示
       setQuizLetterMode(true)
       setShowLetterPopup(true)
+    } else {
+      // Q2 错误：重新展示四张图，看完后再选
+      setQuizImageOpen(true)
+      setQuizImageStep(1)
     }
   }
 
-  // 关闭 Quiz 旁白 → 回到选择题
+  // 关闭 Quiz 旁白 → 回到 Q1 选择题
   const closeQuizNarration = () => {
     setQuizNarrationOpen(false)
     setQuizChoicesOpen(true)
@@ -503,7 +532,7 @@ function Chapter1() {
 
       {/* ===== Quiz 流程 ===== */}
 
-      {/* Quiz 图片弹窗 */}
+      {/* Quiz 图片弹窗 — 阿禾说话 */}
       {quizImageOpen && quizImageStep === 0 && (
         <div className="dialog-overlay" onClick={closeQuizImage}>
           <img
@@ -517,25 +546,36 @@ function Chapter1() {
               <span className="dialog-flower">&#10047;</span>
             </div>
             <p className="dialog-text">
-              这一个女书字，我知道是指人，但是到底指的是谁呢
+              {quizQuestion === 1 ? QUIZ_Q1_DIALOG : QUIZ_Q2_DIALOG}
             </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
       )}
 
+      {/* Quiz 图片弹窗 — 展示图片（Q1 单图 / Q2 四图） */}
       {quizImageOpen && quizImageStep === 1 && (
         <div className="quiz-image-overlay" onClick={closeQuizImage}>
           <div className="quiz-image-popup" onClick={(e) => e.stopPropagation()}>
             <button className="quiz-image-close" onClick={closeQuizImage}>关闭</button>
-            <div className="quiz-image-wrapper">
-              {/* TODO: 替换为实际女书字图片 */}
-              <img
-                src="/assets/FirstLevel/location.png"
-                alt="女书字"
-                className="quiz-image-placeholder"
-              />
-            </div>
+            {quizQuestion === 1 ? (
+              <div className="quiz-image-wrapper">
+                {/* TODO: 替换为实际女书字图片 */}
+                <img
+                  src="/assets/FirstLevel/location.png"
+                  alt="女书字"
+                  className="quiz-image-placeholder"
+                />
+              </div>
+            ) : (
+              <div className="quiz-image-grid">
+                {/* TODO: 替换为实际四字女书图片 */}
+                <img src="/assets/FirstLevel/location.png" alt="字1" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/location.png" alt="字2" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/location.png" alt="字3" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/location.png" alt="字4" className="quiz-grid-img" />
+              </div>
+            )}
             <span className="quiz-click-hint">点击任意处继续</span>
           </div>
         </div>
@@ -547,22 +587,15 @@ function Chapter1() {
           <div className="quiz-choices-panel">
             <p className="quiz-choices-title">请选择正确的含义：</p>
             <div className="quiz-choices-grid">
-              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('A')}>
-                <span className="quiz-choice-key">A</span>
-                <span className="quiz-choice-label">你</span>
-              </button>
-              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('B')}>
-                <span className="quiz-choice-key">B</span>
-                <span className="quiz-choice-label">我</span>
-              </button>
-              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('C')}>
-                <span className="quiz-choice-key">C</span>
-                <span className="quiz-choice-label">她</span>
-              </button>
-              <button className="quiz-choice-btn" onClick={() => handleQuizChoice('D')}>
-                <span className="quiz-choice-key">D</span>
-                <span className="quiz-choice-label">他</span>
-              </button>
+              {(quizQuestion === 1 ? QUIZ_Q1_CHOICES : QUIZ_Q2_CHOICES).map((label, i) => {
+                const key = String.fromCharCode(65 + i) // A B C D
+                return (
+                  <button key={key} className="quiz-choice-btn" onClick={() => handleQuizChoice(key)}>
+                    <span className="quiz-choice-key">{key}</span>
+                    <span className="quiz-choice-label">{label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -584,7 +617,7 @@ function Chapter1() {
             <p className="dialog-text">
               {quizFeedback === 'correct'
                 ? '嗯，也许您是对的'
-                : '嗯，我不太确定'}
+                : getQuizWrongFeedback(quizQuestion, quizLastChoice)}
             </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
