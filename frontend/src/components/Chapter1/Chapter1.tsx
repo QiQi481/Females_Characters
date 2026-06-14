@@ -12,6 +12,7 @@ function Chapter1() {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
   const [imgReady, setImgReady] = useState(false)
+  const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -68,9 +69,9 @@ function Chapter1() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // 动画帧 — WASD 平移
+  // 动画帧 — WASD 平移（弹窗打开时暂停）
   useEffect(() => {
-    if (!imgReady) return
+    if (!imgReady || showBoundaryInfo) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -104,7 +105,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY])
+  }, [imgReady, maxX, maxY, showBoundaryInfo])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -149,6 +150,7 @@ function Chapter1() {
             alt="石碑"
             className="chapter1-boundary"
             draggable={false}
+            onClick={() => setShowBoundaryInfo(true)}
           />
         </div>
       )}
@@ -157,6 +159,29 @@ function Chapter1() {
       <div className="chapter1-hint">
         <span>W A S D</span> 移动视角
       </div>
+
+      {/* 石碑信息弹窗 */}
+      {showBoundaryInfo && (
+        <div className="boundary-overlay" onClick={() => setShowBoundaryInfo(false)}>
+          <div className="boundary-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="boundary-close" onClick={() => setShowBoundaryInfo(false)}>
+              关闭
+            </button>
+
+            <div className="boundary-content">
+              <img
+                src="/assets/FirstLevel/location.png"
+                alt="江永县"
+                className="boundary-location-img"
+              />
+
+              <p className="boundary-text">
+                江永县位于湖南省南部，隶属永州市，地处湘桂交界一带，拥有"女书文化"、"中国香柚之乡"的称号，古称永明，秦时立县，历史悠久。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

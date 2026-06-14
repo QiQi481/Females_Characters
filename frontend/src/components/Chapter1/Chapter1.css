@@ -45,8 +45,13 @@
   bottom: 24%;
   width: 2%;
   height: auto;
-  pointer-events: none;
+  cursor: pointer;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  transition: filter 0.2s;
+}
+
+.chapter1-boundary:hover {
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5)) brightness(1.1);
 }
 
 /* ========== WASD 操作提示 ========== */
@@ -80,4 +85,86 @@
 @keyframes hintPulse {
   0%, 100% { opacity: 0.7; }
   50%      { opacity: 1; }
+}
+
+/* ========== 石碑信息弹窗 ========== */
+.boundary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 10, 5, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.boundary-popup {
+  position: relative;
+  width: min(520px, 88vw);
+  background: linear-gradient(180deg, #faf6ed 0%, #f3ebd8 100%);
+  border: 2px solid #c9a87c;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 40px rgba(60, 30, 10, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  animation: slideUp 0.35s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.boundary-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  padding: 4px 16px;
+  border: 1px solid #c9a87c;
+  border-radius: 4px;
+  background: rgba(250, 246, 237, 0.9);
+  color: #8b4530;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.boundary-close:hover {
+  background: #8b4530;
+  color: #fff;
+  border-color: #8b4530;
+}
+
+.boundary-content {
+  padding: 2rem 2rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5em;
+}
+
+.boundary-location-img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 168, 124, 0.5);
+}
+
+.boundary-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.05rem;
+  line-height: 2;
+  color: #3a2a1a;
+  text-indent: 2em;
+  margin: 0;
 }
