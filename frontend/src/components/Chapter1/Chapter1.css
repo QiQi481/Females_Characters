@@ -454,3 +454,66 @@
   padding: 2px;
   object-fit: contain;
 }
+
+/* ========== 三朝书弹窗 ========== */
+.book-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.book-popup {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  padding: 1rem;
+}
+
+.book-popup-close {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.4rem;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(180, 150, 110, 0.4);
+  border-radius: 3px;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  color: #ded5c0;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  transition: background 0.2s;
+}
+
+.book-popup-close:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.book-popup-content {
+  text-align: center;
+}
+
+.book-placeholder-img {
+  display: block;
+  max-width: 85vw;
+  max-height: 78vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.book-placeholder-hint {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.1rem;
+  color: rgba(220, 200, 170, 0.6);
+  margin-top: 0.8rem;
+  letter-spacing: 0.3em;
+}

@@ -54,6 +54,7 @@ function Chapter1() {
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const [letterDropped, setLetterDropped] = useState(false)
   const [showLetterPopup, setShowLetterPopup] = useState(false)
+  const [showBookPopup, setShowBookPopup] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
   const [narrationDone, setNarrationDone] = useState(false)
   const [dialogIndex, setDialogIndex] = useState(0)
@@ -120,7 +121,7 @@ function Chapter1() {
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo || showLetterPopup || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || showBoundaryInfo || showLetterPopup || showBookPopup || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -154,7 +155,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -177,14 +178,23 @@ function Chapter1() {
     }
   }
 
-  // 对话点击：下一句 / 结束并开启第二段旁白
+  // 对话点击：下一句 / 弹出三朝书 / 结束并开启第二段旁白
   const handleDialogClick = () => {
-    if (dialogIndex < DIALOG_LINES.length - 1) {
+    if (dialogIndex === 2) {
+      // 阿禾说完"您帮我看看这个" → 弹出三朝书
+      setShowBookPopup(true)
+    } else if (dialogIndex < DIALOG_LINES.length - 1) {
       setDialogIndex((i) => i + 1)
     } else {
       setDialogFinished(true)
       setNarration2Active(true)
     }
+  }
+
+  // 关闭三朝书，继续对话
+  const handleBookPopupClose = () => {
+    setShowBookPopup(false)
+    setDialogIndex((i) => i + 1)
   }
 
   // 第二段旁白点击：下一句 / 结束
@@ -306,6 +316,26 @@ function Chapter1() {
               {NARRATION2_LINES[narration2Index]}
             </p>
             <span className="narration-click-hint">点击继续</span>
+          </div>
+        </div>
+      )}
+
+      {/* 三朝书弹窗 — 对话中阿禾展示三朝书时触发 */}
+      {showBookPopup && (
+        <div className="book-popup-overlay" onClick={handleBookPopupClose}>
+          <div className="book-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="book-popup-close" onClick={handleBookPopupClose}>
+              关闭
+            </button>
+            <div className="book-popup-content">
+              {/* TODO: 替换为实际三朝书图片 */}
+              <img
+                src="/assets/FirstLevel/location.png"
+                alt="三朝书"
+                className="book-placeholder-img"
+              />
+              <p className="book-placeholder-hint">三朝书</p>
+            </div>
           </div>
         </div>
       )}
