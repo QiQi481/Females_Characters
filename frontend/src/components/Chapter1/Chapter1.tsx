@@ -18,6 +18,27 @@ const NARRATION_LINES = [
   '你认得它的形状，却不认得它的语言',
 ]
 
+interface DialogLine {
+  speaker: string
+  text: string
+}
+
+/** 阿禾对话 — 旁白结束后自动触发 */
+const DIALOG_LINES: DialogLine[] = [
+  { speaker: '阿禾', text: '您就是村里说的那个专家吧？' },
+  { speaker: '我',    text: '不是专家，只是个学生，来学女书的。' },
+  { speaker: '阿禾', text: '学生也是文化人……您就是我最后一根稻草了。您帮我看看这个。' },
+  { speaker: '我',    text: '这是……三朝书？' },
+  { speaker: '阿禾', text: '嗯。我阿姐去世后留下的。不是她写的，是当年别人送给她的。我跟祖母学过点女书皮毛，这几页铅笔字是我自己试着译的，译得乱七八糟。' },
+  { speaker: '我',    text: '（接过书，纸页泛黄）我在书上见过拓片，但从没读过活的三朝书。我试试看。' },
+  { speaker: '阿禾', text: '阿姐临走前话都说不清了，还一直比划这本书……我想，她是想让人知道这里面写了什么。' },
+  { speaker: '我',    text: '（翻了一阵，皱眉）大部分我能慢慢琢磨……但这最后一句话，我完全看不懂，跟我学过的任何范本都对不上。' },
+  { speaker: '阿禾', text: '（凑过来看，摇头）我也卡在这里好久。' },
+  { speaker: '我',    text: '这本书交给我吧。我帮你把剩下的工作完成。' },
+  { speaker: '阿禾', text: '您愿意？' },
+  { speaker: '我',    text: '我答应你。' },
+]
+
 function Chapter1() {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
@@ -25,6 +46,9 @@ function Chapter1() {
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
   const [narrationDone, setNarrationDone] = useState(false)
+  const [dialogIndex, setDialogIndex] = useState(0)
+  const [dialogActive, setDialogActive] = useState(false)
+  const [dialogFinished, setDialogFinished] = useState(false)
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -81,9 +105,9 @@ function Chapter1() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // 动画帧 — WASD 平移（旁白/弹窗期间暂停）
+  // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || showBoundaryInfo || !narrationDone) return
+    if (!imgReady || showBoundaryInfo || !narrationDone || (dialogActive && !dialogFinished)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -117,7 +141,7 @@ function Chapter1() {
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, showBoundaryInfo, narrationDone])
+  }, [imgReady, maxX, maxY, showBoundaryInfo, narrationDone, dialogActive, dialogFinished])
 
   // 图片加载后把初始位置定在画面正中偏上
   useEffect(() => {
@@ -130,12 +154,22 @@ function Chapter1() {
     })
   }, [imgReady, maxX, maxY])
 
-  // 旁白点击：下一句 / 结束
+  // 旁白点击：下一句 / 结束并开启对话
   const handleNarrationClick = () => {
     if (narrationIndex < NARRATION_LINES.length - 1) {
       setNarrationIndex((i) => i + 1)
     } else {
       setNarrationDone(true)
+      setDialogActive(true)
+    }
+  }
+
+  // 对话点击：下一句 / 结束
+  const handleDialogClick = () => {
+    if (dialogIndex < DIALOG_LINES.length - 1) {
+      setDialogIndex((i) => i + 1)
+    } else {
+      setDialogFinished(true)
     }
   }
 
@@ -176,8 +210,8 @@ function Chapter1() {
         </div>
       )}
 
-      {/* WASD 提示 — 旁白结束后才显示 */}
-      {narrationDone && (
+      {/* WASD 提示 — 对话结束后才显示 */}
+      {dialogFinished && (
         <div className="chapter1-hint">
           <span>W A S D</span> 移动视角
         </div>
@@ -191,6 +225,36 @@ function Chapter1() {
               {NARRATION_LINES[narrationIndex]}
             </p>
             <span className="narration-click-hint">点击继续</span>
+          </div>
+        </div>
+      )}
+
+      {/* 对话 — 旁白结束后显示 */}
+      {dialogActive && !dialogFinished && (
+        <div className="dialog-overlay" onClick={handleDialogClick}>
+          {/* 阿禾立绘 */}
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+
+          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+            {/* 名字行 */}
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">{DIALOG_LINES[dialogIndex].speaker}</span>
+              {DIALOG_LINES[dialogIndex].speaker === '阿禾' && (
+                <span className="dialog-flower">&#10047;</span>
+              )}
+            </div>
+
+            {/* 对话文本 */}
+            <p className="dialog-text" key={dialogIndex}>
+              {DIALOG_LINES[dialogIndex].text}
+            </p>
+
+            {/* 继续提示 */}
+            <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
       )}

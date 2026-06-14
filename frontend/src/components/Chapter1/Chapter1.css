@@ -219,3 +219,95 @@
   letter-spacing: 0.2em;
   animation: hintPulse 2.5s ease-in-out infinite;
 }
+
+/* ========== 对话框 ========== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  cursor: pointer;
+}
+
+.dialog-portrait {
+  position: absolute;
+  top: 25vh;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100vh;
+  width: auto;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+  animation: portraitIn 0.6s ease;
+}
+
+@keyframes portraitIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dialog-box {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: min(780px, 92vw);
+  background: rgba(25, 18, 12, 0.88);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+  padding: 1.6rem 2rem 1.8rem;
+  box-shadow:
+    0 -4px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(6px);
+}
+
+.dialog-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+}
+
+.dialog-speaker {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.05rem;
+  color: #d4c4a8;
+  letter-spacing: 0.15em;
+}
+
+.dialog-flower {
+  color: #e8b4a0;
+  font-size: 1rem;
+}
+
+.dialog-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1rem, 2.8vw, 1.15rem);
+  line-height: 1.9;
+  color: #ede5d3;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  animation: dialogTextIn 0.25s ease;
+}
+
+@keyframes dialogTextIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dialog-next-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: rgba(220, 200, 170, 0.45);
+  animation: nextPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes nextPulse {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 0.7; transform: translateY(2px); }
+}
