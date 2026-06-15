@@ -880,11 +880,10 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
               </div>
             ) : (
               <div className="quiz-image-grid">
-                {/* TODO: 替换为实际四字女书图片 */}
-                <img src="/assets/FirstLevel/location.png" alt="字1" className="quiz-grid-img" />
-                <img src="/assets/FirstLevel/location.png" alt="字2" className="quiz-grid-img" />
-                <img src="/assets/FirstLevel/location.png" alt="字3" className="quiz-grid-img" />
-                <img src="/assets/FirstLevel/location.png" alt="字4" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/forget1.png" alt="忘记·字1" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/forget2.png" alt="忘记·字2" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/remember1.png" alt="记得·字1" className="quiz-grid-img" />
+                <img src="/assets/FirstLevel/remember2.png" alt="记得·字2" className="quiz-grid-img" />
               </div>
             )}
             <span className="quiz-click-hint">点击任意处继续</span>
