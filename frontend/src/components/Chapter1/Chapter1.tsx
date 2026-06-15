@@ -297,6 +297,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
     if (resumeProgress >= ProgressStage.DIALOG) {
       setNarrationDone(true)
       setDialogActive(true)
+      setBookPopupShown(true)
     }
     if (resumeProgress >= ProgressStage.NARRATION2) {
       setDialogFinished(true)
