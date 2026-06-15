@@ -760,13 +760,11 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
               关闭
             </button>
             <div className="book-popup-content">
-              {/* TODO: 替换为实际三朝书图片 */}
               <img
-                src="/assets/FirstLevel/location.png"
+                src="/assets/FirstLevel/sanchaoshu.png"
                 alt="三朝书"
                 className="book-placeholder-img"
               />
-              <p className="book-placeholder-hint">三朝书</p>
             </div>
           </div>
         </div>
