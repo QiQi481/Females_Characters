@@ -2,7 +2,12 @@
  * SongData - 场景2：女伴们一起唱歌场景 的静态数据
  * 包含：词条定义、线索配置、NPC对话、中文槽位
  */
-import type { Clue, NPC, DictionaryEntry } from '../../types';
+import type {
+  Clue,
+  ClueInteractionType,
+  DictionaryEntry,
+  NPC,
+} from '../../types'
 
 // ==================== 场景2词条定义 ====================
 
@@ -12,45 +17,65 @@ export const SONG_ENTRIES: DictionaryEntry[] = [
     id: 'song_ge',
     nvshuChar: '𛆁', // 女书"歌"（用Unicode女书字符占位）
     chinese: '歌',
+    nushuText: '𛆁',
+    meaning: '歌',
+    clueIds: ['clue_fan'],
+    isMainEntry: true,
     unlocked: false,
     matched: false,
-    sceneId: 'song',
+    sceneId: 'singingHall',
     hint: '从唱扇女中发现',
   },
   {
     id: 'song_sheng',
     nvshuChar: '𛆂', // 女书"声"
     chinese: '声',
+    nushuText: '𛆂',
+    meaning: '声',
+    clueIds: ['npc_sisters'],
+    isMainEntry: true,
     unlocked: false,
     matched: false,
-    sceneId: 'song',
+    sceneId: 'singingHall',
     hint: '从围坐姐妹处听到',
   },
   {
     id: 'song_shan',
     nvshuChar: '𛆃', // 女书"扇"
     chinese: '扇',
+    nushuText: '𛆃',
+    meaning: '扇',
+    clueIds: ['clue_fan'],
+    isMainEntry: true,
     unlocked: false,
     matched: false,
-    sceneId: 'song',
+    sceneId: 'singingHall',
     hint: '从唱扇女中发现',
   },
   {
     id: 'song_chuan',
     nvshuChar: '𛆄', // 女书"传"
     chinese: '传',
+    nushuText: '𛆄',
+    meaning: '传',
+    clueIds: ['clue_paper'],
+    isMainEntry: true,
     unlocked: false,
     matched: false,
-    sceneId: 'song',
+    sceneId: 'singingHall',
     hint: '从传唱纸片中发现',
   },
   {
     id: 'song_ji',
     nvshuChar: '𛆅', // 女书"记"
     chinese: '记',
+    nushuText: '𛆅',
+    meaning: '记',
+    clueIds: ['clue_basket'],
+    isMainEntry: true,
     unlocked: false,
     matched: false,
-    sceneId: 'song',
+    sceneId: 'singingHall',
     hint: '从笔墨中发现',
   },
 ];
@@ -69,7 +94,21 @@ export const SONG_SLOTS = [
 // ==================== 场景2线索 ====================
 
 /** 场景2中的所有线索（坐标适配 2172×724 底图） */
-export const SONG_CLUES: Clue[] = [
+type SingingClueSource = Omit<
+  Clue,
+  | 'sceneId'
+  | 'title'
+  | 'description'
+  | 'type'
+  | 'imageKey'
+  | 'imagePath'
+  | 'unlockEntryIds'
+  | 'interactionType'
+> & {
+  type: ClueInteractionType
+}
+
+const SONG_CLUE_SOURCES: SingingClueSource[] = [
   // ----- 正确线索1：唱扇女展开页 -----
   {
     id: 'clue_fan',
@@ -182,11 +221,22 @@ export const SONG_CLUES: Clue[] = [
   },
 ];
 
+export const SONG_CLUES: Clue[] = SONG_CLUE_SOURCES.map((clue) => ({
+  ...clue,
+  sceneId: 'singingHall',
+  title: clue.name,
+  description: clue.displayText,
+  type: clue.isFake ? 'culture' : 'main',
+  interactionType: clue.type,
+  unlockEntryIds: clue.entryIds,
+}))
+
 // ==================== 场景2 NPC ====================
 
 /** 围坐姐妹（听唱读） */
 export const SISTERS_NPC: NPC = {
   id: 'npc_sisters',
+  sceneId: 'singingHall',
   name: '__ __ 姐妹',
   x: 2160,
   y: 800,
@@ -199,6 +249,7 @@ export const SISTERS_NPC: NPC = {
     '你听到歌谣中反复出现"声"这个字……',
     '女书不只用来看，更是用来唱的。',
   ],
+  unlockEntryIds: ['song_sheng'],
 };
 
 /** 唱扇女 NPC - 已移除 */

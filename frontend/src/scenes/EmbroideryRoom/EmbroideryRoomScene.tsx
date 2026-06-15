@@ -30,7 +30,7 @@ function EmbroideryRoomScene({
   return (
     <section
       className="embroidery-room-scene"
-      aria-label="绣帕女红空间线索场景"
+      aria-label="绣帕女红房线索场景"
       onClick={clearOnEmptySpace}
     >
       <img

@@ -10,7 +10,6 @@ const assetUrl = (fileName: string): string =>
 
 const mainBgUrl = assetUrl('main_bg.png');
 const sistersUrl = assetUrl('sisters_sing.png');
-const dictionaryBtnUrl = assetUrl('dictionary_btn.png');
 const completionMidUrl = assetUrl('completion_mid.png');
 const completionTopUrl = assetUrl('completion_top.png');
 const dialogueBgUrl = assetUrl('dialogue_bg.png');
@@ -18,7 +17,6 @@ const sistersSceneBgUrl = assetUrl('sisters_scene_bg.png');
 const sistersFullSceneUrl = assetUrl('sisters_fullscene.png');
 const paperImgUrl = assetUrl('paper_img.png');
 const pipaImgUrl = assetUrl('pipa.png');
-const icon1Url = assetUrl('icon1.png');
 const sistersTextUrl = assetUrl('sisters_text.png');
 const fanOpenUrl = assetUrl('fan_open.png');
 const bimoUrl = assetUrl('bimo.png');
@@ -29,6 +27,7 @@ const nvshuGirlUrl = assetUrl('nvshu_girl.png');
 const nvshuGirlTextUrl = assetUrl('nvshu_girl_text.png');
 const bimoBigUrl = assetUrl('bimo_big.png');
 const paperTextUrl = assetUrl('paper_text.png');
+const openBookIconUrl = '/assets/ui/open_book_icon.png';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -68,9 +67,6 @@ export class BootScene extends Phaser.Scene {
     // 围坐姐妹图片
     this.load.image('sisters_img', sistersUrl);
 
-    // 女书词典按钮图片
-    this.load.image('dictionary_btn_img', dictionaryBtnUrl);
-
     // 完成场景 - 中间层（桌面/背景）
     this.load.image('completion_mid', completionMidUrl);
 
@@ -92,8 +88,8 @@ export class BootScene extends Phaser.Scene {
     // 琵琶图片
     this.load.image('pipa_img', pipaImgUrl);
 
-    // 词典按钮图标（新）
-    this.load.image('icon1_img', icon1Url);
+    // 两个副场景共用的词典入口图标
+    this.load.image('open_book_icon', openBookIconUrl);
 
     // 围坐姐妹上方文字图片（身声，保留白底）
     this.load.image('sisters_text_img', sistersTextUrl);
@@ -163,9 +159,12 @@ export class BootScene extends Phaser.Scene {
     // 去除笔墨大图的白色背景
     this.removeWhiteBg('bimo_big_img', 240);
 
-    // 短暂停留后进入主场景
+    const startScene =
+      this.registry.get('startScene') ?? SceneKeys.MAIN;
+
+    // 短暂停留后进入指定场景
     this.time.delayedCall(500, () => {
-      this.scene.start(SceneKeys.MAIN);
+      this.scene.start(startScene);
     });
   }
 

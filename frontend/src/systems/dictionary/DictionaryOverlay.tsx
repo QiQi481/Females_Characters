@@ -188,6 +188,8 @@ export function DictionaryOverlay({
               const isUnlocked = unlockedIds.has(entry.id)
               const isActive = activeEntryId === entry.id
               const isPuzzleTarget = activePuzzle?.activeEntryId === entry.id
+              const isUnavailableFinalYan =
+                entry.id === 'yan' && !isUnlocked && !isPuzzleTarget
               const displayStatus = isUnlocked ? 'unlocked' : entry.status
 
               return (
@@ -202,7 +204,7 @@ export function DictionaryOverlay({
                       '--entry-size': `${entry.size}px`,
                     } as CSSProperties
                   }
-                  disabled={isResolvingPuzzle}
+                  disabled={isResolvingPuzzle || isUnavailableFinalYan}
                   type="button"
                   aria-label={
                     isUnlocked

@@ -1,11 +1,30 @@
 import type { DictionaryPuzzle } from '../../systems/dictionary'
-import { clueContent } from './embroideryRoomSceneData'
+import {
+  clueContent,
+  type EmbroideryRoomEntryId,
+  type EmbroideryRoomPropId,
+} from './embroideryRoomSceneData'
 
-export const clueOrder = ['红妆', '女红', '灯', '今', '名', '言'] as const
+export const clueOrder = ['今', '女红', '灯', '红妆', '名', '言'] as const
 
 export type ClueName = (typeof clueOrder)[number]
-export type ObjectClueName = Extract<ClueName, '红妆' | '女红' | '灯'>
 export type DialogueClueName = Extract<ClueName, '今' | '名' | '言'>
+export type ObjectUnlockEntryId = Exclude<
+  EmbroideryRoomEntryId,
+  'embroidery_yan'
+>
+
+export const embroideryEntryLabels: Record<
+  EmbroideryRoomEntryId,
+  ClueName
+> = {
+  embroidery_jin: '今',
+  embroidery_nugong: '女红',
+  embroidery_deng: '灯',
+  embroidery_hongzhuang: '红妆',
+  embroidery_ming: '名',
+  embroidery_yan: '言',
+}
 
 type PercentValue = `${number}%`
 
@@ -19,7 +38,7 @@ export type PercentRect = {
 }
 
 type SceneObjectBase = {
-  id: string
+  id: EmbroideryRoomPropId
   title: string
   description: string
   image: string
@@ -30,12 +49,13 @@ type SceneObjectBase = {
 
 export type ClueSceneObjectConfig = SceneObjectBase & {
   kind: 'clue'
-  title: ObjectClueName
+  unlockEntryId: ObjectUnlockEntryId
   nushuImages: readonly string[]
 }
 
 export type CultureSceneObjectConfig = SceneObjectBase & {
   kind: 'culture'
+  unlockEntryId?: never
 }
 
 export type SceneObjectConfig =
@@ -65,19 +85,22 @@ export type NpcConfig = {
   completedLine: string
 }
 
-export const nushuImages: Record<ClueName, readonly string[]> = {
-  红妆: [
+export const nushuImages: Record<
+  EmbroideryRoomEntryId,
+  readonly string[]
+> = {
+  embroidery_hongzhuang: [
     '/assets/nushu/hong.png',
     '/assets/nushu/zhuang.png',
   ],
-  女红: [
+  embroidery_nugong: [
     '/assets/nushu/nv.png',
     '/assets/nushu/hong.png',
   ],
-  灯: ['/assets/nushu/deng.png'],
-  今: ['/assets/nushu/jin.png'],
-  名: ['/assets/nushu/ming.png'],
-  言: ['/assets/nushu/yan.png'],
+  embroidery_deng: ['/assets/nushu/deng.png'],
+  embroidery_jin: ['/assets/nushu/jin.png'],
+  embroidery_ming: ['/assets/nushu/ming.png'],
+  embroidery_yan: ['/assets/nushu/yan.png'],
 }
 
 export const sceneObjects: readonly SceneObjectConfig[] = [
@@ -86,8 +109,9 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
     kind: 'clue',
     title: clueContent['red-makeup'].title,
     description: clueContent['red-makeup'].description,
-    image: '/assets/scenes/embroidery-room/props/red-makeup.png',
-    nushuImages: nushuImages.红妆,
+    unlockEntryId: 'embroidery_hongzhuang',
+    image: '/assets/embroidery-room/clues/hongzhuang.png',
+    nushuImages: nushuImages.embroidery_hongzhuang,
     imagePosition: { left: '13%', top: '57%', width: '17%' },
     hotspotPosition: {
       left: '16%',
@@ -102,8 +126,9 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
     kind: 'clue',
     title: clueContent.needlework.title,
     description: clueContent.needlework.description,
-    image: '/assets/scenes/embroidery-room/props/needlework.png',
-    nushuImages: nushuImages.女红,
+    unlockEntryId: 'embroidery_ming',
+    image: '/assets/embroidery-room/clues/nugong.png',
+    nushuImages: nushuImages.embroidery_ming,
     imagePosition: { left: '37%', top: '56%', width: '17%' },
     hotspotPosition: {
       left: '40.5%',
@@ -118,8 +143,9 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
     kind: 'clue',
     title: clueContent.lamp.title,
     description: clueContent.lamp.description,
-    image: '/assets/scenes/embroidery-room/props/lamp.png',
-    nushuImages: nushuImages.灯,
+    unlockEntryId: 'embroidery_deng',
+    image: '/assets/embroidery-room/clues/deng.png',
+    nushuImages: nushuImages.embroidery_deng,
     imagePosition: { left: '69%', top: '49%', width: '14%' },
     hotspotPosition: {
       left: '72%',
@@ -131,10 +157,12 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
   },
   {
     id: 'handkerchief',
-    kind: 'culture',
+    kind: 'clue',
     title: clueContent.handkerchief.title,
     description: clueContent.handkerchief.description,
-    image: '/assets/scenes/embroidery-room/props/handkerchief.png',
+    unlockEntryId: 'embroidery_jin',
+    image: '/assets/embroidery-room/items/xiupa.png',
+    nushuImages: nushuImages.embroidery_jin,
     imagePosition: { left: '61%', top: '62%', width: '13.5%' },
     hotspotPosition: {
       left: '63%',
@@ -142,14 +170,16 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
       width: '10%',
       height: '20%',
     },
-    ariaLabel: '查看文化物件绣帕',
+    ariaLabel: '查看主线线索绣帕',
   },
   {
     id: 'sewing-basket',
-    kind: 'culture',
+    kind: 'clue',
     title: clueContent['sewing-basket'].title,
     description: clueContent['sewing-basket'].description,
-    image: '/assets/scenes/embroidery-room/props/sewing-basket.png',
+    unlockEntryId: 'embroidery_nugong',
+    image: '/assets/embroidery-room/items/needle-basket.png',
+    nushuImages: nushuImages.embroidery_nugong,
     imagePosition: { left: '76%', top: '58%', width: '14%' },
     hotspotPosition: {
       left: '77%',
@@ -157,14 +187,14 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
       width: '13%',
       height: '25%',
     },
-    ariaLabel: '查看文化物件女红篮和针线',
+    ariaLabel: '查看主线线索女红篮和针线',
   },
   {
     id: 'mirror-box',
     kind: 'culture',
     title: clueContent['mirror-box'].title,
     description: clueContent['mirror-box'].description,
-    image: '/assets/scenes/embroidery-room/props/mirror-box.png',
+    image: '/assets/embroidery-room/items/comb-mirror.png',
     imagePosition: { left: '87%', top: '61%', width: '13%' },
     hotspotPosition: {
       left: '87.2%',
@@ -176,43 +206,21 @@ export const sceneObjects: readonly SceneObjectConfig[] = [
   },
 ]
 
+export const finalYanPuzzle: DialoguePuzzleConfig = {
+  id: 'embroiderer-yan',
+  label: '言',
+  activeEntryId: 'yan',
+  correctEntryId: 'yan',
+  nushuImage: '/assets/nushu/yan.png',
+  beforeLines: ['有些话，到了出门那日，反倒说不出口。'],
+  puzzleLine: '口中不能{{nushu}}，就让针线替她写。',
+  solvedLine: '口中不能言，就让针线替她写。',
+  afterLines: ['所以帕上的字，不只是字。'],
+  contextSentence: '千 {{nushu}} 写尽犹余半',
+}
+
 export const dialoguePuzzles: readonly DialoguePuzzleConfig[] = [
-  {
-    id: 'embroiderer-jin',
-    label: '今',
-    activeEntryId: 'jin',
-    correctEntryId: 'jin',
-    nushuImage: '/assets/nushu/jin.png',
-    beforeLines: ['这方帕，不能拖到明日了。'],
-    puzzleLine: '我{{nushu}}日就要把它绣完。',
-    solvedLine: '我今日就要把它绣完。',
-    afterLines: [],
-    contextSentence: '我 {{nushu}} 日就要把它绣完。',
-  },
-  {
-    id: 'embroiderer-ming',
-    label: '名',
-    activeEntryId: 'ming',
-    correctEntryId: 'ming',
-    nushuImage: '/assets/nushu/ming.png',
-    beforeLines: ['送人的帕，不能只绣花。'],
-    puzzleLine: '帕角要留她的{{nushu}}。',
-    solvedLine: '帕角要留她的名。',
-    afterLines: ['这样多年以后，也还记得是谁送的。'],
-    contextSentence: '帕角要留她的 {{nushu}} 。',
-  },
-  {
-    id: 'embroiderer-yan',
-    label: '言',
-    activeEntryId: 'yan',
-    correctEntryId: 'yan',
-    nushuImage: '/assets/nushu/yan.png',
-    beforeLines: ['有些话，到了出门那日，反倒说不出口。'],
-    puzzleLine: '口中不能{{nushu}}，就让针线替她写。',
-    solvedLine: '口中不能言，就让针线替她写。',
-    afterLines: ['所以帕上的字，不只是字。'],
-    contextSentence: '口中不能 {{nushu}} ，就让针线替她写。',
-  },
+  finalYanPuzzle,
 ]
 
 export const npcConfig: NpcConfig = {

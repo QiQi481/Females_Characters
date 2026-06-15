@@ -2,12 +2,22 @@
  * 女书游戏 - Phaser 配置与常量
  */
 import Phaser from 'phaser';
+import { EmbroideryRoomPhaserScene } from '../EmbroideryRoom/phaser/EmbroideryRoomPhaserScene'
+import type { GlobalDictionaryBridge } from '../../game/GlobalDictionaryBridge'
 import { BootScene } from './scenes/BootScene';
 import { MainScene } from './scenes/MainScene';
+import { SceneKeys, type SceneKey } from './types'
 
 /** 视口尺寸（屏幕可见区域） */
-export const VIEW_WIDTH = 1920;
-export const VIEW_HEIGHT = 1080;
+export const DESIGN_WIDTH = 1920;
+export const DESIGN_HEIGHT = 1080;
+export let VIEW_WIDTH = DESIGN_WIDTH;
+export let VIEW_HEIGHT = DESIGN_HEIGHT;
+
+export function setViewportSize(width: number, height: number): void {
+  VIEW_WIDTH = width;
+  VIEW_HEIGHT = height;
+}
 
 /** 世界尺寸（地图实际大小，与底图 2172×724 一致） */
 export const WORLD_WIDTH = 4344;
@@ -26,14 +36,16 @@ export const INTERACT_DISTANCE = 160;
 /** 场景独立存档 Key */
 export const SAVE_KEY = 'womenbook_singing_hall_save';
 
-/** 创建可挂载到 React 容器中的 Phaser 配置。 */
-export function createSingingHallGameConfig(
-  parent: HTMLElement
+/** 创建可挂载到 React 容器中的共享 Phaser 配置。 */
+export function createPhaserGameConfig(
+  parent: HTMLElement,
+  startScene: SceneKey,
+  dictionaryBridge: GlobalDictionaryBridge,
 ): Phaser.Types.Core.GameConfig {
   return {
     type: Phaser.AUTO,
-    width: VIEW_WIDTH,
-    height: VIEW_HEIGHT,
+    width: DESIGN_WIDTH,
+    height: DESIGN_HEIGHT,
     parent,
     backgroundColor: '#1a1a2e',
     physics: {
@@ -43,10 +55,38 @@ export function createSingingHallGameConfig(
         debug: false,
       },
     },
-    scene: [BootScene, MainScene],
+    scene: [BootScene, MainScene, EmbroideryRoomPhaserScene],
+    callbacks: {
+      preBoot: (game) => {
+        game.registry.set('startScene', startScene)
+        game.registry.set('globalDictionaryBridge', dictionaryBridge)
+      },
+    },
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.EXPAND,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
   };
+}
+
+export function createSingingHallGameConfig(
+  parent: HTMLElement,
+  dictionaryBridge: GlobalDictionaryBridge,
+): Phaser.Types.Core.GameConfig {
+  return createPhaserGameConfig(
+    parent,
+    SceneKeys.MAIN,
+    dictionaryBridge,
+  )
+}
+
+export function createEmbroideryRoomGameConfig(
+  parent: HTMLElement,
+  dictionaryBridge: GlobalDictionaryBridge,
+): Phaser.Types.Core.GameConfig {
+  return createPhaserGameConfig(
+    parent,
+    SceneKeys.EMBROIDERY,
+    dictionaryBridge,
+  )
 }

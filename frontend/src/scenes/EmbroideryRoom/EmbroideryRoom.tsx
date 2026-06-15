@@ -4,6 +4,7 @@ import EmbroideryRoomScene from './EmbroideryRoomScene'
 import {
   clueOrder,
   dialoguePuzzles,
+  embroideryEntryLabels,
   npcConfig,
   sceneObjects,
   type ClueName,
@@ -189,7 +190,9 @@ function EmbroideryRoom({ openDictionary }: EmbroideryRoomProps) {
   }
 
   const openSceneObject = (sceneObject: SceneObjectConfig) => {
-    if (sceneObject.kind === 'clue') collectClue(sceneObject.title)
+    if (sceneObject.kind === 'clue') {
+      collectClue(embroideryEntryLabels[sceneObject.unlockEntryId])
+    }
     setActiveCard(sceneObject)
     setIsClueTrayOpen(false)
   }
@@ -263,7 +266,7 @@ function EmbroideryRoom({ openDictionary }: EmbroideryRoomProps) {
       <section
         ref={viewportRef}
         className="game-viewport"
-        aria-label="绣帕女红空间横版探索场景"
+        aria-label="绣帕女红房横版探索场景"
       >
         <div
           className="scene-world"
@@ -298,11 +301,6 @@ function EmbroideryRoom({ openDictionary }: EmbroideryRoomProps) {
         </div>
 
         <div className="game-hud">
-          <div className="scene-title">
-            <span>三朝书 · SAN CHAO SHU</span>
-            <strong>女红空间</strong>
-          </div>
-
           <button
             className="clue-toggle"
             type="button"
@@ -378,7 +376,7 @@ function EmbroideryRoom({ openDictionary }: EmbroideryRoomProps) {
 
           {isComplete && (
             <div className="completion-toast" role="status">
-              女红空间的线索已经整理完成。
+              女红房的线索已经整理完成。
             </div>
           )}
         </div>
@@ -484,7 +482,7 @@ function EmbroideryRoom({ openDictionary }: EmbroideryRoomProps) {
               <p className="card-footnote">
                 {activeCard.kind === 'culture'
                   ? '此物件用于文化观察，不计入主线线索。'
-                  : `线索「${activeCard.title}」已收入册中。`}
+                  : `线索「${embroideryEntryLabels[activeCard.unlockEntryId]}」已收入册中。`}
               </p>
             </section>
           </div>

@@ -17,5 +17,7 @@
 
 .singing-hall__game canvas {
   display: block;
+  max-width: none;
+  max-height: none;
   image-rendering: pixelated;
 }

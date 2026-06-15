@@ -7,6 +7,7 @@
  * 全部词条配对后推测"歌声传记"句子，完成场景。
  */
 import Phaser from 'phaser';
+import type { GlobalDictionaryBridge } from '../../../game/GlobalDictionaryBridge';
 import { SceneKeys } from '../types';
 import {
   PLAYER_SPEED,
@@ -15,22 +16,55 @@ import {
   GAME_HEIGHT,
   VIEW_WIDTH,
   VIEW_HEIGHT,
+  setViewportSize,
 } from '../config';
 import { SaveSystem } from '../systems/SaveSystem';
 import { DictionarySystem } from '../systems/DictionarySystem';
-import { DictionaryUI } from '../ui/DictionaryUI';
 import {
   SONG_ENTRIES,
   SONG_CLUES,
-  SONG_SLOTS,
   SISTERS_NPC,
   FINAL_SENTENCE_IDS,
 } from './song/SongData';
+
+type SingingDictionaryPuzzleConfig = {
+  puzzleId: string
+  activeEntryId: string
+  contextSentence: string
+  localEntryIds: readonly string[]
+}
+
+const GLOBAL_DICTIONARY_PUZZLES: Record<
+  string,
+  SingingDictionaryPuzzleConfig
+> = {
+  clue_fan: {
+    puzzleId: 'singing-hall-song-fan',
+    activeEntryId: 'geshan',
+    contextSentence: '扇面题写歌辞，既能传情，也能留住共同的记忆。',
+    localEntryIds: ['song_ge', 'song_shan'],
+  },
+  clue_paper: {
+    puzzleId: 'singing-hall-paper',
+    activeEntryId: 'zhi',
+    contextSentence: '泛黄的纸页被反复传阅，承载着女书歌谣。',
+    localEntryIds: ['song_chuan'],
+  },
+  npc_girl: {
+    puzzleId: 'singing-hall-journey',
+    activeEntryId: 'yuanxing',
+    contextSentence: '歌辞随女子离开熟悉之地，也被带往更远的地方。',
+    localEntryIds: ['song_sheng', 'song_ji'],
+  },
+}
 
 export class MainScene extends Phaser.Scene {
   // ========== 系统 ==========
   private saveSystem!: SaveSystem;
   private dictSystem!: DictionarySystem;
+  private dictionaryBridge!: GlobalDictionaryBridge;
+  private isGlobalDictionaryOpen = false;
+  private pendingDictionaryPuzzle: SingingDictionaryPuzzleConfig | null = null;
 
   // ========== 游戏对象 ==========
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -40,12 +74,10 @@ export class MainScene extends Phaser.Scene {
   private keyD!: Phaser.Input.Keyboard.Key;
 
   // ========== UI ==========
-  private dictUI!: DictionaryUI;
   private interactHint!: Phaser.GameObjects.Container;
-  private _sistersTextHint!: Phaser.GameObjects.Container;
   private _hintText!: Phaser.GameObjects.Text;
-
-
+  private dictionaryButton!: Phaser.GameObjects.Image;
+  private controlsHint!: Phaser.GameObjects.Text;
 
   // ========== 线索标记精灵 ==========
   private clueMarkers: Phaser.Physics.Arcade.Sprite[] = [];
@@ -57,6 +89,7 @@ export class MainScene extends Phaser.Scene {
 
   // ========== 弹窗/对话状态 ==========
   private popupContainer!: Phaser.GameObjects.Container;
+  private popupOverlay!: Phaser.GameObjects.Rectangle;
   private popupBg!: Phaser.GameObjects.Rectangle;
   private popupTitle!: Phaser.GameObjects.Text;
   private popupText!: Phaser.GameObjects.Text;
@@ -64,6 +97,7 @@ export class MainScene extends Phaser.Scene {
   private popupOpen = false;
 
   private dialogueContainer!: Phaser.GameObjects.Container;
+  private dialogueBg!: Phaser.GameObjects.Rectangle;
   private dialogueText!: Phaser.GameObjects.Text;
   private dialogueNextHint!: Phaser.GameObjects.Text;
   private dialogueIndex = 0;
@@ -72,6 +106,7 @@ export class MainScene extends Phaser.Scene {
 
   // ========== 推测面板 ==========
   private guessContainer!: Phaser.GameObjects.Container;
+  private guessOverlay!: Phaser.GameObjects.Rectangle;
   private guessSlots: Phaser.GameObjects.Text[] = [];
   private guessEntryIds: (string | null)[] = [];
   private guessOnConfirm: ((ids: string[]) => void) | null = null;
@@ -81,7 +116,7 @@ export class MainScene extends Phaser.Scene {
 
   // ========== 线索进度 ==========
   private clueFoundCount = 0;
-  private clueTotalCount = SONG_CLUES.length + 1; // 5个线索 + 1个NPC
+  private clueTotalCount = SONG_CLUES.length + 2; // 5个线索 + 2个NPC
   private foundClueIds: Set<string> = new Set();
   private clueProgressText!: Phaser.GameObjects.Text;
 
@@ -127,7 +162,6 @@ export class MainScene extends Phaser.Scene {
   private _pipaKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   // ========== 笔墨名称标签（接近时显示）==========
-  private _bimoLabelGfx!: Phaser.GameObjects.Graphics;
   private _bimoLabelText!: Phaser.GameObjects.Text;
 
   // ========== 唱扇女NPC场景图预览状态（三阶段逐行）==========
@@ -139,23 +173,19 @@ export class MainScene extends Phaser.Scene {
   private _girlKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   // ========== 唱扇女展开页名称标签（接近时显示）==========
-  private _fanLabelGfx!: Phaser.GameObjects.Graphics;
   private _fanLabelText!: Phaser.GameObjects.Text;
+  private _standLabelText!: Phaser.GameObjects.Text;
 
   // ========== 围坐姐妹名称标签（接近时显示）==========
-  private _sistersLabelGfx!: Phaser.GameObjects.Graphics;
   private _sistersLabelText!: Phaser.GameObjects.Text;
 
   // ========== 唱扇女名称标签（接近时显示）==========
-  private _girlLabelGfx!: Phaser.GameObjects.Graphics;
   private _girlLabelText!: Phaser.GameObjects.Text;
 
   // ========== 传唱纸片名称标签（接近时显示）==========
-  private _paperLabelGfx!: Phaser.GameObjects.Graphics;
   private _paperLabelText!: Phaser.GameObjects.Text;
 
   // ========== 琵琶名称标签（接近时显示）==========
-  private _pipaLabelGfx!: Phaser.GameObjects.Graphics;
   private _pipaLabelText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -163,19 +193,35 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
+    setViewportSize(this.scale.gameSize.width, this.scale.gameSize.height);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
+
     // ========== 世界边界（与底图尺寸一致）==========
     this.physics.world.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // ========== 初始化系统 ==========
     this.saveSystem = new SaveSystem();
     this.dictSystem = new DictionarySystem(this.saveSystem);
+    this.dictionaryBridge = this.registry.get(
+      'globalDictionaryBridge',
+    ) as GlobalDictionaryBridge;
 
-    SONG_ENTRIES.forEach((entry) => {
-      const existing = this.saveSystem.getEntry(entry.id);
-      if (!existing) {
-        this.saveSystem.unlockEntry({ ...entry, unlocked: false, matched: false });
-      }
-    });
+    const missingEntries = SONG_ENTRIES.filter(
+      (entry) => !this.saveSystem.getEntry(entry.id),
+    )
+    this.dictSystem.registerEntries('singingHall', SONG_ENTRIES)
+    missingEntries.forEach((entry) => this.dictSystem.unlock(entry))
+
+    const singingHallClueIds = new Set([
+      ...SONG_CLUES.map((clue) => clue.id),
+      SISTERS_NPC.id,
+    ])
+    this.foundClueIds = new Set(
+      this.saveSystem
+        .getDiscoveredClues()
+        .filter((clueId) => singingHallClueIds.has(clueId)),
+    )
+    this.clueFoundCount = this.foundClueIds.size
 
     // ========== 背景底图（放大2倍填满世界）==========
     const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'main_bg');
@@ -183,10 +229,11 @@ export class MainScene extends Phaser.Scene {
     bg.setDepth(0);
 
     // ========== 玩家 ==========
-    this.player = this.physics.add.sprite(400, 900, 'player');
+    this.player = this.physics.add.sprite(400, 400, 'player');
+    this.player.setTint(0x7a3020);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
-    this.player.body!.setSize(56, 56);
+    this.player.body!.setSize(28, 28);
 
     // ========== 相机：跟随玩家，初始视口居中 ==========
     this.cameras.main.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT);
@@ -200,23 +247,32 @@ export class MainScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-E', () => {
       if (this.popupOpen || this.dialogueOpen || this.guessOpen || this.sistersSceneOpen) return;
-      if (this.dictUI?.isOpened()) return;
+      if (this.isGlobalDictionaryOpen) return;
       this.handleInteract();
     });
 
     this.input.keyboard?.on('keydown-Q', () => {
       if (this.sistersSceneOpen) return;
-      if (this.dictUI?.isOpened()) return;
+      if (this.isGlobalDictionaryOpen) return;
       if (this.popupOpen) { this.closePopup(); return; }
       if (this.dialogueOpen) { this.closeDialogue(); return; }
       if (this.guessOpen) { this.closeGuessPanel(); return; }
     });
 
-    // ========== ESC 键：完成场景中返回主游戏 ==========
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault();
+      if (!this.isGlobalDictionaryOpen) this.openGlobalDictionary();
+    });
+
     this.input.keyboard?.on('keydown-ESC', () => {
       if (this.completionMode) {
         this.exitCompletionMode();
+        return;
       }
+      if (this.isGlobalDictionaryOpen || this.sistersSceneOpen) return;
+      if (this.popupOpen) { this.closePopup(); return; }
+      if (this.dialogueOpen) { this.closeDialogue(); return; }
+      if (this.guessOpen) this.closeGuessPanel();
     });
 
     // ========== 创建所有UI ==========
@@ -224,10 +280,6 @@ export class MainScene extends Phaser.Scene {
     this.createDialogueBubble();
     this.createGuessPanel();
     this.createInteractHint();
-
-    // ========== 词典UI ==========
-    this.dictUI = new DictionaryUI(this, this.dictSystem);
-    this.dictUI.setSlots(SONG_SLOTS);
 
     this.events.on('resume', () => {
       this.checkAllMatched();
@@ -244,7 +296,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.completionMode || this.popupOpen || this.dialogueOpen || this.guessOpen || this.dictUI?.isOpened() || this.sistersSceneOpen) {
+    if (this.completionMode || this.popupOpen || this.dialogueOpen || this.guessOpen || this.isGlobalDictionaryOpen || this.sistersSceneOpen) {
       this.player.setVelocity(0, 0);
       return;
     }
@@ -262,76 +314,214 @@ export class MainScene extends Phaser.Scene {
     this.checkProximity();
   }
 
-  // ==================== HUD（固定在屏幕上，不随相机滚动）====================
+  private handleViewportResize(gameSize: Phaser.Structs.Size): void {
+    const previousWidth = VIEW_WIDTH;
+    const previousHeight = VIEW_HEIGHT;
+    setViewportSize(gameSize.width, gameSize.height);
 
-  private createHUD(): void {
-    // 词典入口按钮（屏幕最上方中间 - 使用新词典图标）
-    const dictBtn = this.add.image(VIEW_WIDTH / 2, 30, 'icon1_img')
-      .setScale(0.15)
-      .setDepth(52)
-      .setScrollFactor(0)
-      .setInteractive({ useHandCursor: true });
+    const centerShiftX = (VIEW_WIDTH - previousWidth) / 2;
+    const centerShiftY = (VIEW_HEIGHT - previousHeight) / 2;
 
-    dictBtn.on('pointerover', () => dictBtn.setScale(0.17));
-    dictBtn.on('pointerout', () => dictBtn.setScale(0.15));
-    dictBtn.on('pointerdown', () => {
-      if (!this.dictUI?.isOpened()) {
-        this.dictUI.open();
+    this.layoutPersistentUi(centerShiftX, centerShiftY);
+    this.layoutNamedPreviewObjects(centerShiftX, centerShiftY);
+
+    if (
+      this.completionMode ||
+      this.sistersSceneOpen ||
+      this.paperPreviewOpen ||
+      this.fanPreviewOpen ||
+      this.pipaPreviewOpen ||
+      this.girlPreviewOpen ||
+      this.bimoPreviewOpen
+    ) {
+      this.cameras.main.setScroll(
+        GAME_WIDTH / 2 - VIEW_WIDTH / 2,
+        GAME_HEIGHT / 2 - VIEW_HEIGHT / 2,
+      );
+    }
+  }
+
+  private layoutPersistentUi(centerShiftX = 0, centerShiftY = 0): void {
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    if (this.dictionaryButton?.active) {
+      this.dictionaryButton.setPosition(cx, 18);
+      this.clueProgressText.setPosition(VIEW_WIDTH - 24, 24);
+      this.controlsHint.setPosition(cx, VIEW_HEIGHT - 24);
+    }
+
+    if (this.interactHint?.active) {
+      this.interactHint.setPosition(cx, VIEW_HEIGHT - 105);
+    }
+
+    if (this.popupContainer?.active) {
+      this.popupOverlay.setPosition(cx, cy).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+      this.popupBg.setPosition(cx, cy);
+      this.popupTitle.setPosition(cx, cy - 350);
+      this.popupText.setPosition(cx - 500, cy - 260);
+      this.popupCloseBtn.setPosition(cx + 500, cy - 370);
+    }
+
+    if (this.dialogueContainer?.active) {
+      this.dialogueBg.setPosition(cx, VIEW_HEIGHT - 200);
+      this.dialogueText.setPosition(cx, VIEW_HEIGHT - 230);
+      this.dialogueNextHint.setPosition(cx, VIEW_HEIGHT - 70);
+    }
+
+    if (this.guessContainer?.active) {
+      this.guessContainer.x += centerShiftX;
+      this.guessContainer.y += centerShiftY;
+      this.guessOverlay.setSize(VIEW_WIDTH, VIEW_HEIGHT);
+    }
+  }
+
+  private layoutNamedPreviewObjects(
+    centerShiftX: number,
+    centerShiftY: number,
+  ): void {
+    this.children.list.forEach((gameObject) => {
+      if (!gameObject.name) return;
+
+      const object = gameObject as Phaser.GameObjects.GameObject & {
+        x?: number;
+        y?: number;
+        scrollFactorX?: number;
+        scrollFactorY?: number;
+        parentContainer?: Phaser.GameObjects.Container | null;
+      };
+
+      if (
+        object.parentContainer ||
+        object.scrollFactorX !== 0 ||
+        object.scrollFactorY !== 0 ||
+        typeof object.x !== 'number' ||
+        typeof object.y !== 'number'
+      ) {
+        return;
+      }
+
+      object.x += centerShiftX;
+      object.y += centerShiftY;
+    });
+
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    [
+      'paper_overlay',
+      'fan_overlay',
+      'pipa_overlay',
+      'girl_overlay',
+      'bimo_overlay',
+    ].forEach((name) => {
+      const overlay = this.children.getByName(name);
+      if (overlay instanceof Phaser.GameObjects.Rectangle) {
+        overlay.setPosition(cx, cy).setSize(VIEW_WIDTH, VIEW_HEIGHT);
       }
     });
 
-    // 左上角古风信息面板（参考三朝书副场景样式：米色底+左侧红褐竖线+轻阴影）
-    const lrG = this.add.graphics().setDepth(51).setScrollFactor(0);
-    const lrX = 10, lrY = 10, lrW = 280, lrH = 82, lrR = 4;
-    // 轻微阴影（10层递增偏移，边缘更模糊）
-    for (let i = 0; i < 10; i++) {
-      lrG.fillStyle(0x000000, 0.04 - i * 0.0035);
-      lrG.fillRoundedRect(lrX + 3 + i * 2, lrY + 5 + i * 2, lrW + i * 2, lrH + i * 2, lrR + i);
+    ['sisters_scene_img', 'girl_scene_img'].forEach((name) => {
+      const image = this.children.getByName(name);
+      if (image instanceof Phaser.GameObjects.Image) {
+        image.setPosition(cx, name === 'girl_scene_img' ? cy - 40 : cy);
+        image.setScale(
+          Math.max(
+            VIEW_WIDTH / image.width,
+            VIEW_HEIGHT / image.height,
+          ),
+        );
+      }
+    });
+
+    [
+      'sisters_phase1_hint',
+      'sisters_phase2_hint',
+      'sisters_phase3_hint',
+      'sisters_close_hint',
+    ].forEach((name) => {
+      const hint = this.children.getByName(name);
+      if (hint instanceof Phaser.GameObjects.Text) {
+        hint.setPosition(cx, VIEW_HEIGHT - 60);
+      }
+    });
+
+    [
+      'paper_phase1_hint',
+      'paper_phase2_hint',
+      'paper_close_hint',
+      'fan_phase1_hint',
+      'fan_phase2_hint',
+      'fan_close_hint',
+      'pipa_phase1_hint',
+      'pipa_phase2_hint',
+      'pipa_close_hint',
+      'girl_phase1_hint',
+      'girl_close_hint',
+      'bimo_phase1_hint',
+      'bimo_phase2_hint',
+    ].forEach((name) => {
+      const hint = this.children.getByName(name);
+      if (hint instanceof Phaser.GameObjects.Text) {
+        hint.setPosition(cx, VIEW_HEIGHT - 50);
+      }
+    });
+
+    const completionHint = this.children.getByName('completion_esc_hint');
+    if (completionHint instanceof Phaser.GameObjects.Text) {
+      completionHint.setPosition(cx, VIEW_HEIGHT - 60);
     }
-    // 米色/宣纸色主体（约85%透明度）
-    lrG.fillStyle(0xE8DCC8, 0.85);
-    lrG.fillRoundedRect(lrX, lrY, lrW, lrH, lrR);
-    // 左侧红褐色竖线装饰（4px宽）
-    lrG.fillStyle(0x7A3020, 0.9);
-    lrG.fillRect(lrX + 2, lrY + 2, 4, lrH - 4);
-    // 面板内文字标题（两行）
-    // 第一行：小字宋体 浅灰红色
-    this.add.text(lrX + 14, lrY + 14, '三朝书 · 副场景二', {
-      fontSize: '16px',
-      color: '#8B6E5E',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-    }).setOrigin(0, 0).setDepth(52).setScrollFactor(0);
-    // 第二行：大字深红色加粗宋体
-    this.add.text(lrX + 28, lrY + 44, '离别  /  坐唱堂', {
-      fontSize: '28px',
-      color: '#701818',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      fontStyle: 'bold',
-    }).setOrigin(0, 0).setDepth(52).setScrollFactor(0);
+  }
 
-    // 右上角线索进度（浮空+阴影）
-    // 灰色阴影
-    this.add.rectangle(VIEW_WIDTH - 6, 14, 180, 44, 0x666666, 0.4)
-      .setOrigin(1, 0)
-      .setDepth(51)
-      .setScrollFactor(0);
-    // 黑色底矩形
-    this.add.rectangle(VIEW_WIDTH - 10, 10, 180, 44, 0x000000, 0.7)
-      .setOrigin(1, 0)
+  // ==================== HUD（固定在屏幕上，不随相机滚动）====================
+
+  private createHUD(): void {
+    // 词典入口按钮（两个场景共用全局书本图标）
+    const dictBtn = this.add.image(VIEW_WIDTH / 2, 18, 'open_book_icon')
+      .setOrigin(0.5, 0)
+      .setDisplaySize(110, 85)
       .setDepth(52)
-      .setScrollFactor(0);
-    this.clueProgressText = this.add.text(VIEW_WIDTH - 100, 32, `线索 0/${this.clueTotalCount}`, {
-      fontSize: '24px',
-      color: '#ffd700',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-    }).setOrigin(0.5).setDepth(53).setScrollFactor(0);
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    this.dictionaryButton = dictBtn;
 
-    // 底部操作提示
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 28, 'WASD 移动 | E 交互 | Q 退出', {
+    dictBtn.on('pointerover', () => dictBtn.setDisplaySize(118, 91));
+    dictBtn.on('pointerout', () => dictBtn.setDisplaySize(110, 85));
+    dictBtn.on('pointerdown', () => this.openGlobalDictionary());
+
+    this.clueProgressText = this.add.text(VIEW_WIDTH - 24, 24, `线索 ${this.clueFoundCount}/${this.clueTotalCount}`, {
       fontSize: '24px',
-      color: '#a89984',
-      fontFamily: 'serif',
-    }).setOrigin(0.5).setDepth(51).setScrollFactor(0);
+      color: '#6f2926',
+      backgroundColor: 'rgba(244, 226, 191, 0.9)',
+      padding: { x: 16, y: 9 },
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
+    }).setOrigin(1, 0).setDepth(60).setScrollFactor(0);
+
+    this.controlsHint = this.add.text(
+      VIEW_WIDTH / 2,
+      VIEW_HEIGHT - 24,
+      'WASD 移动  |  E 交互  |  Tab 词典  |  Q / ESC 返回',
+      {
+        fontSize: '22px',
+        color: '#4d3b34',
+        backgroundColor: 'rgba(244, 226, 191, 0.82)',
+        padding: { x: 14, y: 7 },
+      },
+    ).setOrigin(0.5, 1).setDepth(60).setScrollFactor(0);
+  }
+
+  private createInteractionLabel(
+    x: number,
+    y: number,
+    text: string,
+  ): Phaser.GameObjects.Text {
+    return this.add.text(x, y, text, {
+      fontSize: '28px',
+      color: '#6f2926',
+      backgroundColor: 'rgba(244, 226, 191, 0.88)',
+      padding: { x: 12, y: 6 },
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
+    }).setOrigin(0.5).setDepth(8).setVisible(false);
   }
 
   // ==================== 线索放置 ====================
@@ -353,17 +543,14 @@ export class MainScene extends Phaser.Scene {
         this.add.image(clue.x, clue.y - 200, 'paper_text_img')
           .setScale(0.25)
           .setDepth(6);
-        // 传唱纸片名称标签（黑色半透明胶囊，接近时显示）
+        // 传唱纸片名称标签（米色纸签，接近时显示）
         const paperLabelX = clue.x;
         const paperLabelY = clue.y - 300;
-        const pw = 120, ph = 56;
-        this._paperLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-        this._paperLabelGfx.fillStyle(0x000000, 0.6);
-        this._paperLabelGfx.fillRoundedRect(paperLabelX - pw / 2, paperLabelY - ph / 2, pw, ph, ph / 2);
-        this._paperLabelText = this.add.text(paperLabelX, paperLabelY, '__', {
-          fontSize: '32px', color: '#f5e6d3',
-          fontFamily: '"SimSun", "Microsoft YaHei", serif',
-        }).setOrigin(0.5).setDepth(8).setVisible(false);
+        this._paperLabelText = this.createInteractionLabel(
+          paperLabelX,
+          paperLabelY,
+          '纸',
+        );
       }
 
       // 笔墨左上角女书文字图片
@@ -371,17 +558,14 @@ export class MainScene extends Phaser.Scene {
         this.add.image(clue.x - 120, clue.y - 130, 'bimo_text_img')
           .setScale(0.25)
           .setDepth(6);
-        // 笔墨名称标签（黑色半透明胶囊，尺寸2x，接近时显示）
+        // 笔墨名称标签（米色纸签，接近时显示）
         const bmoLabelX = clue.x - 120;
         const bmoLabelY = clue.y - 230;
-        const bw = 120, bh = 56;
-        this._bimoLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-        this._bimoLabelGfx.fillStyle(0x000000, 0.6);
-        this._bimoLabelGfx.fillRoundedRect(bmoLabelX - bw / 2, bmoLabelY - bh / 2, bw, bh, bh / 2);
-        this._bimoLabelText = this.add.text(bmoLabelX, bmoLabelY, '笔墨', {
-          fontSize: '32px', color: '#f5e6d3',
-          fontFamily: '"SimSun", "Microsoft YaHei", serif',
-        }).setOrigin(0.5).setDepth(8).setVisible(false);
+        this._bimoLabelText = this.createInteractionLabel(
+          bmoLabelX,
+          bmoLabelY,
+          '笔墨',
+        );
       }
 
       // 琵琶上方女书文字图片
@@ -389,17 +573,14 @@ export class MainScene extends Phaser.Scene {
         this.add.image(clue.x, clue.y - 270, 'pipa_text_img')
           .setScale(0.25)
           .setDepth(6);
-        // 琵琶名称标签（黑色半透明胶囊，接近时显示）
+        // 琵琶名称标签（米色纸签，接近时显示）
         const pipaLabelX = clue.x;
         const pipaLabelY = clue.y - 320;
-        const piw = 120, pih = 56;
-        this._pipaLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-        this._pipaLabelGfx.fillStyle(0x000000, 0.6);
-        this._pipaLabelGfx.fillRoundedRect(pipaLabelX - piw / 2, pipaLabelY - pih / 2, piw, pih, pih / 2);
-        this._pipaLabelText = this.add.text(pipaLabelX, pipaLabelY, '琵琶', {
-          fontSize: '32px', color: '#f5e6d3',
-          fontFamily: '"SimSun", "Microsoft YaHei", serif',
-        }).setOrigin(0.5).setDepth(8).setVisible(false);
+        this._pipaLabelText = this.createInteractionLabel(
+          pipaLabelX,
+          pipaLabelY,
+          '琵琶',
+        );
       }
 
         // 唱扇女展开图上方女书文字图片
@@ -407,20 +588,26 @@ export class MainScene extends Phaser.Scene {
         this.add.image(clue.x, clue.y - 170, 'fan_text_img')
           .setScale(0.28)
           .setDepth(6);
-        // 歌扇展开图名称标签（黑色半透明胶囊，接近时显示）
+        // 歌扇展开图名称标签（米色纸签，接近时显示）
         const fanLabelX = clue.x;
         const fanLabelY = clue.y - 250;
-        const fw = 260, fh = 56;
-        this._fanLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-        this._fanLabelGfx.fillStyle(0x000000, 0.6);
-        this._fanLabelGfx.fillRoundedRect(fanLabelX - fw / 2, fanLabelY - fh / 2, fw, fh, fh / 2);
-        this._fanLabelText = this.add.text(fanLabelX, fanLabelY, '__ __ 展开图', {
-          fontSize: '32px', color: '#f5e6d3',
-          fontFamily: '"SimSun", "Microsoft YaHei", serif',
-        }).setOrigin(0.5).setDepth(8).setVisible(false);
+        this._fanLabelText = this.createInteractionLabel(
+          fanLabelX,
+          fanLabelY,
+          '歌扇展开图',
+        );
+      }
+
+      if (clue.id === 'clue_stand') {
+        this._standLabelText = this.createInteractionLabel(
+          clue.x,
+          clue.y - 180,
+          clue.name,
+        );
       }
 
       marker.setDepth(5);
+      marker.setAlpha(0.88);
       marker.setData('clueIndex', index);
       marker.setData('clueId', clue.id);
 
@@ -448,6 +635,7 @@ export class MainScene extends Phaser.Scene {
     sistersSprite.setDepth(5);
     sistersSprite.setData('npcId', 'sisters');
     sistersSprite.setScale(0.9);
+    sistersSprite.setAlpha(0.88);
     this.npcSistersBaseScale = 0.9;
     this.tweens.add({
       targets: sistersSprite,
@@ -459,40 +647,21 @@ export class MainScene extends Phaser.Scene {
     });
     this.npcSprites.push(sistersSprite);
 
-    // 围坐姐妹名称标签（黑色半透明胶囊，接近时显示，在身声文字图片上方）
+    // 围坐姐妹名称标签（米色纸签，接近时显示）
     {
       const slx = SISTERS_NPC.x + 280;
       const sly = SISTERS_NPC.y - 310 - 100;
-      const sw = 200, sh = 56;
-      this._sistersLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-      this._sistersLabelGfx.fillStyle(0x000000, 0.6);
-      this._sistersLabelGfx.fillRoundedRect(slx - sw / 2, sly - sh / 2, sw, sh, sh / 2);
-      this._sistersLabelText = this.add.text(slx, sly, '__ __', {
-        fontSize: '32px', color: '#f5e6d3',
-        fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      }).setOrigin(0.5).setDepth(8).setVisible(false);
+      this._sistersLabelText = this.createInteractionLabel(
+        slx,
+        sly,
+        '围坐姐妹',
+      );
     }
 
     // 围坐姐妹右上角文字图片（身声，保留白底）
-    const sistersTextImg = this.add.image(SISTERS_NPC.x + 280, SISTERS_NPC.y - 310, 'sisters_text_img')
+    this.add.image(SISTERS_NPC.x + 280, SISTERS_NPC.y - 310, 'sisters_text_img')
       .setScale(0.2)
-      .setDepth(6)
-      .setInteractive({ useHandCursor: true });
-
-    // 鼠标悬停提示
-    const stx = SISTERS_NPC.x + 280;
-    const sty = SISTERS_NPC.y - 310;
-    const stTip = this.add.container(stx, sty - 50).setDepth(50).setVisible(false);
-    this.add.graphics()
-      .fillStyle(0x000000, 0.6).fillRoundedRect(-60, -16, 120, 32, 16)
-      .setDepth(0);
-    this.add.text(0, 0, '按 E 查看身声', { fontSize: '15px', color: '#ffffff', fontFamily: '"SimSun", "Microsoft YaHei", serif' })
-      .setOrigin(0.5).setDepth(1);
-    stTip.setSize(120, 32);
-
-    sistersTextImg.on('pointerover', () => { stTip.setVisible(true); });
-    sistersTextImg.on('pointerout', () => { stTip.setVisible(false); });
-    this._sistersTextHint = stTip;
+      .setDepth(6);
 
     // 女书女子（传唱纸片 x:2900 与琵琶 x:4100 之间，位置约 x:3500）镜像+浮空+阴影
     // 灰色阴影（多层椭圆叠加，边缘模糊，浮空效果）
@@ -517,6 +686,7 @@ export class MainScene extends Phaser.Scene {
     this._girlImg = this.add.image(3500, 900, 'nvshu_girl_img')
       .setScale(0.84)
       .setFlipX(true)
+      .setAlpha(0.88)
       .setDepth(5);
     this._girlImgBaseScale = 0.84;
     const girlImg = this._girlImg;
@@ -533,18 +703,15 @@ export class MainScene extends Phaser.Scene {
       .setScale(0.25)
       .setDepth(6);
 
-    // 唱扇女名称标签（黑色半透明胶囊，接近时显示，在女书文字图片上方）
+    // 唱扇女名称标签（米色纸签，接近时显示）
     {
       const glx = 3500 - 160;
       const gly = 900 - 370 - 100;
-      const gw = 200, gh = 56;
-      this._girlLabelGfx = this.add.graphics().setDepth(7).setVisible(false);
-      this._girlLabelGfx.fillStyle(0x000000, 0.6);
-      this._girlLabelGfx.fillRoundedRect(glx - gw / 2, gly - gh / 2, gw, gh, gh / 2);
-      this._girlLabelText = this.add.text(glx, gly, '唱扇女', {
-        fontSize: '32px', color: '#f5e6d3',
-        fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      }).setOrigin(0.5).setDepth(8).setVisible(false);
+      this._girlLabelText = this.createInteractionLabel(
+        glx,
+        gly,
+        '唱扇女',
+      );
     }
   }
 
@@ -552,22 +719,22 @@ export class MainScene extends Phaser.Scene {
 
   private createInteractHint(): void {
     const cx = VIEW_WIDTH / 2;
-    const y = VIEW_HEIGHT - 80;
-    const bw = 340, bh = 48;
+    const y = VIEW_HEIGHT - 105;
+    const bw = 430, bh = 64;
 
     const container = this.add.container(cx, y).setDepth(30).setScrollFactor(0).setVisible(false);
     this.interactHint = container;
 
-    // 黑色半透明底条
-    const bg = this.add.rectangle(0, 0, bw, bh, 0x000000, 0.6)
+    const bg = this.add.rectangle(0, 0, bw, bh, 0x4a2923, 0.92)
       .setOrigin(0.5);
+    bg.setStrokeStyle(2, 0xd2b47b);
     container.add(bg);
 
     // 提示文字
     this._hintText = this.add.text(0, 0, '', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: '\"SimSun\", \"Microsoft YaHei\", serif',
+      fontSize: '26px',
+      color: '#f7e8ca',
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
     }).setOrigin(0.5);
     container.add(this._hintText);
   }
@@ -585,7 +752,7 @@ export class MainScene extends Phaser.Scene {
       const clue = SONG_CLUES[clueIdx];
       if (dist < nearestDist) {
         nearestDist = dist;
-        nearestTarget = 'clue_' + clue.id;
+        nearestTarget = clue.id;
         nearestIndex = clueIdx;
       }
     });
@@ -624,23 +791,41 @@ export class MainScene extends Phaser.Scene {
       } else if (nearestTarget === 'npc_girl') {
         hintName = '唱扇女';
       }
-      this._hintText.setText('按E键和[' + hintName + ']交互');
+      this._hintText.setText(`E 交互 · ${hintName}`);
       this.interactHint.setVisible(true);
 
       // 线索标记缩放：最近的可交互线索放大到 1.4 倍
       this.clueMarkers.forEach((marker, idx) => {
         if (idx === nearestIndex) {
-          marker.setScale(this.clueMarkerBaseScales[idx] * 1.4);
+          marker
+            .setScale(this.clueMarkerBaseScales[idx] * 1.4)
+            .setAlpha(1);
         } else {
-          marker.setScale(this.clueMarkerBaseScales[idx]);
+          marker
+            .setScale(this.clueMarkerBaseScales[idx])
+            .setAlpha(0.88);
         }
       });
 
       // NPC 缩放：最近的 NPC 放大到 1.2 倍
       this.npcSprites.forEach((sprite) => {
-        sprite.setScale(nearestTarget === 'npc_sisters' ? this.npcSistersBaseScale * 1.2 : this.npcSistersBaseScale);
+        const isNearest = nearestTarget === 'npc_sisters';
+        sprite
+          .setScale(
+            isNearest
+              ? this.npcSistersBaseScale * 1.2
+              : this.npcSistersBaseScale,
+          )
+          .setAlpha(isNearest ? 1 : 0.92);
       });
-      this._girlImg.setScale(nearestTarget === 'npc_girl' ? this._girlImgBaseScale * 1.2 : this._girlImgBaseScale);
+      const isGirlNearest = nearestTarget === 'npc_girl';
+      this._girlImg
+        .setScale(
+          isGirlNearest
+            ? this._girlImgBaseScale * 1.2
+            : this._girlImgBaseScale,
+        )
+        .setAlpha(isGirlNearest ? 1 : 0.92);
     } else {
       this.canInteract = false;
       this.currentTarget = '';
@@ -649,20 +834,14 @@ export class MainScene extends Phaser.Scene {
 
       // 没有可交互对象时，恢复所有原始尺寸
       this.clueMarkers.forEach((marker, idx) => {
-        marker.setScale(this.clueMarkerBaseScales[idx]);
+        marker
+          .setScale(this.clueMarkerBaseScales[idx])
+          .setAlpha(0.88);
       });
       this.npcSprites.forEach((sprite) => {
-        sprite.setScale(this.npcSistersBaseScale);
+        sprite.setScale(this.npcSistersBaseScale).setAlpha(0.88);
       });
-      this._girlImg.setScale(this._girlImgBaseScale);
-    }
-
-    // 身声图片接近提示
-    const stDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, SISTERS_NPC.x + 280, SISTERS_NPC.y - 310);
-    if (stDist < INTERACT_DISTANCE && !this._sistersTextHint.visible) {
-      this._sistersTextHint.setVisible(true);
-    } else if (stDist >= INTERACT_DISTANCE && this._sistersTextHint.visible) {
-      this._sistersTextHint.setVisible(false);
+      this._girlImg.setScale(this._girlImgBaseScale).setAlpha(0.88);
     }
 
     // 笔墨名称标签接近显示（笔墨标记或笔墨文字图片任一靠近时显示）
@@ -671,11 +850,9 @@ export class MainScene extends Phaser.Scene {
       const bmoDist1 = Phaser.Math.Distance.Between(this.player.x, this.player.y, basketClue.x, basketClue.y);
       const bmoDist2 = Phaser.Math.Distance.Between(this.player.x, this.player.y, basketClue.x - 120, basketClue.y - 130);
       const shouldShow = bmoDist1 < INTERACT_DISTANCE || bmoDist2 < INTERACT_DISTANCE;
-      if (shouldShow && !this._bimoLabelGfx.visible) {
-        this._bimoLabelGfx.setVisible(true);
+      if (shouldShow && !this._bimoLabelText.visible) {
         this._bimoLabelText.setVisible(true);
-      } else if (!shouldShow && this._bimoLabelGfx.visible) {
-        this._bimoLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._bimoLabelText.visible) {
         this._bimoLabelText.setVisible(false);
       }
     }
@@ -690,11 +867,9 @@ export class MainScene extends Phaser.Scene {
       const mouseDist1 = Phaser.Math.Distance.Between(worldPt.x, worldPt.y, pipaClue.x, pipaClue.y);
       const mouseDist2 = Phaser.Math.Distance.Between(worldPt.x, worldPt.y, pipaClue.x, pipaClue.y - 270);
       const shouldShow = pipaDist1 < INTERACT_DISTANCE || pipaDist2 < INTERACT_DISTANCE || mouseDist1 < INTERACT_DISTANCE || mouseDist2 < INTERACT_DISTANCE;
-      if (shouldShow && !this._pipaLabelGfx.visible) {
-        this._pipaLabelGfx.setVisible(true);
+      if (shouldShow && !this._pipaLabelText.visible) {
         this._pipaLabelText.setVisible(true);
-      } else if (!shouldShow && this._pipaLabelGfx.visible) {
-        this._pipaLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._pipaLabelText.visible) {
         this._pipaLabelText.setVisible(false);
       }
     }
@@ -704,11 +879,9 @@ export class MainScene extends Phaser.Scene {
     if (fanClue) {
       const fanDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, fanClue.x, fanClue.y);
       const shouldShow = fanDist < INTERACT_DISTANCE;
-      if (shouldShow && !this._fanLabelGfx.visible) {
-        this._fanLabelGfx.setVisible(true);
+      if (shouldShow && !this._fanLabelText.visible) {
         this._fanLabelText.setVisible(true);
-      } else if (!shouldShow && this._fanLabelGfx.visible) {
-        this._fanLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._fanLabelText.visible) {
         this._fanLabelText.setVisible(false);
       }
     }
@@ -718,11 +891,9 @@ export class MainScene extends Phaser.Scene {
       const sDist1 = Phaser.Math.Distance.Between(this.player.x, this.player.y, SISTERS_NPC.x, SISTERS_NPC.y);
       const sDist2 = Phaser.Math.Distance.Between(this.player.x, this.player.y, SISTERS_NPC.x + 280, SISTERS_NPC.y - 310);
       const shouldShow = sDist1 < INTERACT_DISTANCE || sDist2 < INTERACT_DISTANCE;
-      if (shouldShow && !this._sistersLabelGfx.visible) {
-        this._sistersLabelGfx.setVisible(true);
+      if (shouldShow && !this._sistersLabelText.visible) {
         this._sistersLabelText.setVisible(true);
-      } else if (!shouldShow && this._sistersLabelGfx.visible) {
-        this._sistersLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._sistersLabelText.visible) {
         this._sistersLabelText.setVisible(false);
       }
     }
@@ -733,11 +904,9 @@ export class MainScene extends Phaser.Scene {
       const pDist1 = Phaser.Math.Distance.Between(this.player.x, this.player.y, paperClue.x, paperClue.y);
       const pDist2 = Phaser.Math.Distance.Between(this.player.x, this.player.y, paperClue.x, paperClue.y - 200);
       const shouldShow = pDist1 < INTERACT_DISTANCE || pDist2 < INTERACT_DISTANCE;
-      if (shouldShow && !this._paperLabelGfx.visible) {
-        this._paperLabelGfx.setVisible(true);
+      if (shouldShow && !this._paperLabelText.visible) {
         this._paperLabelText.setVisible(true);
-      } else if (!shouldShow && this._paperLabelGfx.visible) {
-        this._paperLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._paperLabelText.visible) {
         this._paperLabelText.setVisible(false);
       }
     }
@@ -747,11 +916,9 @@ export class MainScene extends Phaser.Scene {
       const gDist1 = Phaser.Math.Distance.Between(this.player.x, this.player.y, 3500, 900);
       const gDist2 = Phaser.Math.Distance.Between(this.player.x, this.player.y, 3500 - 160, 900 - 370);
       const shouldShow = gDist1 < INTERACT_DISTANCE || gDist2 < INTERACT_DISTANCE;
-      if (shouldShow && !this._girlLabelGfx.visible) {
-        this._girlLabelGfx.setVisible(true);
+      if (shouldShow && !this._girlLabelText.visible) {
         this._girlLabelText.setVisible(true);
-      } else if (!shouldShow && this._girlLabelGfx.visible) {
-        this._girlLabelGfx.setVisible(false);
+      } else if (!shouldShow && this._girlLabelText.visible) {
         this._girlLabelText.setVisible(false);
       }
     }
@@ -795,9 +962,62 @@ export class MainScene extends Phaser.Scene {
   private markClueFound(target: string): void {
     if (!this.foundClueIds.has(target)) {
       this.foundClueIds.add(target);
+      this.dictSystem.discoverClue(target);
       this.clueFoundCount++;
       this.clueProgressText.setText(`线索 ${this.clueFoundCount}/${this.clueTotalCount}`);
+
+      const dictionaryPuzzle = GLOBAL_DICTIONARY_PUZZLES[target];
+      if (dictionaryPuzzle) {
+        this.pendingDictionaryPuzzle = dictionaryPuzzle;
+        this.showToast('发现新的女书线索，按 Tab 打开三朝书词典');
+      }
     }
+
+    const standClue = SONG_CLUES.find((c) => c.id === 'clue_stand');
+    if (standClue) {
+      const standDist = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        standClue.x,
+        standClue.y,
+      );
+      this._standLabelText.setVisible(standDist < INTERACT_DISTANCE);
+    }
+  }
+
+  private openGlobalDictionary(): void {
+    const puzzle = this.pendingDictionaryPuzzle;
+    if (!puzzle) {
+      this.dictionaryBridge.openDictionary();
+      return;
+    }
+
+    this.dictionaryBridge.openDictionary({
+      puzzleId: puzzle.puzzleId,
+      activeEntryId: puzzle.activeEntryId,
+      contextSentence: puzzle.contextSentence,
+      correctEntryId: puzzle.activeEntryId,
+      onSuccess: () => this.handleGlobalDictionaryMatch(puzzle),
+    });
+  }
+
+  private handleGlobalDictionaryMatch(
+    puzzle: SingingDictionaryPuzzleConfig,
+  ): void {
+    if (!this.scene.isActive()) return;
+
+    puzzle.localEntryIds.forEach((entryId) => {
+      const entry = SONG_ENTRIES.find((candidate) => candidate.id === entryId);
+      if (!entry) return;
+      this.dictSystem.unlock({ ...entry });
+      this.saveSystem.matchEntry(entry.id);
+    });
+
+    if (this.pendingDictionaryPuzzle?.puzzleId === puzzle.puzzleId) {
+      this.pendingDictionaryPuzzle = null;
+    }
+    this.showToast('词条已写入三朝书词典');
+    this.checkAllMatched();
   }
 
   // ==================== 线索弹窗 ====================
@@ -807,9 +1027,9 @@ export class MainScene extends Phaser.Scene {
     const cy = VIEW_HEIGHT / 2;
     this.popupContainer = this.add.container(0, 0).setDepth(90).setVisible(false).setScrollFactor(0);
 
-    const overlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.7);
-    overlay.setInteractive();
-    this.popupContainer.add(overlay);
+    this.popupOverlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.7);
+    this.popupOverlay.setInteractive();
+    this.popupContainer.add(this.popupOverlay);
 
     this.popupBg = this.add.rectangle(cx, cy, 1120, 800, 0x2a1f14, 0.95);
     this.popupBg.setStrokeStyle(4, 0xc8a96e);
@@ -825,7 +1045,7 @@ export class MainScene extends Phaser.Scene {
     });
     this.popupContainer.add(this.popupText);
 
-    this.popupCloseBtn = this.add.text(cx + 500, cy - 370, '✕ 关闭 [Q]', {
+    this.popupCloseBtn = this.add.text(cx + 500, cy - 370, '✕ 关闭 [Q / ESC]', {
       fontSize: '28px', color: '#c8a96e', backgroundColor: '#3d2e1f', padding: { x: 16, y: 6 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     this.popupCloseBtn.on('pointerdown', () => this.closePopup());
@@ -863,16 +1083,16 @@ export class MainScene extends Phaser.Scene {
   private createDialogueBubble(): void {
     this.dialogueContainer = this.add.container(0, 0).setDepth(85).setVisible(false).setScrollFactor(0);
 
-    const bubbleBg = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT - 200, 1200, 160, 0x1a1210, 0.9);
-    bubbleBg.setStrokeStyle(4, 0xc8a96e);
-    this.dialogueContainer.add(bubbleBg);
+    this.dialogueBg = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT - 200, 1200, 160, 0x1a1210, 0.9);
+    this.dialogueBg.setStrokeStyle(4, 0xc8a96e);
+    this.dialogueContainer.add(this.dialogueBg);
 
     this.dialogueText = this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 230, '', {
       fontSize: '30px', color: '#e8d5b7', fontFamily: 'serif', wordWrap: { width: 1120 }, align: 'center',
     }).setOrigin(0.5, 0);
     this.dialogueContainer.add(this.dialogueText);
 
-    this.dialogueNextHint = this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 70, '按 E 继续 | 按 Q 退出', {
+    this.dialogueNextHint = this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 70, '按 E 继续 | Q / ESC 返回', {
       fontSize: '24px', color: '#a89984',
     }).setOrigin(0.5);
     this.dialogueContainer.add(this.dialogueNextHint);
@@ -917,9 +1137,9 @@ export class MainScene extends Phaser.Scene {
     const cy = VIEW_HEIGHT / 2;
     this.guessContainer = this.add.container(0, 0).setDepth(95).setVisible(false).setScrollFactor(0);
 
-    const overlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.75);
-    overlay.setInteractive();
-    this.guessContainer.add(overlay);
+    this.guessOverlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.75);
+    this.guessOverlay.setInteractive();
+    this.guessContainer.add(this.guessOverlay);
 
     const bg = this.add.rectangle(cx, cy, 1000, 700, 0x2a1f14, 0.95);
     bg.setStrokeStyle(4, 0xc8a96e);
@@ -960,7 +1180,7 @@ export class MainScene extends Phaser.Scene {
     confirmBtn.on('pointerdown', () => this.confirmGuess());
     this.guessContainer.add(confirmBtn);
 
-    const cancelBtn = this.add.text(cx - 360, cy + 280, '✕ 取消 [Q]', {
+    const cancelBtn = this.add.text(cx - 360, cy + 280, '✕ 取消 [Q / ESC]', {
       fontSize: '32px', color: '#e07070', backgroundColor: '#3d1f1f', padding: { x: 32, y: 16 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     cancelBtn.on('pointerdown', () => this.closeGuessPanel());
@@ -990,11 +1210,12 @@ export class MainScene extends Phaser.Scene {
       if (child.getData && child.getData('availBtn') === true) child.destroy();
     });
 
-    const cx = VIEW_WIDTH / 2;
+    const cx = VIEW_WIDTH / 2 - this.guessContainer.x;
+    const cy = VIEW_HEIGHT / 2 - this.guessContainer.y;
     const startX = cx - (this.guessAvailable.length * 90) / 2;
 
     this.guessAvailable.forEach((entry, i) => {
-      const btn = this.add.text(startX + i * 100, VIEW_HEIGHT / 2 + 180, entry.char, {
+      const btn = this.add.text(startX + i * 100, cy + 180, entry.char, {
         fontSize: '48px', color: '#ffd700', backgroundColor: '#3d2e1f', padding: { x: 20, y: 12 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       btn.setData('availBtn', true);
@@ -1046,7 +1267,6 @@ export class MainScene extends Phaser.Scene {
     this.clueMarkers.forEach((m) => m.setVisible(false));
     this.npcSprites.forEach((s) => s.setVisible(false));
     this.player.setVisible(false);
-    if (this.dictUI?.isOpened()) this.dictUI.close();
     const hudChildren = this.children.getAll('depth', 51) as Phaser.GameObjects.GameObject[];
     hudChildren.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
     const hud52Children = this.children.getAll('depth', 52) as Phaser.GameObjects.GameObject[];
@@ -1074,7 +1294,7 @@ export class MainScene extends Phaser.Scene {
     sceneImg.setScale(Math.max(scaleX, scaleY));
 
     // Phase 1 提示
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 显示文字 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 显示文字 | Q / ESC 返回', {
       fontSize: '24px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088',
       padding: { x: 20, y: 8 },
@@ -1083,7 +1303,11 @@ export class MainScene extends Phaser.Scene {
     // 键盘事件
     const keyHandler = (event: KeyboardEvent) => {
       if (!this.sistersSceneOpen) return;
-      if (event.key === 'q' || event.key === 'Q') {
+      if (
+        event.key === 'q' ||
+        event.key === 'Q' ||
+        event.key === 'Escape'
+      ) {
         this.closeSistersScene();
       } else if (this.sistersScenePhase1 && (event.key === 'e' || event.key === 'E')) {
         this.enterSistersPhase2();
@@ -1135,7 +1359,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('sisters_dialogue_title');
 
     // 提示继续按E
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 继续阅读 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 继续阅读 | Q / ESC 返回', {
       fontSize: '24px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088',
       padding: { x: 20, y: 8 },
@@ -1164,7 +1388,7 @@ export class MainScene extends Phaser.Scene {
       );
 
     // 提示继续按E
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 继续阅读 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 60, '按 E 或 点击 继续阅读 | Q / ESC 返回', {
       fontSize: '24px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088',
       padding: { x: 20, y: 8 },
@@ -1255,7 +1479,7 @@ export class MainScene extends Phaser.Scene {
       .setName('paper_big_img');
 
     // Phase 1 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('paper_phase1_hint');
@@ -1312,7 +1536,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('paper_dialogue_title');
 
     // Phase 2 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('paper_phase2_hint');
@@ -1351,7 +1575,7 @@ export class MainScene extends Phaser.Scene {
       .setText(line1 + '\n' + line2 + '\n' + line3);
 
     // 关闭提示
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('paper_close_hint');
@@ -1404,7 +1628,7 @@ export class MainScene extends Phaser.Scene {
       .setName('fan_big_img');
 
     // Phase 1 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('fan_phase1_hint');
@@ -1461,7 +1685,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_title');
 
     // Phase 2 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('fan_phase2_hint');
@@ -1499,7 +1723,7 @@ export class MainScene extends Phaser.Scene {
       .setText(line1 + '\n' + line2);
 
     // 关闭提示
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('fan_close_hint');
@@ -1552,7 +1776,7 @@ export class MainScene extends Phaser.Scene {
       .setName('pipa_big_img');
 
     // Phase 1 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 查看场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('pipa_phase1_hint');
@@ -1609,7 +1833,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('pipa_dialogue_title');
 
     // Phase 2 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续阅读 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('pipa_phase2_hint');
@@ -1658,7 +1882,7 @@ export class MainScene extends Phaser.Scene {
     this.pipaPhase3Next();
 
     // 底部提示（初始）
-    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 继续 | Q 返回', {
+    this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 继续 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('pipa_close_hint');
@@ -1685,7 +1909,7 @@ export class MainScene extends Phaser.Scene {
     const hint = this.children.getByName('pipa_close_hint') as Phaser.GameObjects.Text;
     if (hint) {
       if (this.pipaTextLine >= this.pipaLines.length) {
-        hint.setText('按 E 或 点击 返回主场景 | Q 返回');
+        hint.setText('按 E 或 点击 返回主场景 | Q / ESC 返回');
         // 全部行显示完毕后，点击关闭
         const overlay = this.children.getByName('pipa_overlay') as Phaser.GameObjects.Rectangle;
         if (overlay) {
@@ -1693,7 +1917,7 @@ export class MainScene extends Phaser.Scene {
           overlay.on('pointerdown', () => this.closePipaPreview());
         }
       } else {
-        hint.setText('按 E 或 点击 继续 | Q 返回');
+        hint.setText('按 E 或 点击 继续 | Q / ESC 返回');
       }
     }
   }
@@ -1760,7 +1984,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('girl_dialogue_title');
 
     // 底部提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 继续 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('girl_phase1_hint');
@@ -1835,7 +2059,7 @@ export class MainScene extends Phaser.Scene {
     const hint = this.children.getByName('girl_close_hint') as Phaser.GameObjects.Text;
     if (hint) {
       if (this.girlTextLine >= this.girlLines.length) {
-        hint.setText('按 E 或 点击 返回主场景 | Q 返回');
+        hint.setText('按 E 或 点击 返回主场景 | Q / ESC 返回');
         // 全部显示后点击关闭
         const overlay = this.children.getByName('girl_overlay') as Phaser.GameObjects.Rectangle;
         if (overlay) {
@@ -1846,7 +2070,7 @@ export class MainScene extends Phaser.Scene {
     } else {
       // 创建底部提示（首次进入 Phase 2 时）
       this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50,
-        this.girlTextLine >= this.girlLines.length ? '按 E 或 点击 返回主场景 | Q 返回' : '按 E 或 点击 继续 | Q 返回', {
+        this.girlTextLine >= this.girlLines.length ? '按 E 或 点击 返回主场景 | Q / ESC 返回' : '按 E 或 点击 继续 | Q / ESC 返回', {
         fontSize: '22px', color: '#a89984', fontFamily: 'serif',
         backgroundColor: '#00000088', padding: { x: 20, y: 8 },
       }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setName('girl_close_hint');
@@ -1901,7 +2125,7 @@ export class MainScene extends Phaser.Scene {
       .setName('bimo_big_img');
 
     // Phase 1 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 显示文字 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 显示文字 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('bimo_phase1_hint');
@@ -1945,7 +2169,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(96).setScrollFactor(0).setName('bimo_text');
 
     // Phase 2 提示
-    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q 返回', {
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q / ESC 返回', {
       fontSize: '22px', color: '#a89984', fontFamily: 'serif',
       backgroundColor: '#00000088', padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('bimo_phase2_hint');
@@ -1992,17 +2216,17 @@ export class MainScene extends Phaser.Scene {
   private checkAllMatched(): void {
     const allIds = SONG_ENTRIES.map((e) => e.id);
     if (this.dictSystem.areAllMatched(allIds)) {
-      const matched = this.dictSystem.getMatched();
+      const matched = this.dictSystem.getMatched('singingHall');
       const available = matched.map((e) => ({ id: e.id, char: e.nvshuChar }));
       this.time.delayedCall(500, () => this.showGuessIfNeeded(available));
     }
   }
 
   private showGuessIfNeeded(available: { id: string; char: string }[]): void {
-    if (this.dictSystem.isSceneComplete('song')) return;
+    if (this.dictSystem.isSceneComplete('singingHall')) return;
     this.showGuessPanel(available, (ids: string[]) => {
       if (this.dictSystem.verifySentence(ids, FINAL_SENTENCE_IDS)) {
-        this.dictSystem.completeScene('song');
+        this.dictSystem.completeScene('singingHall');
         this.enterCompletionScene();
       } else {
         this.showToast('✗ 推测不正确，请再试试。提示：女书是唱出来的。');
@@ -2032,8 +2256,6 @@ export class MainScene extends Phaser.Scene {
     // 隐藏词典按钮
     const dictBtn = this.children.getByName?.('dictBtn') as Phaser.GameObjects.Image | undefined;
     if (dictBtn) dictBtn.setVisible(false);
-    if (this.dictUI?.isOpened()) this.dictUI.close();
-
     // 隐藏底部操作提示
     const hudChildren = this.children.getAll('depth', 51) as Phaser.GameObjects.GameObject[];
     hudChildren.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
@@ -2122,6 +2344,11 @@ export class MainScene extends Phaser.Scene {
   // ==================== 清理 ====================
 
   shutdown(): void {
-    this.dictUI?.destroy();
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
+  }
+
+  setGlobalDictionaryOpen(isOpen: boolean): void {
+    this.isGlobalDictionaryOpen = isOpen;
+    if (isOpen) this.player?.setVelocity(0, 0);
   }
 }
