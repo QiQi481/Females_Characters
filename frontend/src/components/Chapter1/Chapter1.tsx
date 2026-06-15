@@ -822,17 +822,15 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
                 XXXXX：<br />
                 <span className="letter-text-indent">
                   <span className="letter-image-slot">
-                    {/* TODO: 替换为实际图片路径 */}
                     <img
-                      src="/assets/FirstLevel/letter.png"
+                      src="/assets/FirstLevel/letterclue1.png"
                       alt="线索图1"
                       className="letter-clue-img"
                     />
                   </span>
                   <span className="letter-image-slot">
-                    {/* TODO: 替换为实际图片路径 */}
                     <img
-                      src="/assets/FirstLevel/letter.png"
+                      src="/assets/FirstLevel/letterclue2.png"
                       alt="线索图2"
                       className="letter-clue-img"
                     />
