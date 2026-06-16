@@ -101,7 +101,7 @@ function SceneSwitcher<SceneId extends string>({
               setIsOpen(false)
             }}
           >
-            <span>新游戏 / 重置进度</span>
+            <span>重置进度</span>
           </button>
         </div>
       )}

@@ -24,9 +24,21 @@ const DIALOGUE_BOX_KEY = 'embroidery_dialogue_box'
 const DIALOGUE_BOX_PATH = '/assets/ui/dialogue-box.png'
 const DICTIONARY_ICON_KEY = 'open_book_icon'
 const NUSHU_TOKEN = '{{nushu}}'
-const INTRO_DIALOGUE_DELAY = 450
-const INTRO_DIALOGUE_LINE_DURATION = 2600
-const NPC_DIALOGUE_LINE_DURATION = 2600
+const EXPLORATION_CONTROLS_LABEL =
+  'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回'
+const DIALOGUE_CONTROLS_LABEL = 'E / 点击继续 | Q / ESC 返回'
+const DIALOGUE_TEXT_X = -390
+const DIALOGUE_TEXT_Y = -55
+const DIALOGUE_GLYPH_HEIGHT = 64
+const DIALOGUE_GLYPH_GAP = 6
+const CULTURE_PREVIEW_TEXT_WIDTH = 620
+const CULTURE_PREVIEW_GAP = 48
+const CULTURE_PREVIEW_IMAGE_LAYOUT_WIDTH_RATIO = 0.56
+const CULTURE_PREVIEW_MAX_IMAGE_WIDTH_RATIO = 0.52
+const CULTURE_PREVIEW_MAX_IMAGE_HEIGHT_RATIO = 0.72
+const CULTURE_PREVIEW_IMAGE_OFFSET_X = -90
+const CULTURE_PREVIEW_IMAGE_OFFSET_Y = 0
+const CULTURE_PREVIEW_TITLE_BODY_GAP = 42
 const PLAYER_START_POSITION = { x: 400, y: 400 } as const
 const EMBROIDERY_ROOM_COMPLETION_FLAG = 'embroideryRoomCompleted'
 const EMBROIDERY_YAN_RESOLVED_FLAG = 'embroideryYanResolved'
@@ -54,7 +66,12 @@ const SUMMARY_DIALOGUE_LINES = [
 ] as const
 
 type IntroDialogueState = 'pending' | 'playing' | 'complete'
-type NpcDialogueMode = 'none' | 'final-yan' | 'summary'
+type NpcDialogueMode =
+  | 'none'
+  | 'intro'
+  | 'interaction'
+  | 'final-yan'
+  | 'summary'
 
 export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private saveSystem!: SaveSystem
@@ -98,6 +115,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private previewHint!: Phaser.GameObjects.Text
   private activePreview: EmbroideryInteraction | null = null
   private previewPhase = 0
+  private culturePreviewTextVisible = false
 
   private dialogueContainer!: Phaser.GameObjects.Container
   private dialogueBox!: Phaser.GameObjects.Image
@@ -106,16 +124,14 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private dialoguePrefix!: Phaser.GameObjects.Text
   private dialogueSuffix!: Phaser.GameObjects.Text
   private dialogueSolvedText!: Phaser.GameObjects.Text
-  private dialogueNushuButton!: Phaser.GameObjects.Image
+  private dialogueGlyphContainer!: Phaser.GameObjects.Container
   private dialogueHint!: Phaser.GameObjects.Text
   private dialogueOpen = false
   private npcDialogueMode: NpcDialogueMode = 'none'
   private npcDialogueLineIndex = 0
-  private npcDialogueTimer?: Phaser.Time.TimerEvent
   private finalYanUnlocked = false
   private finalYanPromptShown = false
   private introDialogueState: IntroDialogueState = 'pending'
-  private introDialogueTimer?: Phaser.Time.TimerEvent
   private focusedNpc?: Phaser.GameObjects.Image
   private focusedNpcState?: {
     x: number
@@ -154,12 +170,12 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       'embroidery_nushu_nv',
       'embroidery_nushu_hong',
     ])
-    for (const entryId of ['jin', 'ming', 'yan']) {
+    EMBROIDERY_NUSHU_ASSETS.forEach(([textureKey]) => {
       this.createDialogueGlyphTexture(
-        `embroidery_dialogue_${entryId}`,
-        `embroidery_nushu_${entryId}`,
+        this.getDialogueGlyphTextureKey(textureKey),
+        textureKey,
       )
-    }
+    })
 
     this.physics.world.setBounds(
       0,
@@ -193,20 +209,10 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.bindKeys()
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this)
-    this.introDialogueTimer = this.time.delayedCall(
-      INTRO_DIALOGUE_DELAY,
-      this.startIntroDialogue,
-      [],
-      this,
-    )
+    this.startIntroDialogue()
   }
 
   update(): void {
-    if (this.introDialogueState !== 'complete') {
-      this.player.setVelocity(0, 0)
-      return
-    }
-
     this.refreshFinalYanUnlock()
 
     if (this.isGlobalDictionaryOpen) {
@@ -221,7 +227,9 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
     if (this.dialogueOpen) {
       this.player.setVelocity(0, 0)
-      if (
+      if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+        this.advanceNpcDialogueLine()
+      } else if (
         Phaser.Input.Keyboard.JustDown(this.keyQ) ||
         Phaser.Input.Keyboard.JustDown(this.keyEsc)
       ) {
@@ -294,7 +302,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
         interaction.id,
         this.tweens.add({
           targets: image,
-          y: interaction.y - (interaction.category === 'npc' ? 6 : 10),
+          y: interaction.y - (interaction.category === 'npc' ? 5 : 8),
           duration: interaction.category === 'npc' ? 1200 : 1000,
           yoyo: true,
           repeat: -1,
@@ -319,6 +327,22 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       label.setVisible(false)
       this.interactionLabels.set(interaction.id, label)
     })
+  }
+
+  private setIntroInteractionVisibility(visible: boolean): void {
+    this.player?.setVisible(visible)
+
+    EMBROIDERY_INTERACTIONS.forEach((interaction) => {
+      if (interaction.category !== 'npc') {
+        this.interactionSprites.get(interaction.id)?.setVisible(visible)
+      }
+
+      this.interactionLabels.get(interaction.id)?.setVisible(false)
+    })
+
+    if (!visible) {
+      this.interactHint?.setVisible(false)
+    }
   }
 
   private createPlayer(): void {
@@ -389,7 +413,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.controlsText = this.add.text(
       width / 2,
       height - 24,
-      'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回',
+      EXPLORATION_CONTROLS_LABEL,
       {
         fontSize: '22px',
         color: '#4d3b34',
@@ -450,7 +474,11 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       0x1e1410,
       0.78,
     )
-    this.previewOverlay.setInteractive()
+    this.previewOverlay
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        if (this.activePreview) this.advancePreview()
+      })
 
     this.previewPanel = this.add.rectangle(
       0,
@@ -460,45 +488,67 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       0xead9b8,
       0.98,
     )
-    this.previewPanel.setStrokeStyle(4, 0x7a3020)
+    this.previewPanel.setStrokeStyle(4, 0x7a3020).setVisible(false)
 
-    this.previewImage = this.add.image(-390, 10, 'embroidery_red_makeup')
-    this.previewImage.setBlendMode(Phaser.BlendModes.MULTIPLY)
+    this.previewImage = this.add.image(
+      0,
+      0,
+      'embroidery_red_makeup',
+    )
+    this.previewImage
+      .setBlendMode(Phaser.BlendModes.NORMAL)
+      .setAlpha(1)
 
-    this.previewTitle = this.add.text(120, -300, '', {
-      fontSize: '48px',
-      color: '#6f2926',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      fontStyle: 'bold',
-    })
+    this.previewTitle = this.add.text(
+      0,
+      0,
+      '',
+      {
+        fontSize: '42px',
+        color: '#d5cfc0',
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
+        fontStyle: 'bold',
+      },
+    )
     this.previewTitle.setOrigin(0.5)
 
-    this.previewPhaseText = this.add.text(120, -235, '', {
-      fontSize: '22px',
-      color: '#8b6e5e',
+    this.previewPhaseText = this.add.text(0, -190, '', {
+      fontSize: '20px',
+      color: '#a89984',
       letterSpacing: 4,
     })
-    this.previewPhaseText.setOrigin(0.5)
+    this.previewPhaseText.setOrigin(0.5).setVisible(false)
 
-    this.previewBody = this.add.text(120, -110, '', {
-      fontSize: '32px',
-      color: '#392c28',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      wordWrap: { width: 610 },
-      lineSpacing: 14,
-      align: 'left',
-    })
-    this.previewBody.setOrigin(0.5, 0)
+    this.previewBody = this.add.text(
+      0,
+      0,
+      '',
+      {
+        fontSize: '28px',
+        color: '#d5cfc0',
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
+        wordWrap: { width: CULTURE_PREVIEW_TEXT_WIDTH },
+        lineSpacing: 16,
+        align: 'left',
+      },
+    )
+    this.previewBody.setOrigin(0, 0)
 
-    this.previewGlyphContainer = this.add.container(120, -110)
+    this.previewGlyphContainer = this.add.container(
+      0,
+      0,
+    )
 
     this.previewHint = this.add.text(
-      120,
-      315,
+      0,
+      height / 2 - 55,
       'E 继续  |  Q / ESC 返回',
       {
-        fontSize: '24px',
-        color: '#6f2926',
+        fontSize: '22px',
+        color: '#a89984',
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
+        backgroundColor: '#00000088',
+        padding: { x: 20, y: 8 },
       },
     )
     this.previewHint.setOrigin(0.5)
@@ -525,6 +575,11 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.dialogueBox = this.add.image(0, 0, DIALOGUE_BOX_KEY)
     this.dialogueBox.setAlpha(0.8)
     this.dialogueBox.setDisplaySize(Math.min(width * 0.88, 1500), 300)
+    this.dialogueBox
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        if (this.dialogueOpen) this.advanceNpcDialogueLine()
+      })
 
     this.dialogueName = this.add.text(-500, -40, npcConfig.name, {
       fontSize: '34px',
@@ -534,7 +589,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     })
     this.dialogueName.setOrigin(0.5)
 
-    this.dialogueBefore = this.add.text(-390, -55, '', {
+    this.dialogueBefore = this.add.text(DIALOGUE_TEXT_X, DIALOGUE_TEXT_Y, '', {
       fontSize: '25px',
       color: '#f1f1ee',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
@@ -542,52 +597,54 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       lineSpacing: 8,
     })
 
-    this.dialoguePrefix = this.add.text(-390, 20, '', {
+    this.dialoguePrefix = this.add.text(DIALOGUE_TEXT_X, DIALOGUE_TEXT_Y, '', {
       fontSize: '29px',
       color: '#f1f1ee',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
     })
 
-    this.dialogueNushuButton = this.add.image(
-      -180,
-      25,
-      'embroidery_dialogue_jin',
-    )
-    this.dialogueNushuButton
-      .setDisplaySize(52, 82)
+    this.dialogueGlyphContainer = this.add.container(0, 0)
+    this.dialogueGlyphContainer
+      .setSize(DIALOGUE_GLYPH_HEIGHT, DIALOGUE_GLYPH_HEIGHT)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        if (!this.dialogueOpen) this.openGlobalDictionary()
+        if (this.dialogueOpen) {
+          this.advanceNpcDialogueLine()
+        }
       })
-      .on('pointerover', () =>
-        this.dialogueNushuButton.setTint(0xffb18d),
-      )
-      .on('pointerout', () => this.dialogueNushuButton.clearTint())
+      .on('pointerover', () => this.dialogueGlyphContainer.setAlpha(0.78))
+      .on('pointerout', () => this.dialogueGlyphContainer.setAlpha(1))
+      .setVisible(false)
 
-    this.dialogueSuffix = this.add.text(-140, 20, '', {
+    this.dialogueSuffix = this.add.text(DIALOGUE_TEXT_X, DIALOGUE_TEXT_Y, '', {
       fontSize: '29px',
       color: '#f1f1ee',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
     })
 
-    this.dialogueSolvedText = this.add.text(-390, -82, '', {
-      fontSize: '27px',
-      color: '#f1f1ee',
-      fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      wordWrap: { width: 790 },
-      lineSpacing: 10,
-    })
+    this.dialogueSolvedText = this.add.text(
+      DIALOGUE_TEXT_X,
+      DIALOGUE_TEXT_Y,
+      '',
+      {
+        fontSize: '27px',
+        color: '#f1f1ee',
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
+        wordWrap: { width: 790 },
+        lineSpacing: 10,
+      },
+    )
 
     this.dialogueHint = this.add.text(
       520,
       92,
-      '点击女书字破译  |  Q / ESC 返回',
+      '',
       {
         fontSize: '19px',
         color: '#d9b99b',
       },
     )
-    this.dialogueHint.setOrigin(1, 0.5)
+    this.dialogueHint.setOrigin(1, 0.5).setVisible(false)
 
     this.dialogueContainer = this.add.container(
       width / 2,
@@ -597,7 +654,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
         this.dialogueName,
         this.dialogueBefore,
         this.dialoguePrefix,
-        this.dialogueNushuButton,
+        this.dialogueGlyphContainer,
         this.dialogueSuffix,
         this.dialogueSolvedText,
         this.dialogueHint,
@@ -624,13 +681,32 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.keyTab = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB)
   }
 
+  private showDialogueControls(): void {
+    this.controlsText
+      .setText(DIALOGUE_CONTROLS_LABEL)
+      .setDepth(95)
+      .setVisible(true)
+  }
+
+  private showExplorationControls(): void {
+    this.controlsText
+      .setText(EXPLORATION_CONTROLS_LABEL)
+      .setDepth(60)
+      .setVisible(true)
+  }
+
   private updateNearestInteraction(): void {
     let nearest: EmbroideryInteraction | null = null
     let nearestDistance = EMBROIDERY_INTERACT_DISTANCE
 
     for (const interaction of EMBROIDERY_INTERACTIONS) {
+      const isNpcIntroAvailable =
+        interaction.category === 'npc' &&
+        this.introDialogueState !== 'complete'
+
       if (
         interaction.category === 'npc' &&
+        !isNpcIntroAvailable &&
         !this.canTriggerFinalYanDialogue()
       ) {
         this.interactionLabels.get(interaction.id)?.setVisible(false)
@@ -682,16 +758,27 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     })
 
     if (nearest) {
-      this.interactHintText.setText(
-        nearest.category === 'npc'
-          ? `E 交互 · ${npcConfig.name}似乎还有话想对你说`
-          : `E 交互 · ${nearest.title}`,
-      )
+      this.interactHintText.setText(this.getInteractionHintText(nearest))
     }
+  }
+
+  private getInteractionHintText(interaction: EmbroideryInteraction): string {
+    if (interaction.category !== 'npc') {
+      return `E 交互 · ${interaction.title}`
+    }
+
+    return this.introDialogueState !== 'complete'
+      ? `E 交互 · 与${npcConfig.name}交谈`
+      : `E 交互 · ${npcConfig.name}似乎还有话想对你说`
   }
 
   private openPreview(interaction: EmbroideryInteraction): void {
     if (interaction.category === 'npc') {
+      if (this.introDialogueState !== 'complete') {
+        this.startIntroDialogue()
+        return
+      }
+
       if (this.canTriggerFinalYanDialogue()) {
         this.openFinalYanDialogue()
       }
@@ -702,18 +789,24 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.previewPhase = 0
     this.player.setVelocity(0, 0)
     this.interactHint.setVisible(false)
-    this.previewContainer.setVisible(true)
-    this.showPreviewPhase()
+    this.showCurrentInteractionPhase()
   }
 
   private advancePreview(): void {
     if (!this.activePreview) return
 
-    if (this.previewPhase < this.activePreview.phases.length - 1) {
-      this.previewPhase += 1
-      this.showPreviewPhase()
+    const phase = this.activePreview.phases[this.previewPhase]
+    if (phase.display === 'culture' && !this.culturePreviewTextVisible) {
+      this.culturePreviewTextVisible = true
+      this.showCulturePreviewText()
       return
     }
+
+    this.advanceInteractionPhase()
+  }
+
+  private completeActiveInteraction(): void {
+    if (!this.activePreview) return
 
     const interaction = this.activePreview
     const isFirstDiscovery = !this.saveSystem.isClueDiscovered(
@@ -743,6 +836,59 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.closePreview()
   }
 
+  private advanceInteractionPhase(): void {
+    if (!this.activePreview) return
+
+    if (this.previewPhase < this.activePreview.phases.length - 1) {
+      this.previewPhase += 1
+      this.showCurrentInteractionPhase()
+      return
+    }
+
+    this.completeActiveInteraction()
+  }
+
+  private showCurrentInteractionPhase(): void {
+    if (!this.activePreview) return
+
+    const phase = this.activePreview.phases[this.previewPhase]
+    if (phase.display === 'dialogue') {
+      this.openInteractionDialogue()
+      return
+    }
+
+    this.openCulturePreview()
+  }
+
+  private openInteractionDialogue(): void {
+    if (!this.activePreview) return
+
+    this.previewContainer.setVisible(false)
+    this.dialogueOpen = true
+    this.npcDialogueMode = 'interaction'
+    this.npcDialogueLineIndex = 0
+    this.player.setVelocity(0, 0)
+    this.interactHint.setVisible(false)
+    this.showDialogueControls()
+    this.dialogueName.setText(npcConfig.name)
+    this.focusNpcForDialogue()
+    this.dialogueContainer.setVisible(true)
+    this.renderNpcDialogueLine()
+  }
+
+  private openCulturePreview(): void {
+    if (!this.activePreview) return
+
+    this.culturePreviewTextVisible = false
+    this.dialogueOpen = false
+    this.npcDialogueMode = 'none'
+    this.dialogueContainer.setVisible(false)
+    this.restoreNpcAfterDialogue()
+    this.controlsText.setDepth(60).setVisible(false)
+    this.previewContainer.setVisible(true)
+    this.showPreviewPhase()
+  }
+
   private showPreviewPhase(): void {
     if (!this.activePreview) return
 
@@ -752,15 +898,39 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     )
     this.fitPreviewImage(this.activePreview)
     this.previewTitle.setText(phase.title ?? this.activePreview.title)
-    this.previewPhaseText.setText(
-      `PHASE ${this.previewPhase + 1} / ${this.activePreview.phases.length}`,
-    )
+    this.previewTitle.setVisible(this.culturePreviewTextVisible)
+    this.previewPhaseText.setVisible(false)
     this.renderPreviewContent(phase)
+    this.layoutCulturePreviewContent()
+    this.setCulturePreviewTextVisible(this.culturePreviewTextVisible)
     this.previewHint.setText(
-      this.previewPhase === this.activePreview.phases.length - 1
-        ? 'E 收下线索  |  Q / ESC 返回'
-        : 'E 继续  |  Q / ESC 返回',
+      this.culturePreviewTextVisible
+        ? this.getCulturePreviewTextHint()
+        : 'E / 点击 显示文字 | Q / ESC 返回',
     )
+  }
+
+  private showCulturePreviewText(): void {
+    if (!this.activePreview) return
+
+    this.setCulturePreviewTextVisible(true)
+    this.previewHint.setText(this.getCulturePreviewTextHint())
+  }
+
+  private setCulturePreviewTextVisible(visible: boolean): void {
+    this.previewTitle.setVisible(visible)
+    this.previewBody.setVisible(visible && this.previewBody.text.length > 0)
+    this.previewGlyphContainer.setVisible(
+      visible && this.previewGlyphContainer.getAll().length > 0,
+    )
+  }
+
+  private getCulturePreviewTextHint(): string {
+    if (!this.activePreview) return 'E / 点击 返回 | Q / ESC 返回'
+
+    return this.previewPhase === this.activePreview.phases.length - 1
+      ? 'E / 点击 收下线索 | Q / ESC 返回'
+      : 'E / 点击 继续 | Q / ESC 返回'
   }
 
   private renderPreviewContent(phase: EmbroideryPreviewPhase): void {
@@ -771,18 +941,18 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       return
     }
 
-    this.previewBody.setVisible(false)
+    this.previewBody.setText('').setVisible(false)
     const lines = phase.text.split('\n')
 
     lines.forEach((line, lineIndex) => {
       const [prefix, suffix] = line.split('{{nushu}}')
       const lineY = lineIndex * 66
-      const prefixText = this.createPreviewLineText(prefix, -305, lineY)
+      const prefixText = this.createPreviewLineText(prefix, 0, lineY)
       this.previewGlyphContainer.add(prefixText)
 
       if (suffix === undefined) return
 
-      let glyphX = -305 + prefixText.width + 8
+      let glyphX = prefixText.width + 8
       phase.nushuTextureKeys?.forEach((textureKey) => {
         const glyph = this.add.image(glyphX, lineY + 20, textureKey)
         const glyphHeight = 48
@@ -808,66 +978,125 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   ): Phaser.GameObjects.Text {
     return this.add.text(x, y, text, {
       fontSize: '28px',
-      color: '#392c28',
+      color: '#d5cfc0',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
     })
   }
 
   private fitPreviewImage(interaction: EmbroideryInteraction): void {
-    const maxWidth = interaction.category === 'npc' ? 360 : 610
-    const maxHeight = 590
-    const scale = Math.min(
+    const { width, height } = this.scale.gameSize
+    const availableWidth = Math.max(width - 96, 960)
+    const maxCultureImageWidth = Math.max(
+      420,
+      Math.min(
+        1000,
+        width * CULTURE_PREVIEW_MAX_IMAGE_WIDTH_RATIO,
+        availableWidth - CULTURE_PREVIEW_TEXT_WIDTH - CULTURE_PREVIEW_GAP,
+      ),
+    )
+    const maxWidth =
+      interaction.category === 'npc' ? 360 : maxCultureImageWidth
+    const maxHeight =
+      interaction.category === 'npc'
+        ? 590
+        : Math.min(820, height * CULTURE_PREVIEW_MAX_IMAGE_HEIGHT_RATIO)
+    const maxScale = Math.min(
       maxWidth / this.previewImage.width,
       maxHeight / this.previewImage.height,
     )
-    this.previewImage.setScale(scale)
+
+    this.previewImage
+      .setBlendMode(Phaser.BlendModes.NORMAL)
+      .setAlpha(1)
+      .setScale(maxScale)
+  }
+
+  private layoutCulturePreviewContent(): void {
+    const imageWidth = this.previewImage.displayWidth
+    const imageLayoutWidth =
+      imageWidth * CULTURE_PREVIEW_IMAGE_LAYOUT_WIDTH_RATIO
+    const totalWidth =
+      imageLayoutWidth + CULTURE_PREVIEW_GAP + CULTURE_PREVIEW_TEXT_WIDTH
+    const imageX = -totalWidth / 2 + imageLayoutWidth / 2
+    const textLeftX = totalWidth / 2 - CULTURE_PREVIEW_TEXT_WIDTH
+    const textCenterX = textLeftX + CULTURE_PREVIEW_TEXT_WIDTH / 2
+    const titleHeight = this.previewTitle.height
+    const bodyHeight = this.getCulturePreviewBodyHeight()
+    const textBlockHeight =
+      titleHeight + CULTURE_PREVIEW_TITLE_BODY_GAP + bodyHeight
+    const titleY = -textBlockHeight / 2 + titleHeight / 2
+    const bodyY =
+      -textBlockHeight / 2 + titleHeight + CULTURE_PREVIEW_TITLE_BODY_GAP
+
+    this.previewImage.setPosition(
+      imageX + CULTURE_PREVIEW_IMAGE_OFFSET_X,
+      CULTURE_PREVIEW_IMAGE_OFFSET_Y,
+    )
+    this.previewTitle.setPosition(textCenterX, titleY)
+    this.previewPhaseText.setPosition(textCenterX, titleY)
+    this.previewBody.setPosition(textLeftX, bodyY)
+    this.previewGlyphContainer.setPosition(textLeftX, bodyY)
+  }
+
+  private getCulturePreviewBodyHeight(): number {
+    if (this.previewBody.text.length > 0) {
+      return this.previewBody.height
+    }
+
+    const glyphLines = this.previewGlyphContainer.getAll()
+    if (glyphLines.length === 0) return 0
+
+    return Math.max(
+      ...glyphLines.map((child) => {
+        const gameObject = child as Phaser.GameObjects.GameObject & {
+          y?: number
+          displayHeight?: number
+          height?: number
+        }
+        return (
+          (gameObject.y ?? 0) +
+          (gameObject.displayHeight ?? gameObject.height ?? 0)
+        )
+      }),
+    )
   }
 
   private closePreview(): void {
     this.activePreview = null
+    this.culturePreviewTextVisible = false
     this.previewContainer.setVisible(false)
+    this.setCulturePreviewTextVisible(false)
+    this.showExplorationControls()
   }
 
   private startIntroDialogue(): void {
     if (this.introDialogueState !== 'pending') return
 
     this.introDialogueState = 'playing'
+    this.dialogueOpen = true
+    this.npcDialogueMode = 'intro'
+    this.npcDialogueLineIndex = 0
     this.player.setVelocity(0, 0)
     this.interactHint.setVisible(false)
+    this.setIntroInteractionVisibility(false)
+    this.showDialogueControls()
     this.dialogueName.setText(npcConfig.name)
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
-    this.renderIntroDialogueLine()
-  }
-
-  private renderIntroDialogueLine(): void {
-    this.dialogueBefore
-      .setText(INTRO_DIALOGUE_LINES.join('\n'))
-      .setVisible(true)
-    this.dialoguePrefix.setVisible(false)
-    this.dialogueSuffix.setVisible(false)
-    this.dialogueNushuButton.setVisible(false)
-    this.dialogueSolvedText.setVisible(false)
-    this.dialogueHint.setText('1 / 1')
-
-    this.introDialogueTimer = this.time.delayedCall(
-      INTRO_DIALOGUE_LINE_DURATION * INTRO_DIALOGUE_LINES.length,
-      this.finishIntroDialogue,
-      [],
-      this,
-    )
+    this.renderNpcDialogueLine()
   }
 
   private finishIntroDialogue(): void {
     if (this.introDialogueState === 'complete') return
 
-    this.introDialogueTimer?.remove(false)
-    this.introDialogueTimer = undefined
     this.introDialogueState = 'complete'
+    this.dialogueOpen = false
+    this.npcDialogueMode = 'none'
     this.dialogueContainer.setVisible(false)
     this.restoreNpcAfterDialogue()
+    this.setIntroInteractionVisibility(true)
     this.dictionaryButton.setVisible(true)
-    this.controlsText.setVisible(true)
+    this.showExplorationControls()
   }
 
   private openFinalYanDialogue(): void {
@@ -878,6 +1107,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.npcDialogueLineIndex = 0
     this.player.setVelocity(0, 0)
     this.interactHint.setVisible(false)
+    this.showDialogueControls()
     this.dialogueName.setText(npcConfig.name)
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
@@ -885,14 +1115,22 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   }
 
   private closeDialogue(): void {
-    const wasSummary = this.npcDialogueMode === 'summary'
-    this.npcDialogueTimer?.remove(false)
-    this.npcDialogueTimer = undefined
+    const closedMode = this.npcDialogueMode
     this.dialogueOpen = false
     this.npcDialogueMode = 'none'
     this.dialogueContainer.setVisible(false)
     this.restoreNpcAfterDialogue()
-    if (wasSummary) this.completeEmbroideryRoom()
+    if (closedMode === 'intro') {
+      this.finishIntroDialogue()
+      return
+    }
+    if (closedMode === 'interaction') {
+      this.activePreview = null
+      this.showExplorationControls()
+      return
+    }
+    this.showExplorationControls()
+    if (closedMode === 'summary') this.completeEmbroideryRoom()
   }
 
   private focusNpcForDialogue(): void {
@@ -956,18 +1194,19 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   }
 
   private renderNpcDialogueLine(): void {
-    const lines =
-      this.npcDialogueMode === 'summary'
-        ? SUMMARY_DIALOGUE_LINES
-        : [
-            finalYanPuzzle.beforeLines[0],
-            finalYanPuzzle.puzzleLine,
-            finalYanPuzzle.afterLines[0],
-          ]
+    const lines = this.getNpcDialogueLines()
     const line = lines[this.npcDialogueLineIndex]
 
     if (!line) {
-      if (this.npcDialogueMode === 'final-yan') {
+      if (this.npcDialogueMode === 'intro') {
+        this.finishIntroDialogue()
+      } else if (this.npcDialogueMode === 'interaction') {
+        this.dialogueOpen = false
+        this.npcDialogueMode = 'none'
+        this.dialogueContainer.setVisible(false)
+        this.restoreNpcAfterDialogue()
+        this.advanceInteractionPhase()
+      } else if (this.npcDialogueMode === 'final-yan') {
         this.collectFinalYan()
       } else {
         this.closeDialogue()
@@ -981,32 +1220,123 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     if (suffix === undefined) {
       this.dialoguePrefix.setVisible(false)
       this.dialogueSuffix.setVisible(false)
-      this.dialogueNushuButton.setVisible(false)
+      this.clearDialogueGlyphs()
       this.dialogueSolvedText.setText(line).setVisible(true)
     } else {
       this.dialogueSolvedText.setVisible(false)
       this.dialoguePrefix.setText(prefix).setVisible(true)
       const prefixWidth = this.dialoguePrefix.width
-      this.dialogueNushuButton
-        .setTexture('embroidery_dialogue_yan')
-        .setPosition(-390 + prefixWidth + 34, 24)
+      const glyphWidth = this.renderDialogueGlyphs(
+        this.getDialogueGlyphTextureKeys(),
+      )
+      this.dialogueGlyphContainer
+        .setPosition(
+          DIALOGUE_TEXT_X + prefixWidth + 10,
+          DIALOGUE_TEXT_Y + DIALOGUE_GLYPH_HEIGHT / 2,
+        )
         .setVisible(true)
       this.dialogueSuffix
         .setText(suffix)
-        .setPosition(-390 + prefixWidth + 70, 8)
+        .setPosition(
+          DIALOGUE_TEXT_X + prefixWidth + glyphWidth + 20,
+          DIALOGUE_TEXT_Y,
+        )
         .setVisible(true)
     }
 
-    this.dialogueHint.setText(
-      `${this.npcDialogueLineIndex + 1} / ${lines.length}`,
+    this.controlsText.setText(
+      `${this.npcDialogueLineIndex + 1} / ${lines.length}  |  ${DIALOGUE_CONTROLS_LABEL}`,
     )
-    this.npcDialogueTimer = this.time.delayedCall(
-      NPC_DIALOGUE_LINE_DURATION,
-      () => {
-        this.npcDialogueLineIndex += 1
-        this.renderNpcDialogueLine()
-      },
+  }
+
+  private getNpcDialogueLines(): readonly string[] {
+    if (this.npcDialogueMode === 'intro') return INTRO_DIALOGUE_LINES
+    if (this.npcDialogueMode === 'interaction') {
+      const phase = this.getCurrentInteractionPhase()
+      return phase ? phase.text.split('\n') : []
+    }
+    if (this.npcDialogueMode === 'summary') return SUMMARY_DIALOGUE_LINES
+
+    return [
+      finalYanPuzzle.beforeLines[0],
+      finalYanPuzzle.puzzleLine,
+      finalYanPuzzle.afterLines[0],
+    ]
+  }
+
+  private advanceNpcDialogueLine(): void {
+    if (!this.dialogueOpen) return
+
+    this.npcDialogueLineIndex += 1
+    this.renderNpcDialogueLine()
+  }
+
+  private getCurrentInteractionPhase(): EmbroideryPreviewPhase | undefined {
+    return this.activePreview?.phases[this.previewPhase]
+  }
+
+  private getDialogueGlyphTextureKeys(): readonly string[] {
+    if (this.npcDialogueMode !== 'interaction') {
+      return ['embroidery_nushu_yan']
+    }
+
+    const phase = this.getCurrentInteractionPhase()
+    return phase?.nushuTextureKeys?.length
+      ? phase.nushuTextureKeys
+      : ['embroidery_nushu_yan']
+  }
+
+  private getDialogueGlyphTextureKey(sourceKey: string): string {
+    return sourceKey.startsWith('embroidery_nushu_')
+      ? sourceKey.replace('embroidery_nushu_', 'embroidery_dialogue_')
+      : `${sourceKey}_dialogue`
+  }
+
+  private clearDialogueGlyphs(): void {
+    this.dialogueGlyphContainer.removeAll(true)
+    this.dialogueGlyphContainer
+      .setSize(DIALOGUE_GLYPH_HEIGHT, DIALOGUE_GLYPH_HEIGHT)
+      .setVisible(false)
+  }
+
+  private renderDialogueGlyphs(sourceTextureKeys: readonly string[]): number {
+    this.dialogueGlyphContainer.removeAll(true)
+
+    let glyphX = 0
+    sourceTextureKeys.forEach((sourceTextureKey) => {
+      const textureKey = this.getDialogueGlyphTextureKey(sourceTextureKey)
+      const renderTextureKey = this.textures.exists(textureKey)
+        ? textureKey
+        : sourceTextureKey
+      const glyph = this.add.image(glyphX, 0, renderTextureKey)
+      const sourceImage = this.textures.get(renderTextureKey).source[0]?.image
+      const sourceWidth =
+        sourceImage && 'width' in sourceImage ? Number(sourceImage.width) : 52
+      const sourceHeight =
+        sourceImage && 'height' in sourceImage
+          ? Number(sourceImage.height)
+          : 82
+      const glyphWidth = DIALOGUE_GLYPH_HEIGHT * (sourceWidth / sourceHeight)
+
+      glyph
+        .setDisplaySize(glyphWidth, DIALOGUE_GLYPH_HEIGHT)
+        .setOrigin(0, 0.5)
+      this.dialogueGlyphContainer.add(glyph)
+      glyphX += glyphWidth + DIALOGUE_GLYPH_GAP
+    })
+
+    const totalWidth = Math.max(glyphX - DIALOGUE_GLYPH_GAP, 1)
+    this.dialogueGlyphContainer.setSize(totalWidth, DIALOGUE_GLYPH_HEIGHT)
+    const hitArea = this.dialogueGlyphContainer.input
+      ?.hitArea as Phaser.Geom.Rectangle | undefined
+    hitArea?.setTo(
+      0,
+      -DIALOGUE_GLYPH_HEIGHT / 2,
+      totalWidth,
+      DIALOGUE_GLYPH_HEIGHT,
     )
+
+    return totalWidth
   }
 
   private collectFinalYan(): void {
@@ -1060,6 +1390,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.npcDialogueLineIndex = 0
     this.player.setVelocity(0, 0)
     this.interactHint.setVisible(false)
+    this.showDialogueControls()
     this.dialogueName.setText(npcConfig.name)
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
@@ -1145,13 +1476,16 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.toastText.setPosition(width / 2, 100)
     this.previewContainer.setPosition(width / 2, height / 2)
     this.previewOverlay.setSize(width, height)
+    this.previewHint.setPosition(0, height / 2 - 55)
     this.dialogueContainer.setPosition(width / 2, height - 175)
     this.dialogueBox.setDisplaySize(Math.min(width * 0.88, 1500), 300)
 
-    if (
-      (this.dialogueOpen || this.introDialogueState === 'playing') &&
-      this.focusedNpc
-    ) {
+    if (this.activePreview && this.previewContainer.visible) {
+      this.fitPreviewImage(this.activePreview)
+      this.layoutCulturePreviewContent()
+    }
+
+    if (this.dialogueOpen && this.focusedNpc) {
       const targetHeight = Math.min(height * 1.6, 1800)
       const targetWidth =
         targetHeight * (this.focusedNpc.width / this.focusedNpc.height)
@@ -1229,8 +1563,6 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
   private shutdown(): void {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this)
-    this.npcDialogueTimer?.remove(false)
-    this.introDialogueTimer?.remove(false)
     this.restoreNpcAfterDialogue()
   }
 }
