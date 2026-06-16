@@ -1,4 +1,13 @@
-/* ========== 游戏全局重置 ========== */
+:root {
+  font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
+  color: #392c2a;
+  background: #211b1b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 *,
 *::before,
 *::after {
@@ -7,18 +16,18 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body {
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
 body {
   margin: 0;
-  padding: 0;
-  background: #e8dcc4;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -26,4 +35,8 @@ body {
 #root {
   width: 100vw;
   height: 100vh;
+}
+
+button {
+  font: inherit;
 }

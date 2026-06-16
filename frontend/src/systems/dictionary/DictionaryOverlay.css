@@ -1,0 +1,749 @@
+.dictionary-overlay-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(18, 14, 12, 0.7), rgba(18, 14, 12, 0.78)),
+    radial-gradient(circle at 45% 52%, rgba(152, 109, 70, 0.17), transparent 52%);
+  backdrop-filter: blur(8px) saturate(0.68);
+  animation: dictionary-backdrop-in 180ms ease both;
+}
+
+.dictionary-overlay-backdrop::before {
+  position: absolute;
+  inset: -8%;
+  content: "";
+  background:
+    radial-gradient(circle at 18% 68%, rgba(219, 183, 126, 0.11), transparent 24%),
+    radial-gradient(circle at 83% 42%, rgba(91, 49, 40, 0.18), transparent 29%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.dictionary-stage {
+  --dictionary-ink: #392c28;
+  --dictionary-muted-ink: #786157;
+  --dictionary-cinnabar: #8f392f;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: var(--dictionary-ink);
+  isolation: isolate;
+  animation: dictionary-stage-in 280ms ease both;
+}
+
+.dictionary-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.open-book-area {
+  position: absolute;
+  z-index: 2;
+  left: 1.5%;
+  top: 50%;
+  width: 59%;
+  height: 76%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: url("/assets/ui/dictionary.png") center / 133% 100% no-repeat;
+  filter: drop-shadow(0 28px 30px rgba(0, 0, 0, 0.48));
+  transform: translateY(-50%);
+}
+
+.open-book-area::before {
+  display: none;
+}
+
+.open-book-area::after {
+  position: absolute;
+  z-index: -4;
+  left: 49%;
+  bottom: -24px;
+  width: 22%;
+  height: 34px;
+  content: "";
+  border-radius: 50%;
+  background: rgba(26, 13, 11, 0.66);
+  filter: blur(13px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.dictionary-page-stack {
+  display: none;
+}
+
+.dictionary-page-stack-left {
+  left: -7px;
+  border-radius: 18px 3px 5px 17px;
+  transform: rotate(-0.45deg);
+}
+
+.dictionary-page-stack-right {
+  right: -7px;
+  border-radius: 3px 18px 17px 5px;
+  transform: rotate(0.45deg);
+}
+
+.dictionary-book-page {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: visible;
+  padding: clamp(22px, 2.25vw, 38px);
+  background: transparent;
+  box-shadow: none;
+}
+
+.dictionary-book-page::before {
+  display: none;
+}
+
+.dictionary-book-page::after {
+  display: none;
+}
+
+.left-book-page {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-left: 10%;
+  padding-right: 7%;
+}
+
+.dictionary-volume-status {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: clamp(12px, 1vw, 18px);
+  margin-right: 8%;
+  color: rgba(92, 65, 52, 0.38);
+  font-size: clamp(9px, 0.7vw, 12px);
+  letter-spacing: 0.13em;
+  line-height: 1.7;
+}
+
+.dictionary-volume-status span {
+  display: inline-flex;
+  align-items: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.dictionary-volume-status-title {
+  padding-inline: 0.8em;
+  border-inline: 1px solid rgba(143, 57, 47, 0.19);
+  color: rgba(143, 57, 47, 0.52);
+  letter-spacing: 0.2em;
+}
+
+.dictionary-volume-status strong {
+  margin-block-start: 0.32em;
+  color: rgba(143, 57, 47, 0.54);
+  font-size: 1em;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.right-book-page {
+  padding: 0;
+}
+
+.dictionary-book-spine {
+  display: none;
+}
+
+.dictionary-poem {
+  position: absolute;
+  z-index: 2;
+  top: 16%;
+  right: 12%;
+  width: 80%;
+  height: 95%;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(30px, 2.0vw, 36px);
+  margin: 0;
+  padding: 0;
+}
+
+.dictionary-poem p {
+  height: 100%;
+  margin: 0;
+  color: #3d302b;
+  font-size: clamp(16px, 1.42vw, 23px);
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.dictionary-poem-slot {
+  position: relative;
+  min-inline-size: 1.22em;
+  display: inline-block;
+  margin: 0.03em 0;
+  padding: 0.08em 0.055em;
+  border: 0;
+  color: transparent;
+  background: rgba(255, 248, 232, 0.2);
+  font: inherit;
+  line-height: 1.12;
+  letter-spacing: 0.02em;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.dictionary-poem-slot::before,
+.dictionary-poem-slot::after {
+  position: absolute;
+  width: 0.48em;
+  height: 0.48em;
+  content: "";
+  pointer-events: none;
+}
+
+.dictionary-poem-slot::before {
+  left: 0;
+  top: 0;
+  border-left: 1px solid rgba(150, 70, 55, 0.42);
+  border-top: 1px solid rgba(150, 70, 55, 0.42);
+}
+
+.dictionary-poem-slot::after {
+  right: 0;
+  bottom: 0;
+  border-right: 1px solid rgba(150, 70, 55, 0.42);
+  border-bottom: 1px solid rgba(150, 70, 55, 0.42);
+}
+
+.dictionary-poem-slot:hover,
+.dictionary-poem-slot:focus-visible {
+  color: #f4e1bb;
+  background: rgba(143, 57, 47, 0.72);
+  outline: none;
+}
+
+.dictionary-poem-slot:hover::before,
+.dictionary-poem-slot:hover::after,
+.dictionary-poem-slot:focus-visible::before,
+.dictionary-poem-slot:focus-visible::after {
+  border-color: rgba(245, 221, 181, 0.9);
+}
+
+.dictionary-poem-slot.is-unlocked {
+  padding-inline: 0.02em;
+  color: #36584e;
+  background: transparent;
+}
+
+.dictionary-poem-slot.is-unlocked::before,
+.dictionary-poem-slot.is-unlocked::after {
+  display: none;
+}
+
+.dictionary-poem-slot:disabled {
+  cursor: default;
+}
+
+.dictionary-poem-slot:disabled:hover,
+.dictionary-poem-slot:disabled:focus-visible {
+  color: transparent;
+  background: rgba(255, 248, 232, 0.2);
+}
+
+.dictionary-poem-slot:disabled:hover::before,
+.dictionary-poem-slot:disabled:hover::after,
+.dictionary-poem-slot:disabled:focus-visible::before,
+.dictionary-poem-slot:disabled:focus-visible::after {
+  border-color: rgba(150, 70, 55, 0.42);
+}
+
+.dictionary-poem-slot.is-unlocked:disabled:hover,
+.dictionary-poem-slot.is-unlocked:disabled:focus-visible {
+  color: #36584e;
+  background: transparent;
+}
+
+.dictionary-poem-slot.is-current,
+.dictionary-poem-slot.is-current:disabled:hover,
+.dictionary-poem-slot.is-current:disabled:focus-visible {
+  color: rgba(143, 57, 47, 0.2);
+  background: rgba(255, 237, 207, 0.38);
+  box-shadow: 0 0 9px rgba(166, 61, 48, 0.2);
+}
+
+.dictionary-poem-slot.is-current::before,
+.dictionary-poem-slot.is-current::after,
+.dictionary-poem-slot.is-current:disabled:hover::before,
+.dictionary-poem-slot.is-current:disabled:hover::after,
+.dictionary-poem-slot.is-current:disabled:focus-visible::before,
+.dictionary-poem-slot.is-current:disabled:focus-visible::after {
+  border-color: rgba(178, 65, 48, 0.92);
+  border-width: 2px;
+  filter: drop-shadow(0 0 3px rgba(178, 65, 48, 0.4));
+}
+
+.glyph-orbit-area {
+  position: absolute;
+  z-index: 3;
+  right: 3%;
+  top: 50%;
+  width: 33%;
+  height: 70%;
+  transform: translateY(-50%);
+}
+
+.dictionary-feedback-toast {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: -3%;
+  max-width: 78%;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid rgba(226, 205, 168, 0.36);
+  border-radius: 2px;
+  color: rgba(248, 234, 205, 0.9);
+  background: rgba(40, 29, 25, 0.82);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  font-size: clamp(10px, 0.78vw, 13px);
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.dictionary-feedback-toast.is-error {
+  border-color: rgba(194, 82, 66, 0.72);
+  color: #f1c5b9;
+  animation: dictionary-feedback-shake 240ms ease;
+}
+
+.dictionary-feedback-toast.is-success {
+  border-color: rgba(151, 184, 158, 0.58);
+  color: #d7ead9;
+}
+
+.dictionary-orbit-heading {
+  position: absolute;
+  z-index: 4;
+  left: 5%;
+  top: 0;
+  color: rgba(239, 224, 193, 0.7);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.dictionary-orbit-heading span,
+.dictionary-orbit-heading h2,
+.dictionary-orbit-heading p {
+  margin: 0;
+}
+
+.dictionary-orbit-heading span {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+.dictionary-orbit-heading h2 {
+  margin-top: 3px;
+  color: rgba(248, 234, 205, 0.88);
+  font-size: clamp(15px, 1.35vw, 22px);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+
+.dictionary-orbit-heading p {
+  margin-top: 4px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.dictionary-orbit {
+  position: absolute;
+  inset: 0;
+}
+
+.dictionary-orbit::before {
+  position: absolute;
+  left: 51%;
+  top: 53%;
+  width: 58%;
+  aspect-ratio: 1;
+  content: "";
+  border: 1px solid rgba(235, 218, 184, 0.08);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.dictionary-orbit-ring {
+  position: absolute;
+  left: 51%;
+  top: 53%;
+  border: 1px dashed rgba(235, 218, 184, 0.07);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  pointer-events: none;
+}
+
+.dictionary-orbit-ring-one {
+  width: 86%;
+  height: 57%;
+}
+
+.dictionary-orbit-ring-two {
+  width: 45%;
+  height: 84%;
+  transform: translate(-50%, -50%) rotate(18deg);
+}
+
+.dictionary-entry {
+  --entry-x: 50%;
+  --entry-y: 50%;
+  --entry-size: 64px;
+  position: absolute;
+  left: var(--entry-x);
+  top: var(--entry-y);
+  width: var(--entry-size);
+  height: var(--entry-size);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--dictionary-ink);
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.dictionary-entry-medallion {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(222, 207, 177, 0.55);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 35%, rgba(252, 246, 226, 0.96), rgba(210, 198, 171, 0.82));
+  box-shadow:
+    inset 0 0 0 4px rgba(245, 235, 211, 0.34),
+    0 5px 13px rgba(0, 0, 0, 0.26);
+}
+
+.dictionary-entry:hover,
+.dictionary-entry:focus-visible {
+  outline: none;
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.dictionary-entry:focus-visible .dictionary-entry-medallion {
+  outline: 2px solid rgba(235, 215, 174, 0.82);
+  outline-offset: 3px;
+}
+
+.dictionary-entry-locked {
+  opacity: 0.38;
+  filter: grayscale(1);
+  cursor: pointer;
+}
+
+.dictionary-entry-locked .dictionary-entry-medallion {
+  border-style: dashed;
+  border-color: rgba(224, 217, 202, 0.45);
+  background: rgba(133, 130, 122, 0.52);
+  box-shadow: none;
+}
+
+.dictionary-entry-locked:hover,
+.dictionary-entry-locked:focus-visible {
+  opacity: 0.62;
+  filter: grayscale(0.72);
+}
+
+.dictionary-entry-discovered {
+  opacity: 0.92;
+}
+
+.dictionary-entry-discovered .dictionary-entry-medallion {
+  border-color: rgba(245, 229, 196, 0.8);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 248, 229, 0.21),
+    0 0 16px rgba(242, 219, 174, 0.2),
+    0 5px 13px rgba(0, 0, 0, 0.28);
+}
+
+.dictionary-entry-unlocked {
+  opacity: 1;
+}
+
+.dictionary-entry-unlocked .dictionary-entry-medallion {
+  border: 2px solid rgba(236, 223, 194, 0.92);
+  background:
+    radial-gradient(circle at 38% 32%, #46423b, #151412 72%);
+  box-shadow:
+    inset 0 0 0 3px rgba(242, 228, 198, 0.09),
+    0 0 17px rgba(241, 219, 174, 0.24),
+    0 6px 14px rgba(0, 0, 0, 0.38);
+}
+
+.dictionary-entry-unlocked .dictionary-nushu-images img {
+  filter: invert(1) sepia(0.13);
+  mix-blend-mode: screen;
+}
+
+.dictionary-entry.is-active,
+.dictionary-entry.is-puzzle-target {
+  z-index: 5;
+  opacity: 1;
+  filter: none;
+  animation: dictionary-target-pulse 1.55s ease-in-out infinite;
+}
+
+.dictionary-entry.is-active .dictionary-entry-medallion,
+.dictionary-entry.is-puzzle-target .dictionary-entry-medallion {
+  border: 2px solid #b94a3d;
+  box-shadow:
+    inset 0 0 0 4px rgba(142, 57, 47, 0.08),
+    0 0 0 6px rgba(142, 57, 47, 0.19),
+    0 0 24px rgba(221, 107, 83, 0.58);
+}
+
+.dictionary-entry:disabled {
+  pointer-events: none;
+}
+
+.dictionary-entry-label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 7px);
+  min-width: max-content;
+  padding: 2px 7px 3px;
+  border: 1px solid rgba(235, 218, 184, 0.5);
+  border-radius: 9px;
+  color: #2d2924;
+  background: rgba(240, 225, 194, 0.95);
+  box-shadow: 0 4px 9px rgba(0, 0, 0, 0.24);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  transform: translateX(-50%);
+}
+
+.dictionary-nushu-images {
+  width: 78%;
+  height: 78%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dictionary-nushu-images img {
+  min-width: 0;
+  max-width: 72%;
+  height: 88%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.dictionary-nushu-images.is-compound {
+  width: 88%;
+  gap: 1px;
+}
+
+.dictionary-nushu-images.is-compound img {
+  max-width: 49%;
+  height: 75%;
+}
+
+.dictionary-placeholder-mark {
+  color: rgba(58, 53, 48, 0.42);
+  font-size: clamp(8px, 0.68vw, 10px);
+  letter-spacing: 0.08em;
+}
+
+.dictionary-entry-unlocked .dictionary-placeholder-mark {
+  color: rgba(244, 232, 207, 0.72);
+}
+
+.dictionary-book-close {
+  position: absolute;
+  z-index: 12;
+  right: 1.6%;
+  top: 0;
+  width: clamp(40px, 3.2vw, 52px);
+  height: clamp(47px, 4vw, 62px);
+  border: 1px solid #5c211d;
+  border-radius: 3px 3px 8px 8px;
+  color: #f1ddb5;
+  background:
+    linear-gradient(90deg, rgba(255, 230, 182, 0.08), transparent 38%),
+    #8e392f;
+  box-shadow:
+    inset 0 0 0 3px rgba(245, 216, 163, 0.13),
+    0 8px 18px rgba(0, 0, 0, 0.38);
+  font-size: 18px;
+  cursor: pointer;
+  transform: translate(18%, -20%) rotate(3deg);
+}
+
+.dictionary-book-close::before {
+  position: absolute;
+  z-index: -1;
+  left: 7px;
+  right: 7px;
+  bottom: -8px;
+  height: 14px;
+  content: "";
+  border: 1px solid #5c211d;
+  border-top: 0;
+  border-radius: 0 0 4px 4px;
+  background: #7c3028;
+}
+
+.dictionary-book-close:hover,
+.dictionary-book-close:focus-visible {
+  background: #68251f;
+  outline: 2px solid rgba(242, 223, 185, 0.9);
+  outline-offset: 3px;
+}
+
+@keyframes dictionary-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dictionary-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+
+@keyframes dictionary-feedback-shake {
+  25% {
+    transform: translateX(-3px);
+  }
+
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes dictionary-target-pulse {
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@media (max-width: 980px) {
+  .open-book-area {
+    left: 1%;
+    width: 62%;
+    height: 72%;
+  }
+
+  .glyph-orbit-area {
+    right: 1%;
+    width: 34%;
+    height: 66%;
+  }
+
+  .dictionary-book-page {
+    padding: 19px 14px;
+  }
+
+  .dictionary-poem {
+    top: 13%;
+    right: 10%;
+    width: 76%;
+    height: 78%;
+    gap: clamp(16px, 2vw, 28px);
+  }
+
+  .dictionary-poem p {
+    font-size: clamp(12px, 1.45vw, 17px);
+  }
+}
+
+@media (min-aspect-ratio: 2 / 1) {
+  .open-book-area {
+    left: 2.5%;
+    width: 56%;
+    height: 82%;
+  }
+
+  .glyph-orbit-area {
+    right: 4%;
+    width: 31%;
+    height: 78%;
+  }
+}
+
+@media (max-aspect-ratio: 3 / 2) {
+  .open-book-area {
+    left: 1%;
+    width: 63%;
+    height: 72%;
+  }
+
+  .glyph-orbit-area {
+    right: 1%;
+    width: 34%;
+    height: 68%;
+  }
+}
+
+@media (max-height: 620px) {
+  .open-book-area {
+    height: 80%;
+  }
+
+  .glyph-orbit-area {
+    height: 76%;
+  }
+
+  .dictionary-poem {
+    top: 11%;
+    right: 12%;
+    width: 72%;
+    height: 80%;
+    gap: clamp(12px, 1.55vw, 22px);
+  }
+
+  .dictionary-poem p {
+    font-size: clamp(11px, 1.12vw, 16px);
+    line-height: 1.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dictionary-overlay-backdrop,
+  .dictionary-stage,
+  .dictionary-entry {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,23 @@
+.singing-hall {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #0d0d1a;
+}
+
+.singing-hall__game {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.singing-hall__game canvas {
+  display: block;
+  max-width: none;
+  max-height: none;
+  image-rendering: pixelated;
+}
