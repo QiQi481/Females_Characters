@@ -1126,10 +1126,10 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
         <div className="narration-overlay" style={{ zIndex: 107 }} onClick={advanceQ4ToChoices}>
           <div className="quiz-image-gallery">
             <div className="quiz-image-card">
-              <img src="/assets/FirstLevel/Q1Pic1.png" alt="图1" />
+              <img src="/assets/FirstLevel/spring1.png" alt="图1" />
             </div>
             <div className="quiz-image-card">
-              <img src="/assets/FirstLevel/Q1Pic2.png" alt="图2" />
+              <img src="/assets/FirstLevel/spring2.png" alt="图2" />
             </div>
           </div>
           <span className="quiz-click-hint">点击继续</span>
