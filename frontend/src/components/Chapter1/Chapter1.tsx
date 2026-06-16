@@ -720,7 +720,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             className="dialog-portrait"
           />
 
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             {/* 名字行 */}
             <div className="dialog-name-row">
               <span className="dialog-speaker">{DIALOG_LINES[dialogIndex].speaker}</span>
@@ -852,7 +852,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -919,7 +919,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -956,7 +956,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -1051,7 +1051,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -1070,7 +1070,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -1089,7 +1089,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -1110,7 +1110,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
@@ -1168,7 +1168,7 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
             alt="阿禾"
             className="dialog-portrait"
           />
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">阿禾</span>
               <span className="dialog-flower">&#10047;</span>
