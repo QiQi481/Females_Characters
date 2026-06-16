@@ -266,14 +266,12 @@ function Chapter1({ resumeProgress, onLeave, onComplete }: Chapter1Props) {
     return () => cancelAnimationFrame(animRef.current)
   }, [imgReady, maxX, maxY, showBoundaryInfo, showLetterPopup, showBookPopup, showBookSystem, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
 
-  // 图片加载后把初始位置定在画面正中偏上
+  // 图片加载后把初始位置定在画面右下角
   useEffect(() => {
     if (!imgReady) return
-    const centerX = maxX / 2
-    const centerY = maxY * 0.25 // 偏上一点，因为场景重点通常在偏上位置
     setOffset({
-      x: centerX,
-      y: Math.max(0, centerY),
+      x: maxX,
+      y: maxY,
     })
   }, [imgReady, maxX, maxY])
 
