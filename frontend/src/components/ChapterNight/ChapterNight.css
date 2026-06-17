@@ -1,0 +1,278 @@
+/* ========== 关卡容器 ========== */
+.chapter-night {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #050510;
+  cursor: crosshair;
+  user-select: none;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+}
+
+/* ========== 加载状态 ========== */
+.chapter-night-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.2rem;
+  color: #8aaac4;
+  letter-spacing: 0.2em;
+}
+
+/* ========== 场景 — 大图平移容器 ========== */
+.chapter-night-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.chapter-night-bg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: brightness(0.35) saturate(0.5) hue-rotate(10deg);
+}
+
+/* ========== 黑夜滤镜遮罩 — 深蓝色半透明覆盖层 ========== */
+.chapter-night-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse at 70% 20%, rgba(40, 60, 100, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse at 30% 80%, transparent 40%, rgba(5, 8, 20, 0.45) 100%);
+}
+
+/* ========== 词典按钮 ========== */
+.chapter-night-dictionary-btn {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 80;
+  width: 110px;
+  height: 85px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(-50%);
+  filter: brightness(0.9) saturate(0.7);
+}
+
+.chapter-night-dictionary-btn span {
+  position: absolute;
+  left: 50%;
+  top: 70px;
+  padding: 2px 9px 3px;
+  color: #d0d8e8;
+  background: rgba(20, 30, 55, 0.82);
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translateX(-50%);
+  border-radius: 3px;
+}
+
+.chapter-night-dictionary-btn img {
+  display: block;
+  width: 110px;
+  height: 85px;
+  object-fit: contain;
+  transition:
+    width 160ms ease,
+    height 160ms ease,
+    transform 160ms ease;
+}
+
+.chapter-night-dictionary-btn:hover img,
+.chapter-night-dictionary-btn:focus-visible img {
+  width: 118px;
+  height: 91px;
+  transform: translate(-4px, -3px);
+}
+
+.chapter-night-dictionary-btn:focus-visible {
+  outline: none;
+}
+
+/* ========== 操作提示 ========== */
+.chapter-night-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 90;
+  padding: 7px 14px;
+  color: #d0d8e8;
+  background-color: rgba(20, 30, 55, 0.82);
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 22px;
+  line-height: normal;
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ========== 返回主菜单按钮 ========== */
+.chapter-night-return-btn {
+  position: fixed;
+  bottom: 4vh;
+  right: 4vw;
+  z-index: 10;
+  padding: 8px 20px;
+  background: rgba(10, 20, 40, 0.7);
+  border: 1px solid rgba(100, 140, 180, 0.4);
+  border-radius: 4px;
+  color: #b0c8df;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+
+.chapter-night-return-btn:hover {
+  background: rgba(20, 40, 70, 0.85);
+  border-color: rgba(140, 180, 220, 0.7);
+  color: #d0e0f0;
+}
+
+/* ========== 玩家标记点（红点） ========== */
+.chapter-night-player-marker {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7a3020;
+  box-shadow: 0 0 10px rgba(255, 80, 80, 0.5);
+  z-index: 20;
+  pointer-events: none;
+}
+
+
+/* ========== 深夜对话（严格匹配 Chapter1 对话样式） ========== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dialog-portrait {
+  position: absolute;
+  bottom: -35vh;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 110vh;
+  width: auto;
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45));
+  animation: portraitIn 0.6s ease;
+}
+
+@keyframes portraitIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dialog-box {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: min(88vw, 1500px);
+  min-height: 300px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2.5rem clamp(60px, 6%, 120px) 2.5rem clamp(160px, 24%, 360px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.dialog-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/assets/FirstLevel/conversation.png') center/100% 100% no-repeat;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dialog-name-row,
+.dialog-text,
+.dialog-next-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.dialog-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+  margin-left: clamp(-40px, -7%, -110px);
+}
+
+.dialog-speaker {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 34px;
+  color: #f4ddbf;
+  letter-spacing: 0.15em;
+}
+
+.dialog-flower {
+  color: #e8b4a0;
+  font-size: 1rem;
+}
+
+.dialog-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 29px;
+  line-height: 48px;
+  color: #f1f1ee;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  animation: dialogTextIn 0.25s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+@keyframes dialogTextIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dialog-next-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: rgba(220, 200, 170, 0.45);
+  animation: nextPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes nextPulse {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 0.7; transform: translateY(2px); }
+}

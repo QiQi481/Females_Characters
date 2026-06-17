@@ -135,6 +135,16 @@ export class BootScene extends Phaser.Scene {
       this.load.image(key, url);
     });
 
+    // ========== 对话内联女书字图片 ==========
+    this.load.image('inline_geshan', assetUrl('歌扇.0cc8cdc349.0cc8cdc349.0cc8cdc349.png'));
+    this.load.image('inline_yuanxing', assetUrl('远行.43d20c358f.43d20c358f.43d20c358f.png'));
+
+    // ========== 背景音乐 ==========
+    this.load.audio('singing_bgm', '/audio/singing_bgm.mp3');
+
+    // ========== 交互音效 ==========
+    this.load.audio('bell_click', '/audio/nushu_ui_folk_bell_click_under1s.wav');
+
     // ========== 用图形生成简单贴图（不需要外部资源） ==========
     // 玩家 - 蓝色圆形
     this.createCircleTexture('player', 16, 0x4a90d9);

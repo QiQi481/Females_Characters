@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import MainMenu from './components/MainMenu/MainMenu'
 import Prologue from './components/Prologue/Prologue'
 import TitleCard from './components/TitleCard/TitleCard'
 import Chapter1 from './components/Chapter1/Chapter1'
+import ChapterNight from './components/ChapterNight/ChapterNight'
 import SceneSwitcher from './components/SceneSwitcher'
 import { SaveSystem } from './game/systems'
 import { loadGame, deleteSave, hasSave, saveGame, ProgressStage } from './utils/gameSave'
 import { DictionaryOverlay, useDictionary } from './systems/dictionary'
 import EmbroideryRoomPhaser from './scenes/EmbroideryRoom/EmbroideryRoomPhaser'
 import SingingHall from './scenes/SingingHall/SingingHall'
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from './utils/audioSettings'
 import './App.css'
+
+const JIANGYONG_BGM = '/audio/jiangyong_bgm.mp3'
 
 type GamePhase = 'menu' | 'prologue' | 'titleCard' | 'chapter1'
 
@@ -19,16 +23,80 @@ const SCENE_OPTIONS = [
   { id: JIANGYONG_VILLAGE_SCENE_ID, label: '江永村' },
   { id: 'embroidery-room', label: '女红房' },
   { id: 'singing-hall', label: '坐歌堂' },
+  { id: 'jiangyong-night', label: '江永村：深宵' },
 ] as const
 
 type SceneId = (typeof SCENE_OPTIONS)[number]['id']
 
 function App() {
   const dictionary = useDictionary()
+
   const [gameSessionKey, setGameSessionKey] = useState(0)
   const [currentScene, setCurrentScene] = useState<SceneId>(
     JIANGYONG_VILLAGE_SCENE_ID,
   )
+
+  // ========== 全局背景音乐：女书长卷 ==========
+  // 江永村流程（MainMenu/Prologue/TitleCard/Chapter1）播放，女红房/坐歌堂暂停
+  const bgmRef = useRef<HTMLAudioElement | null>(null)
+
+  // 创建 Audio 实例 + 用户交互触发播放（绕过浏览器自动播放限制）
+  useEffect(() => {
+    const audio = new Audio(JIANGYONG_BGM)
+    audio.loop = true
+    audio.volume = getBgmVolume()
+    bgmRef.current = audio
+
+    // 监听从 SettingsModal 发出的音量变更事件，实时调整音量
+    const onBgmVolumeChange = () => {
+      audio.volume = getBgmVolume()
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
+
+    const tryPlay = () => {
+      if (audio.paused && currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
+        audio.play().catch(() => {})
+      }
+    }
+
+    // 用户首次交互时触发播放
+    const onUserInteract = () => {
+      tryPlay()
+    }
+
+    const events = ['click', 'touchstart', 'keydown']
+    events.forEach((e) => document.addEventListener(e, onUserInteract, { once: true }))
+
+    return () => {
+      events.forEach((e) => document.removeEventListener(e, onUserInteract))
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
+    }
+  }, [])
+
+  // 根据场景切换播放/暂停，并同步最新音量设置
+  useEffect(() => {
+    const audio = bgmRef.current
+    if (!audio) return
+
+    if (currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
+      audio.volume = getBgmVolume()
+      audio.play().catch(() => {})
+    } else {
+      audio.pause()
+    }
+  }, [currentScene])
+
+  // 组件卸载时清理 BGM
+  useEffect(() => {
+    return () => {
+      const a = bgmRef.current
+      if (a) {
+        a.pause()
+        a.src = ''
+        a.load()
+      }
+    }
+  }, [])
 
   // ─── 故事模式状态（用户原有逻辑） ───
   const [phase, setPhase] = useState<GamePhase>('menu')
@@ -159,6 +227,7 @@ function App() {
           resumeProgress={resumeProgress}
           isDictionaryOpen={dictionary.isDictionaryOpen}
           openDictionary={dictionary.openDictionary}
+          unlockEntry={dictionary.unlockEntry}
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
           onComplete={() => deleteSave()}
@@ -191,6 +260,16 @@ function App() {
         )
       case 'jiangyong-village':
         return renderStoryMode()
+      case 'jiangyong-night':
+        return (
+          <ChapterNight
+            onReturnToMenu={returnToMainMenu}
+            isDictionaryOpen={dictionary.isDictionaryOpen}
+            openDictionary={dictionary.openDictionary}
+            unlockEntry={dictionary.unlockEntry}
+            unlockedEntryCount={dictionary.unlockedEntryIds.length}
+          />
+        )
     }
   }
 
@@ -222,6 +301,7 @@ function App() {
         onCloseClue={dictionary.closeClue}
         onDismissGuide={dictionary.dismissGuide}
         onOpenClue={dictionary.openClue}
+        onSelectEntry={dictionary.selectEntry}
         onPlaceEntryToSlot={dictionary.placeEntryToSlot}
       />
     </div>

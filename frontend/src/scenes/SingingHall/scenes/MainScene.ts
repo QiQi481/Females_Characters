@@ -9,6 +9,7 @@
 import Phaser from 'phaser';
 import type { GlobalDictionaryBridge } from '../../../game/GlobalDictionaryBridge';
 import { SceneKeys } from '../types';
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from '../../../utils/audioSettings';
 import {
   PLAYER_SPEED,
   INTERACT_DISTANCE,
@@ -69,7 +70,7 @@ const GLOBAL_DICTIONARY_PUZZLES: Record<
     puzzleId: 'singing-hall-journey',
     activeEntryId: 'yuanxing',
     contextSentence: '歌辞随女子离开熟悉之地，也被带往更远的地方。',
-    localEntryIds: ['song_sheng', 'song_ji'],
+    localEntryIds: [],
   },
 }
 
@@ -79,6 +80,7 @@ export class MainScene extends Phaser.Scene {
   private dictSystem!: DictionarySystem;
   private dictionaryBridge!: GlobalDictionaryBridge;
   private isGlobalDictionaryOpen = false;
+  private bgmVolumeHandler: (() => void) | null = null;
   private pendingDictionaryPuzzle: SingingDictionaryPuzzleConfig | null = null;
   private pendingGlyphToastTargets = new Set<string>();
   private pendingLocalGlyphToastEntryIds = new Set<string>();
@@ -134,7 +136,7 @@ export class MainScene extends Phaser.Scene {
 
   // ========== 线索进度 ==========
   private clueFoundCount = 0;
-  private clueTotalCount = SONG_CLUES.length + 2; // 5个线索 + 2个NPC
+  private clueTotalCount = SONG_CLUES.length + 1; // 5个线索 + 1个NPC
   private foundClueIds: Set<string> = new Set();
   private clueProgressText!: Phaser.GameObjects.Text;
 
@@ -155,6 +157,7 @@ export class MainScene extends Phaser.Scene {
   private sistersScenePhase3 = false;
   private _sistersKeyHandler: ((event: KeyboardEvent) => void) | null = null;
   private _sistersClickHandler: (() => void) | null = null;
+  private _sistersHiddenObjs: any[] | null = null;
 
   // ========== 纸片大图预览状态 ==========
   private paperPreviewOpen = false;
@@ -213,6 +216,7 @@ export class MainScene extends Phaser.Scene {
   create(): void {
     setViewportSize(this.scale.gameSize.width, this.scale.gameSize.height);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
     // ========== 世界边界（与底图尺寸一致）==========
     this.physics.world.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT);
@@ -229,6 +233,20 @@ export class MainScene extends Phaser.Scene {
     )
     this.dictSystem.registerEntries('singingHall', SONG_ENTRIES)
     missingEntries.forEach((entry) => this.dictSystem.unlock(entry))
+
+    // ========== 背景音乐 ==========
+    const existingBgm = this.sound.get('singing_bgm')
+    if (existingBgm) existingBgm.destroy()
+    this.sound.add('singing_bgm', { loop: true, volume: getBgmVolume() }).play()
+
+    // 实时响应设置面板的音量变更
+    this.bgmVolumeHandler = () => {
+      const bgm = this.sound.get('singing_bgm')
+      if (bgm && bgm instanceof Phaser.Sound.WebAudioSound) {
+        bgm.setVolume(getBgmVolume())
+      }
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)
 
     const singingHallClueIds = new Set([
       ...SONG_CLUES.map((clue) => clue.id),
@@ -957,6 +975,9 @@ export class MainScene extends Phaser.Scene {
   private handleInteract(): void {
     if (!this.canInteract) return;
 
+    // 播放交互音效
+    this.sound.play('bell_click');
+
     // 记录找到的线索
     this.markClueFound(this.currentTarget);
     this.interactHint.setVisible(false);
@@ -1297,10 +1318,17 @@ export class MainScene extends Phaser.Scene {
     this.clueMarkers.forEach((m) => m.setVisible(false));
     this.npcSprites.forEach((s) => s.setVisible(false));
     this.player.setVisible(false);
-    const hudChildren = this.children.getAll('depth', 51) as Phaser.GameObjects.GameObject[];
-    hudChildren.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
-    const hud52Children = this.children.getAll('depth', 52) as Phaser.GameObjects.GameObject[];
-    hud52Children.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
+    this._sistersHiddenObjs = [];
+    const depths = [51, 52, 53, 60];
+    depths.forEach((d) => {
+      const children = this.children.getAll('depth', d) as Phaser.GameObjects.GameObject[];
+      children.forEach((c) => {
+        if ((c as any).visible !== undefined) {
+          (c as any).setVisible(false);
+          this._sistersHiddenObjs!.push(c as any);
+        }
+      });
+    });
 
     // 相机居中到世界中心
     const cx = GAME_WIDTH / 2;
@@ -1477,6 +1505,10 @@ export class MainScene extends Phaser.Scene {
     this.clueMarkers.forEach((m) => m.setVisible(true));
     this.npcSprites.forEach((s) => s.setVisible(true));
     this.player.setVisible(true);
+    if (this._sistersHiddenObjs) {
+      this._sistersHiddenObjs.forEach((c: any) => { if (c.setVisible) c.setVisible(true); });
+      this._sistersHiddenObjs = null;
+    }
     if (this.savedPlayerPos) {
       this.player.setPosition(this.savedPlayerPos.x, this.savedPlayerPos.y);
     }
@@ -1752,7 +1784,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  /** Phase 3：显示小字内容 */
+  /** Phase 3：显示小字内容（含内联女书字图片） */
   private enterFanPhase3(): void {
     this.fanPreviewPhase2 = false;
 
@@ -1762,16 +1794,16 @@ export class MainScene extends Phaser.Scene {
 
     const textX = VIEW_WIDTH * 0.12;
     const textY = VIEW_HEIGHT - 340 + 64;  // 唱扇女下方
+    const textStyle = { fontSize: '24px', color: '#e8d5b7', fontFamily: 'serif' } as const;
+    const lineHeight = 48;
 
-    const line1 = '"__ __轻合，此后各自__ __；愿我今日所唱，仍能陪你过山过水。"';
+    const line1 = '"__ __轻合，从此各自__ __；愿我今日所唱，仍能陪你过千山万水。"';
     const line2 = '请在字典中找到对应的女书字。';
 
-    // 正文（在唱扇女下面）
-    this.add.text(textX, textY, '', {
-      fontSize: '24px', color: '#e8d5b7', fontFamily: 'serif',
-      wordWrap: { width: VIEW_WIDTH * 0.76 }, lineSpacing: 20,
-    }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_text')
-      .setText(line1 + '\n' + line2);
+    this.add.text(textX, textY, line1, textStyle)
+      .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_line1');
+    this.add.text(textX, textY + lineHeight, line2, textStyle)
+      .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_line2');
 
     // 关闭提示
     this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q / ESC 返回', {
@@ -1786,10 +1818,54 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  /** 点击内联图片，显示大图预览（黑色半透明背景，Q/ESC 关闭） */
+  private showInlineImagePreview(phaserKey: string): void {
+    this.closeInlineImagePreview();
+
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    // 黑色半透明背景
+    this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.7)
+      .setDepth(200).setScrollFactor(0)
+      .setName('inline_preview_overlay');
+
+    // 大图居中显示
+    this.add.image(cx, cy, phaserKey)
+      .setScale(0.5)
+      .setDepth(201).setScrollFactor(0)
+      .setName('inline_preview_big');
+
+    // Q/ESC 关闭
+    const closeHandler = (e: KeyboardEvent) => {
+      if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') {
+        this.closeInlineImagePreview();
+      }
+    };
+    window.addEventListener('keydown', closeHandler);
+    (this as any).__inlinePreviewCloseHandler = closeHandler;
+  }
+
+  /** 关闭内联图片大图预览 */
+  private closeInlineImagePreview(): void {
+    const handler = (this as any).__inlinePreviewCloseHandler;
+    if (handler) {
+      window.removeEventListener('keydown', handler);
+      (this as any).__inlinePreviewCloseHandler = undefined;
+    }
+    ['inline_preview_overlay', 'inline_preview_big'].forEach((name) => {
+      const obj = this.children.getByName(name);
+      if (obj) obj.destroy();
+    });
+  }
+
   /** 关闭唱扇女大图预览 */
   private closeFanPreview(completed = false): void {
     if (!this.fanPreviewOpen) return;
     this.fanPreviewOpen = false;
+
+    // 先关闭内联图片大图预览
+    this.closeInlineImagePreview();
 
     // 移除键盘监听
     if (this._fanKeyHandler) {
@@ -1798,7 +1874,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 销毁预览元素
-    ['fan_overlay', 'fan_big_img', 'fan_close_hint', 'fan_phase1_hint', 'fan_phase2_hint', 'fan_dialogue_title', 'fan_dialogue_text'].forEach((name) => {
+    ['fan_overlay', 'fan_big_img', 'fan_close_hint', 'fan_phase1_hint', 'fan_phase2_hint', 'fan_dialogue_title', 'fan_dialogue_line1', 'fan_dialogue_line2'].forEach((name) => {
       const obj = this.children.getByName(name);
       if (obj) obj.destroy();
     });
@@ -2198,11 +2274,11 @@ export class MainScene extends Phaser.Scene {
     const keyHandler = (e: KeyboardEvent) => {
       if (!this.bimoPreviewOpen) return;
       if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') {
-        this.closeBimoPreview();
+        this.closeBimoPreview(false);
       } else if (this.bimoPreviewPhase1 && (e.key === 'e' || e.key === 'E')) {
         this.enterBimoPhase2();
       } else if (!this.bimoPreviewPhase1 && (e.key === 'e' || e.key === 'E')) {
-        this.closeBimoPreview();
+        this.closeBimoPreview(true);
       }
     };
     window.addEventListener('keydown', keyHandler);
@@ -2237,12 +2313,12 @@ export class MainScene extends Phaser.Scene {
     const overlay = this.children.getByName('bimo_overlay') as Phaser.GameObjects.Rectangle;
     if (overlay) {
       overlay.removeAllListeners('pointerdown');
-      overlay.on('pointerdown', () => this.closeBimoPreview());
+      overlay.on('pointerdown', () => this.closeBimoPreview(true));
     }
   }
 
   /** 关闭笔墨大图预览 */
-  private closeBimoPreview(): void {
+  private closeBimoPreview(completed: boolean = false): void {
     if (!this.bimoPreviewOpen) return;
     this.bimoPreviewOpen = false;
 
@@ -2259,6 +2335,22 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.scene.resume();
+
+    if (completed) {
+      // 解锁 song_ji（记）词条
+      const entry = SONG_ENTRIES.find((e) => e.id === 'song_ji');
+      if (entry && !this.saveSystem.getEntry('song_ji')?.unlocked) {
+        this.dictSystem.unlock({ ...entry });
+      }
+      // 显示新字形提示
+      const textureKeys = LOCAL_ENTRY_NUSHU_TEXTURE_KEYS.song_ji;
+      if (textureKeys?.length) {
+        this.showNewGlyphToast(textureKeys);
+      } else {
+        this.showToast('词条"记"已解锁');
+      }
+      this.checkAllMatched();
+    }
   }
 
   /** 解锁"声"词条 */
@@ -2510,6 +2602,11 @@ export class MainScene extends Phaser.Scene {
 
   shutdown(): void {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
+    if (this.bgmVolumeHandler) {
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler);
+      this.bgmVolumeHandler = null;
+    }
+    this.sound.stopAll();
   }
 
   setGlobalDictionaryOpen(isOpen: boolean): void {

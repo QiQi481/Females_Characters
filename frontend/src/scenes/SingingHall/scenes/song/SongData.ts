@@ -154,7 +154,7 @@ const SONG_CLUE_SOURCES: SingingClueSource[] = [
 这是姐妹们互相传抄的歌本。`,
   },
 
-  // ----- 错误线索1：笔墨（不给符号） -----
+  // ----- 正确线索3：笔墨 -----
   {
     id: 'clue_basket',
     name: '笔墨',
@@ -162,8 +162,8 @@ const SONG_CLUE_SOURCES: SingingClueSource[] = [
     y: 1160,
     type: 'view',
     prompt: '按 E 查看笔墨',
-    isFake: true,
-    entryIds: [],
+    isFake: false,
+    entryIds: ['song_ji'],
     displayText: `【笔墨】
 
 一套精致的文房四宝摆在桌上。
@@ -173,7 +173,11 @@ const SONG_CLUE_SOURCES: SingingClueSource[] = [
 砚台里还残留着淡淡的墨迹，
 似乎有人刚刚用它写过什么字。
 
-但这里并没有你要找的女书符号……`,
+笔杆上刻有一个小小的女书符号：
+
+   𛆅 —— 记
+
+这些歌谣正是靠笔墨记录下来，才能世代相传。`,
   },
 
   // ----- 错误线索2：唱扇女（不给符号） -----
@@ -237,7 +241,7 @@ export const SONG_CLUES: Clue[] = SONG_CLUE_SOURCES.map((clue) => ({
 export const SISTERS_NPC: NPC = {
   id: 'npc_sisters',
   sceneId: 'singingHall',
-  name: '__ __ 姐妹',
+  name: '__ __',
   x: 2160,
   y: 800,
   prompt: '按 E 听她们唱读',

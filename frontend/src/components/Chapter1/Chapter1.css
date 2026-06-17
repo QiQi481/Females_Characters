@@ -42,33 +42,53 @@
 /* ========== 石碑装饰 ========== */
 .chapter1-boundary {
   position: absolute;
-  right: 23%;
-  bottom: 24%;
-  width: 2%;
+  right: 5%;
+  bottom: 5%;
+  width: 5%;
   height: auto;
   cursor: pointer;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
-  transition: filter 0.2s;
+  transition: filter 0.2s, transform 0.2s;
+  animation: boundaryBreath 2.5s ease-in-out infinite;
 }
 
-.chapter1-boundary:hover {
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5)) brightness(1.1);
+.chapter1-boundary:hover,
+.chapter1-boundary.boundary-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes boundaryBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 /* ========== 信箱装饰 ========== */
 .chapter1-mailbox {
   position: absolute;
-  left: 67%;
-  bottom: 26%;
-  width: 2%;
+  left: 78%;
+  bottom: 20%;
+  width: 4%;
   height: auto;
   cursor: pointer;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
-  transition: filter 0.2s;
+  transition: filter 0.2s, transform 0.2s;
+  animation: mailboxBreath 2.8s ease-in-out infinite;
 }
 
-.chapter1-mailbox:hover {
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5)) brightness(1.1);
+.chapter1-mailbox:hover,
+.chapter1-mailbox.mailbox-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes mailboxBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 /* 信箱打开后不再响应 hover */
@@ -77,12 +97,91 @@
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
 }
 
+/* ========== 燕子装饰 ========== */
+.chapter1-swallow {
+  position: absolute;
+  left: 34%;
+  top: 25%;
+  width: 10%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: swallowBreath 3s ease-in-out infinite;
+}
+
+.chapter1-swallow:hover,
+.chapter1-swallow.swallow-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes swallowBreath {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-3deg); }
+  75% { transform: translateY(-2px) rotate(3deg); }
+}
+
+/* ========== 雪人装饰 ========== */
+.chapter1-snow {
+  position: absolute;
+  left: 40%;
+  top: 65%;
+  width: 20%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: snowBreath 3s ease-in-out infinite;
+}
+
+.chapter1-snow:hover,
+.chapter1-snow.snow-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes snowBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ========== 酒坛装饰 ========== */
+.chapter1-winejar {
+  position: absolute;
+  left: 55%;
+  top: 75%;
+  width: 3%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: winejarBreath 3s ease-in-out infinite;
+}
+
+.chapter1-winejar:hover,
+.chapter1-winejar.winejar-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes winejarBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 /* ========== 掉落信件 ========== */
 .dropped-letter {
   position: absolute;
-  left: 68.5%;
-  bottom: 23%;
-  width: 0.875%;
+  left: 78.5%;
+  bottom: 13%;
+  width: 3%;
   aspect-ratio: 3 / 4;
   display: flex;
   align-items: center;
@@ -94,6 +193,13 @@
   animation: letterDrop 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
   cursor: pointer;
   pointer-events: auto;
+}
+
+.dropped-letter:hover,
+.dropped-letter.dropped-letter-near {
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
 }
 
 .dropped-letter-icon {
@@ -188,7 +294,7 @@
   position: fixed;
   left: 50%;
   bottom: 24px;
-  z-index: 80;
+  z-index: 90;
   padding: 7px 14px;
   color: #4d3b34;
   background-color: rgba(244, 226, 191, 0.82);
@@ -210,7 +316,6 @@
   border-radius: 50%;
   background: #7a3020;
   pointer-events: none;
-  transform: translate(-50%, -50%);
 }
 
 /* ========== 石碑信息弹窗 ========== */
@@ -352,18 +457,21 @@
   inset: 0;
   z-index: 85;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .dialog-portrait {
   position: absolute;
-  top: 25vh;
+  bottom: -35vh;
   left: 50%;
   transform: translateX(-50%);
-  height: 100vh;
+  height: 110vh;
   width: auto;
   object-fit: contain;
+  object-position: bottom center;
   pointer-events: none;
   z-index: 1;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45));
   animation: portraitIn 0.6s ease;
 }
 
@@ -378,12 +486,16 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
-  width: min(820px, 94vw);
-  min-height: 160px;
+  width: min(88vw, 1500px);
+  min-height: 300px;
   background: transparent;
   border: none;
   border-radius: 0;
-  padding: 3rem 4rem 3rem;
+  padding: 2.5rem clamp(60px, 6%, 120px) 2.5rem clamp(160px, 24%, 360px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .dialog-box::before {
@@ -407,12 +519,13 @@
   align-items: center;
   gap: 0.5em;
   margin-bottom: 0.6em;
+  margin-left: clamp(-40px, -7%, -110px);
 }
 
 .dialog-speaker {
   font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: 1.05rem;
-  color: #d4c4a8;
+  font-size: 34px;
+  color: #f4ddbf;
   letter-spacing: 0.15em;
 }
 
@@ -423,13 +536,15 @@
 
 .dialog-text {
   font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: clamp(1rem, 2.8vw, 1.15rem);
-  line-height: 1.9;
-  color: #ede5d3;
+  font-size: 29px;
+  line-height: 48px;
+  color: #f1f1ee;
   letter-spacing: 0.08em;
   margin: 0;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   animation: dialogTextIn 0.25s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 @keyframes dialogTextIn {
@@ -995,3 +1110,54 @@
 }
 
 /* ========== Quiz 反馈（复用 dialog-overlay 样式） ========== */
+
+/* ========== 获得新字形提示 ========== */
+.glyph-toast {
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 2rem;
+  background: linear-gradient(135deg, rgba(42, 31, 20, 0.94), rgba(30, 21, 13, 0.94));
+  border: 1px solid rgba(201, 168, 124, 0.55);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(201, 168, 124, 0.25), 0 0 40px rgba(0, 0, 0, 0.35);
+  animation: glyphToastIn 0.4s ease, glyphToastOut 0.4s ease 2.1s forwards;
+}
+
+.glyph-toast-icon {
+  font-size: 1.3rem;
+  color: #d4a853;
+  text-shadow: 0 0 8px rgba(212, 168, 83, 0.5);
+}
+
+.glyph-toast-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.15rem;
+  color: #ede5d3;
+  letter-spacing: 0.08em;
+}
+
+@keyframes glyphToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes glyphToastOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
