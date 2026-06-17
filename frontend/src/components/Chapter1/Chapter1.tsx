@@ -160,10 +160,13 @@ function Chapter1({
   const [isNearDroppedLetter, setIsNearDroppedLetter] = useState(false)
   const [isNearSwallow, setIsNearSwallow] = useState(false)
   const [showSwallowInfo, setShowSwallowInfo] = useState(false)
+  const [isNearSnow, setIsNearSnow] = useState(false)
+  const [showSnowInfo, setShowSnowInfo] = useState(false)
   const boundaryRef = useRef<HTMLImageElement>(null)
   const mailboxRef = useRef<HTMLImageElement>(null)
   const droppedLetterRef = useRef<HTMLDivElement>(null)
   const swallowRef = useRef<HTMLImageElement>(null)
+  const snowRef = useRef<HTMLImageElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
   const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
@@ -269,7 +272,7 @@ function Chapter1({
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -342,13 +345,14 @@ function Chapter1({
       setIsNearMailbox(isNear(mailboxRef.current))
       setIsNearDroppedLetter(isNear(droppedLetterRef.current))
       setIsNearSwallow(isNear(swallowRef.current))
+      setIsNearSnow(isNear(snowRef.current))
 
       animRef.current = requestAnimationFrame(loop)
     }
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
 
   // 图片加载后把初始位置定在画面右下角
   useEffect(() => {
@@ -407,6 +411,7 @@ function Chapter1({
         if (showBoundaryInfo) { setShowBoundaryInfo(false); return }
         if (showLetterPopup) { setShowLetterPopup(false); return }
         if (showSwallowInfo) { setShowSwallowInfo(false); return }
+        if (showSnowInfo) { setShowSnowInfo(false); return }
         if (showBookPopup) { setShowBookPopup(false); return }
 
         return
@@ -521,8 +526,10 @@ function Chapter1({
             return Math.hypot(cx - playerX, cy - playerY) < threshold
           }
 
-          // 优先级：燕子 > 掉落的信件 > 信箱 > 界碑
-          if (isNear(swallowRef.current)) {
+          // 优先级：雪人 > 燕子 > 掉落的信件 > 信箱 > 界碑
+          if (isNear(snowRef.current)) {
+            setShowSnowInfo(true)
+          } else if (isNear(swallowRef.current)) {
             setShowSwallowInfo(true)
           } else if (isNear(droppedLetterRef.current)) {
             setShowLetterPopup(true)
@@ -556,6 +563,7 @@ function Chapter1({
     showBoundaryInfo,
     showLetterPopup,
     showSwallowInfo,
+    showSnowInfo,
     showBookPopup,
     isQuizBusy,
     letterDropped,
@@ -945,32 +953,28 @@ function Chapter1({
     }
   }
 
-  // Q3 匹配游戏 — 关闭匹配界面（保留状态，添加重开按钮）
+  // Q3 匹配游戏 — 关闭匹配界面（保留已拖拽的词条状态）
   const closeMatchGame = () => {
     setMatchActive(false)
     setMatchStep(0)
-    setMatchPlacements({})
     setDraggingItem(null)
     setDragOverCat(null)
     setMatchCommentary(null)
     setMatchCatCommentary(null)
-    setMatchCategoryDone(new Set())
     setMatchAllWrong(false)
     setMatchFinalStage(0)
     setMatchFinalFeedback(null)
     setMatchQ3Transition(false)
   }
 
-  // 重新打开Q3匹配游戏
+  // 重新打开Q3匹配游戏（恢复之前已拖拽的词条）
   const reopenMatchGame = () => {
     setMatchActive(true)
     setMatchStep(1)
-    setMatchPlacements({})
     setDraggingItem(null)
     setDragOverCat(null)
     setMatchCommentary(null)
     setMatchCatCommentary(null)
-    setMatchCategoryDone(new Set())
     setMatchAllWrong(false)
     setMatchFinalStage(0)
     setMatchFinalFeedback(null)
@@ -1043,6 +1047,16 @@ function Chapter1({
             className={`chapter1-swallow${isNearSwallow ? ' swallow-near' : ''}`}
             draggable={false}
             onClick={() => setShowSwallowInfo(true)}
+          />
+
+          {/* 雪人 */}
+          <img
+            ref={snowRef}
+            src="/assets/FirstLevel/snow.png"
+            alt="雪人"
+            className={`chapter1-snow${isNearSnow ? ' snow-near' : ''}`}
+            draggable={false}
+            onClick={() => setShowSnowInfo(true)}
           />
 
           {/* 掉落的信件 — 替代图 */}
@@ -1198,6 +1212,21 @@ function Chapter1({
             </div>
             <p className="dialog-text">
               一只燕子停在柳枝上，旁边系了一根红色的丝带
+            </p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* 雪人信息弹窗 */}
+      {showSnowInfo && (
+        <div className="dialog-overlay" onClick={() => setShowSnowInfo(false)}>
+          <div className="dialog-box">
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">老伯</span>
+            </div>
+            <p className="dialog-text">
+              明明已经过了2月，但这化雪的寒气，还是把手都冻僵了。先生说得对，这叫'微冷'啊。
             </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>

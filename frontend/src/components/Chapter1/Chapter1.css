@@ -124,6 +124,32 @@
   75% { transform: translateY(-2px) rotate(3deg); }
 }
 
+/* ========== 雪人装饰 ========== */
+.chapter1-snow {
+  position: absolute;
+  left: 40%;
+  top: 60%;
+  width: 25%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: snowBreath 3s ease-in-out infinite;
+}
+
+.chapter1-snow:hover,
+.chapter1-snow.snow-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes snowBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 /* ========== 掉落信件 ========== */
 .dropped-letter {
   position: absolute;
