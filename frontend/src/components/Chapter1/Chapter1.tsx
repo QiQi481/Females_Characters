@@ -351,7 +351,55 @@ function Chapter1({
 
       // ========== E 键 — 全局推进对话/旁白/探索 ==========
       if (event.key === 'e' || event.key === 'E') {
-        if (isQuizBusy || showBookPopup) return
+        // Q1/Q2：反馈（正确/错误）的 阿禾回应 → 关闭
+        if (quizFeedback !== null) {
+          event.preventDefault()
+          closeQuizFeedback()
+          return
+        }
+        // Quiz 期间：阿禾说话 → 推进到图片展示
+        if (quizImageOpen && quizImageStep === 0) {
+          event.preventDefault()
+          closeQuizImage()
+          return
+        }
+        // Q4 反馈（正确/错误）的 阿禾回应 → 关闭
+        if (matchFinalFeedback !== null) {
+          event.preventDefault()
+          closeQ4Feedback()
+          return
+        }
+        // Q4 阿禾提问 → 进入展示图片
+        if (matchFinalStage === 1) {
+          event.preventDefault()
+          advanceQ4ToImages()
+          return
+        }
+        // Q3 全错重置对话 → 关闭
+        if (matchAllWrong) {
+          event.preventDefault()
+          closeMatchAllWrong()
+          return
+        }
+        // Q3 匹配：阿禾说话 → 推进到匹配界面
+        if (matchActive && matchStep === 0) {
+          event.preventDefault()
+          advanceMatchStep()
+          return
+        }
+        // Q3 匹配：阿禾补充对话 → 关闭
+        if (matchCommentary !== null) {
+          event.preventDefault()
+          closeMatchCommentary()
+          return
+        }
+        // Q3 匹配：分类完成对话 → 关闭
+        if (matchCatCommentary !== null) {
+          event.preventDefault()
+          closeMatchCatCommentary()
+          return
+        }
+        if (showBookPopup) return
         event.preventDefault()
 
         // 1. 开场旁白阶段
@@ -449,6 +497,16 @@ function Chapter1({
     dialogIndex,
     narration2Active,
     narration2Index,
+    quizImageOpen,
+    quizImageStep,
+    quizFeedback,
+    matchActive,
+    matchStep,
+    matchCommentary,
+    matchCatCommentary,
+    matchAllWrong,
+    matchFinalStage,
+    matchFinalFeedback,
   ])
 
   // 恢复存档进度：快进到对应阶段
