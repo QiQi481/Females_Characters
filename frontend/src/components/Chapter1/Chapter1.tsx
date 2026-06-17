@@ -143,6 +143,10 @@ function Chapter1({
   onComplete,
 }: Chapter1Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  // 红点在世界空间中的位置、摄影机中心在世界空间的位置（ref 用于动画帧，state 用于渲染）
+  const playerWorldRef = useRef({ x: 0, y: 0 })
+  const cameraRef = useRef({ x: 0, y: 0 })
+  const [playerScreenDelta, setPlayerScreenDelta] = useState({ dx: 0, dy: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
   const [imgReady, setImgReady] = useState(false)
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
@@ -280,23 +284,52 @@ function Chapter1({
         dy /= Math.SQRT2
       }
 
-      const step = MOVE_SPEED * dt
+      const speed = MOVE_SPEED * dt
+      const halfW = vpRef.current.w / 2
+      const halfH = vpRef.current.h / 2
 
-      setOffset((prev) => ({
-        x: clamp(prev.x + dx * step, 0, maxX),
-        y: clamp(prev.y + dy * step, 0, maxY),
-      }))
+      // 1. 移动玩家世界坐标
+      playerWorldRef.current.x += dx * speed
+      playerWorldRef.current.y += dy * speed
 
-      // 检测玩家是否靠近可交互物体（高亮效果）
-      const playerX = vpRef.current.w / 2
-      const playerY = vpRef.current.h / 2
+      // 2. 摄像机跟随玩家，但限定在场景边界内
+      const camX = clamp(playerWorldRef.current.x, halfW, sceneW - halfW)
+      const camY = clamp(playerWorldRef.current.y, halfH, sceneH - halfH)
+      cameraRef.current = { x: camX, y: camY }
+
+      // 3. 场景偏移 = 摄像机 - 半视口
+      setOffset({ x: camX - halfW, y: camY - halfH })
+
+      // 4. 红点在屏幕上的偏移 = 玩家世界坐标 - 摄像机世界坐标
+      let screenDx = playerWorldRef.current.x - camX
+      let screenDy = playerWorldRef.current.y - camY
+
+      // 5. 限制红点不超出视口
+      const maxDx = halfW - 20
+      const maxDy = halfH - 20
+      screenDx = clamp(screenDx, -maxDx, maxDx)
+      screenDy = clamp(screenDy, -maxDy, maxDy)
+
+      // 若被钳制则同步拉回世界坐标
+      if (playerWorldRef.current.x - camX !== screenDx) {
+        playerWorldRef.current.x = camX + screenDx
+      }
+      if (playerWorldRef.current.y - camY !== screenDy) {
+        playerWorldRef.current.y = camY + screenDy
+      }
+
+      setPlayerScreenDelta({ dx: screenDx, dy: screenDy })
+
+      // 6. 高亮检测 — 使用红点的实际屏幕坐标
+      const playerScrX = halfW + screenDx
+      const playerScrY = halfH + screenDy
       const threshold = 150
       const isNear = (el: HTMLElement | null): boolean => {
         if (!el) return false
         const rect = el.getBoundingClientRect()
         const cx = rect.left + rect.width / 2
         const cy = rect.top + rect.height / 2
-        return Math.hypot(cx - playerX, cy - playerY) < threshold
+        return Math.hypot(cx - playerScrX, cy - playerScrY) < threshold
       }
       setIsNearBoundary(isNear(boundaryRef.current))
       setIsNearMailbox(isNear(mailboxRef.current))
@@ -307,15 +340,18 @@ function Chapter1({
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
 
   // 图片加载后把初始位置定在画面右下角
   useEffect(() => {
     if (!imgReady) return
-    setOffset({
-      x: maxX,
-      y: maxY,
-    })
+    const hw = vpRef.current.w / 2
+    const hh = vpRef.current.h / 2
+    // 摄像机初始位置：场景右下区域
+    cameraRef.current = { x: maxX + hw, y: maxY + hh }
+    playerWorldRef.current = { x: cameraRef.current.x, y: cameraRef.current.y }
+    setOffset({ x: maxX, y: maxY })
+    setPlayerScreenDelta({ dx: 0, dy: 0 })
   }, [imgReady, maxX, maxY])
 
   // 计算当前进度（存档用）
@@ -438,8 +474,10 @@ function Chapter1({
 
         // 4. 自由探索阶段 — 检测玩家是否靠近可交互物体
         if (narration2Done && !showBoundaryInfo && !showLetterPopup) {
-          const playerX = vpRef.current.w / 2
-          const playerY = vpRef.current.h / 2
+          const screenDx = playerWorldRef.current.x - cameraRef.current.x
+          const screenDy = playerWorldRef.current.y - cameraRef.current.y
+          const playerX = vpRef.current.w / 2 + screenDx
+          const playerY = vpRef.current.h / 2 + screenDy
           const threshold = 150
 
           const isNear = (el: HTMLElement | null): boolean => {
@@ -979,7 +1017,13 @@ function Chapter1({
           <div className="chapter1-clue-progress">
             线索 {clueFoundCount}/3
           </div>
-          <div className="chapter1-player-marker" aria-hidden="true" />
+          <div
+            className="chapter1-player-marker"
+            aria-hidden="true"
+            style={{
+              transform: `translate(calc(-50% + ${playerScreenDelta.dx}px), calc(-50% + ${playerScreenDelta.dy}px))`,
+            }}
+          />
         </>
       )}
 

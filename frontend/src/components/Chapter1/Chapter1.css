@@ -237,7 +237,6 @@
   border-radius: 50%;
   background: #7a3020;
   pointer-events: none;
-  transform: translate(-50%, -50%);
 }
 
 /* ========== 石碑信息弹窗 ========== */
