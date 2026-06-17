@@ -97,6 +97,33 @@
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
 }
 
+/* ========== 燕子装饰 ========== */
+.chapter1-swallow {
+  position: absolute;
+  left: 34%;
+  top: 25%;
+  width: 10%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: swallowBreath 3s ease-in-out infinite;
+}
+
+.chapter1-swallow:hover,
+.chapter1-swallow.swallow-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes swallowBreath {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-3deg); }
+  75% { transform: translateY(-2px) rotate(3deg); }
+}
+
 /* ========== 掉落信件 ========== */
 .dropped-letter {
   position: absolute;

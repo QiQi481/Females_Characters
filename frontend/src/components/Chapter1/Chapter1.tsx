@@ -158,9 +158,12 @@ function Chapter1({
   const [isNearBoundary, setIsNearBoundary] = useState(false)
   const [isNearMailbox, setIsNearMailbox] = useState(false)
   const [isNearDroppedLetter, setIsNearDroppedLetter] = useState(false)
+  const [isNearSwallow, setIsNearSwallow] = useState(false)
+  const [showSwallowInfo, setShowSwallowInfo] = useState(false)
   const boundaryRef = useRef<HTMLImageElement>(null)
   const mailboxRef = useRef<HTMLImageElement>(null)
   const droppedLetterRef = useRef<HTMLDivElement>(null)
+  const swallowRef = useRef<HTMLImageElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
   const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
@@ -266,7 +269,7 @@ function Chapter1({
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -338,13 +341,14 @@ function Chapter1({
       setIsNearBoundary(isNear(boundaryRef.current))
       setIsNearMailbox(isNear(mailboxRef.current))
       setIsNearDroppedLetter(isNear(droppedLetterRef.current))
+      setIsNearSwallow(isNear(swallowRef.current))
 
       animRef.current = requestAnimationFrame(loop)
     }
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
 
   // 图片加载后把初始位置定在画面右下角
   useEffect(() => {
@@ -402,6 +406,7 @@ function Chapter1({
         if (matchActive && matchStep === 1) { closeMatchGame(); return }
         if (showBoundaryInfo) { setShowBoundaryInfo(false); return }
         if (showLetterPopup) { setShowLetterPopup(false); return }
+        if (showSwallowInfo) { setShowSwallowInfo(false); return }
         if (showBookPopup) { setShowBookPopup(false); return }
 
         return
@@ -516,8 +521,10 @@ function Chapter1({
             return Math.hypot(cx - playerX, cy - playerY) < threshold
           }
 
-          // 优先级：掉落的信件 > 信箱 > 界碑
-          if (isNear(droppedLetterRef.current)) {
+          // 优先级：燕子 > 掉落的信件 > 信箱 > 界碑
+          if (isNear(swallowRef.current)) {
+            setShowSwallowInfo(true)
+          } else if (isNear(droppedLetterRef.current)) {
             setShowLetterPopup(true)
           } else if (isNear(mailboxRef.current)) {
             setLetterDropped(true)
@@ -548,6 +555,7 @@ function Chapter1({
     openDictionary,
     showBoundaryInfo,
     showLetterPopup,
+    showSwallowInfo,
     showBookPopup,
     isQuizBusy,
     letterDropped,
@@ -1027,6 +1035,16 @@ function Chapter1({
             onClick={() => setLetterDropped(true)}
           />
 
+          {/* 燕子 */}
+          <img
+            ref={swallowRef}
+            src="/assets/FirstLevel/swallow.png"
+            alt="燕子"
+            className={`chapter1-swallow${isNearSwallow ? ' swallow-near' : ''}`}
+            draggable={false}
+            onClick={() => setShowSwallowInfo(true)}
+          />
+
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
             <div ref={droppedLetterRef} className={`dropped-letter${isNearDroppedLetter ? ' dropped-letter-near' : ''}`} onClick={() => setShowLetterPopup(true)}>
@@ -1162,6 +1180,26 @@ function Chapter1({
                 className="book-placeholder-img"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 燕子信息弹窗 */}
+      {showSwallowInfo && (
+        <div className="dialog-overlay" onClick={() => setShowSwallowInfo(false)}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box">
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+            </div>
+            <p className="dialog-text">
+              一只燕子停在柳枝上，旁边系了一根红色的丝带
+            </p>
+            <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
       )}
