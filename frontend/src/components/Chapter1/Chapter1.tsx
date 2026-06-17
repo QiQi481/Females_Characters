@@ -714,6 +714,7 @@ function Chapter1({
       // 解锁对应词条
       if (quizQuestion === 1) {
         unlockEntry('jun')
+        unlockEntry('jun-2')
         showGlyphToast('君')
       } else {
         unlockEntry('wang')

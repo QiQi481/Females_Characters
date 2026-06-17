@@ -59,9 +59,20 @@ export const entries: readonly DictionaryEntry[] = [
     sceneId: 'scene-1',
     status: 'locked',
     nushuImages: [nushuAsset('jun')],
-    targetSlots: ['line-1-lord', 'line-3-lord'],
+    targetSlots: ['line-1-lord'],
     meaning: '对所思、所赠之人的敬称，也寄托着书写者的牵念。',
     position: { x: 18, y: 17 },
+    size: 68,
+  },
+  {
+    id: 'jun-2',
+    label: '君',
+    sceneId: 'scene-1',
+    status: 'locked',
+    nushuImages: [nushuAsset('jun')],
+    targetSlots: ['line-3-lord'],
+    meaning: '对所思、所赠之人的敬称，也寄托着书写者的牵念。',
+    position: { x: 10, y: 27 },
     size: 68,
   },
   {
@@ -371,8 +382,8 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
       {
         type: 'slot',
         slotId: 'line-3-lord',
-        entryId: 'jun',
-        requiredEntryId: 'jun',
+        entryId: 'jun-2',
+        requiredEntryId: 'jun-2',
         placeholder: 'X',
       },
       {
