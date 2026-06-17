@@ -44,12 +44,16 @@ function App() {
   useEffect(() => {
     const audio = new Audio(JIANGYONG_BGM)
     audio.loop = true
-    audio.volume = getBgmVolume()
+    const initialVol = getBgmVolume()
+    audio.volume = initialVol
+    audio.muted = initialVol === 0
     bgmRef.current = audio
 
     // 监听从 SettingsModal 发出的音量变更事件，实时调整音量
     const onBgmVolumeChange = () => {
-      audio.volume = getBgmVolume()
+      const vol = getBgmVolume()
+      audio.volume = vol
+      audio.muted = vol === 0
     }
     window.addEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
 
@@ -79,7 +83,9 @@ function App() {
     if (!audio) return
 
     if (currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
-      audio.volume = getBgmVolume()
+      const vol = getBgmVolume()
+      audio.volume = vol
+      audio.muted = vol === 0
       audio.play().catch(() => {})
     } else {
       audio.pause()

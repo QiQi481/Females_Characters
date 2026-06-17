@@ -237,13 +237,16 @@ export class MainScene extends Phaser.Scene {
     // ========== 背景音乐 ==========
     const existingBgm = this.sound.get('singing_bgm')
     if (existingBgm) existingBgm.destroy()
-    this.sound.add('singing_bgm', { loop: true, volume: getBgmVolume() }).play()
+    const initialVol = getBgmVolume()
+    this.sound.add('singing_bgm', { loop: true, volume: initialVol, mute: initialVol === 0 }).play()
 
     // 实时响应设置面板的音量变更
     this.bgmVolumeHandler = () => {
       const bgm = this.sound.get('singing_bgm')
-      if (bgm && bgm instanceof Phaser.Sound.WebAudioSound) {
-        bgm.setVolume(getBgmVolume())
+      if (bgm) {
+        const vol = getBgmVolume()
+        bgm.setVolume(vol)
+        bgm.setMute(vol === 0)
       }
     }
     window.addEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)

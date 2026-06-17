@@ -193,13 +193,16 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     // 移除旧 BGM 避免场景重启时无法播放
     const existingBgm = this.sound.get(BGM_KEY)
     if (existingBgm) existingBgm.destroy()
-    this.sound.add(BGM_KEY, { loop: true, volume: getBgmVolume() }).play()
+    const initialVol = getBgmVolume()
+    this.sound.add(BGM_KEY, { loop: true, volume: initialVol, mute: initialVol === 0 }).play()
 
     // 实时响应设置面板的音量变更
     this.bgmVolumeHandler = () => {
       const bgm = this.sound.get(BGM_KEY)
-      if (bgm && bgm instanceof Phaser.Sound.WebAudioSound) {
-        bgm.setVolume(getBgmVolume())
+      if (bgm) {
+        const vol = getBgmVolume()
+        bgm.setVolume(vol)
+        bgm.setMute(vol === 0)
       }
     }
     window.addEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)
