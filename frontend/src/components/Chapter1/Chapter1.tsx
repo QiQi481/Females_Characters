@@ -194,11 +194,12 @@ function Chapter1({
   const [matchFinalStage, setMatchFinalStage] = useState(0) // Q4: 0=none, 1=阿禾提问, 2=展示图片, 3=选项
   const [matchFinalFeedback, setMatchFinalFeedback] = useState<string | null>(null) // Q4 反馈
   const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
+  const [matchQ3Transition, setMatchQ3Transition] = useState(false) // Q3 全部正确 → 过渡对话"去女红房"
   // 获得新字形提示
   const [glyphToast, setGlyphToast] = useState<string | null>(null)
   const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
-  const isQuizBusy = matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
+  const isQuizBusy = matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -399,6 +400,12 @@ function Chapter1({
           closeQuizImage()
           return
         }
+        // Q3 过渡对话"去女红房" → 关闭并完成章节
+        if (matchQ3Transition) {
+          event.preventDefault()
+          closeQ3Transition()
+          return
+        }
         // Q4 反馈（正确/错误）的 阿禾回应 → 关闭
         if (matchFinalFeedback !== null) {
           event.preventDefault()
@@ -545,6 +552,7 @@ function Chapter1({
     matchAllWrong,
     matchFinalStage,
     matchFinalFeedback,
+    matchQ3Transition,
   ])
 
   // 恢复存档进度：快进到对应阶段
@@ -743,6 +751,7 @@ function Chapter1({
       setMatchAllWrong(false)
       setMatchFinalStage(0)
       setMatchFinalFeedback(null)
+      setMatchQ3Transition(false)
       setMatchStep(1)
     }
   }
@@ -853,6 +862,25 @@ function Chapter1({
     setMatchCategoryDone(new Set())
     setMatchCommentary(null)
     setMatchCatCommentary(null)
+    setMatchQ3Transition(false)
+  }
+
+  // Q3 过渡对话 — 关闭并完成章节
+  const closeQ3Transition = () => {
+    setMatchQ3Transition(false)
+    // 全部完成，清除存档
+    onComplete()
+    setMatchFinalFeedback(null)
+    setMatchFinalStage(0)
+    setMatchActive(false)
+    setMatchStep(0)
+    setMatchPlacements({})
+    setDraggingItem(null)
+    setDragOverCat(null)
+    setMatchCommentary(null)
+    setMatchCatCommentary(null)
+    setMatchCategoryDone(new Set())
+    setQuizDone(true)
   }
 
   // Q4 — 从提问进入展示图片
@@ -880,19 +908,10 @@ function Chapter1({
   // Q4 — 关闭反馈
   const closeQ4Feedback = () => {
     if (matchFinalFeedback === 'correct') {
-      // 全部完成，清除存档
-      onComplete()
+      // 答对春风 → 过渡对话
       setMatchFinalFeedback(null)
       setMatchFinalStage(0)
-      setMatchActive(false)
-      setMatchStep(0)
-      setMatchPlacements({})
-      setDraggingItem(null)
-      setDragOverCat(null)
-      setMatchCommentary(null)
-      setMatchCatCommentary(null)
-      setMatchCategoryDone(new Set())
-      setQuizDone(true)
+      setMatchQ3Transition(true)
     } else {
       // 答错 → 回到选项
       setMatchFinalFeedback(null)
@@ -913,6 +932,7 @@ function Chapter1({
     setMatchAllWrong(false)
     setMatchFinalStage(0)
     setMatchFinalFeedback(null)
+    setMatchQ3Transition(false)
   }
 
   // 重新打开Q3匹配游戏
@@ -928,6 +948,7 @@ function Chapter1({
     setMatchAllWrong(false)
     setMatchFinalStage(0)
     setMatchFinalFeedback(null)
+    setMatchQ3Transition(false)
   }
 
   const clueFoundCount = [
@@ -1533,6 +1554,25 @@ function Chapter1({
                 ? '嗯，确实是这个'
                 : '嗯，我觉得不太对'}
             </p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* Q3 过渡对话：答对"春风"后，阿禾说"去女红房" */}
+      {matchQ3Transition && (
+        <div className="dialog-overlay" style={{ zIndex: 108 }} onClick={closeQ3Transition}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box">
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+              <span className="dialog-flower">&#10047;</span>
+            </div>
+            <p className="dialog-text">接下来让我们去女红房看看吧，那里说不定有线索</p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
         </div>
