@@ -127,6 +127,7 @@ interface Chapter1Props {
   resumeProgress: number
   isDictionaryOpen: boolean
   openDictionary: () => void
+  unlockEntry: (entryId: string) => void
   onLeave: (progress: ProgressStage) => void
   onProgressChange: (progress: ProgressStage) => void
   onComplete: () => void
@@ -136,6 +137,7 @@ function Chapter1({
   resumeProgress,
   isDictionaryOpen,
   openDictionary,
+  unlockEntry,
   onLeave,
   onProgressChange,
   onComplete,
@@ -146,6 +148,13 @@ function Chapter1({
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const [letterDropped, setLetterDropped] = useState(false)
   const [showLetterPopup, setShowLetterPopup] = useState(false)
+  // 玩家靠近可交互物体的高亮状态
+  const [isNearBoundary, setIsNearBoundary] = useState(false)
+  const [isNearMailbox, setIsNearMailbox] = useState(false)
+  const [isNearDroppedLetter, setIsNearDroppedLetter] = useState(false)
+  const boundaryRef = useRef<HTMLImageElement>(null)
+  const mailboxRef = useRef<HTMLImageElement>(null)
+  const droppedLetterRef = useRef<HTMLDivElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
   const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
@@ -180,6 +189,10 @@ function Chapter1({
   const [matchAllWrong, setMatchAllWrong] = useState(false) // 全部放置但错误
   const [matchFinalStage, setMatchFinalStage] = useState(0) // Q4: 0=none, 1=阿禾提问, 2=展示图片, 3=选项
   const [matchFinalFeedback, setMatchFinalFeedback] = useState<string | null>(null) // Q4 反馈
+  const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
+  // 获得新字形提示
+  const [glyphToast, setGlyphToast] = useState<string | null>(null)
+  const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
   const isQuizBusy = matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
@@ -274,6 +287,21 @@ function Chapter1({
         y: clamp(prev.y + dy * step, 0, maxY),
       }))
 
+      // 检测玩家是否靠近可交互物体（高亮效果）
+      const playerX = vpRef.current.w / 2
+      const playerY = vpRef.current.h / 2
+      const threshold = 150
+      const isNear = (el: HTMLElement | null): boolean => {
+        if (!el) return false
+        const rect = el.getBoundingClientRect()
+        const cx = rect.left + rect.width / 2
+        const cy = rect.top + rect.height / 2
+        return Math.hypot(cx - playerX, cy - playerY) < threshold
+      }
+      setIsNearBoundary(isNear(boundaryRef.current))
+      setIsNearMailbox(isNear(mailboxRef.current))
+      setIsNearDroppedLetter(isNear(droppedLetterRef.current))
+
       animRef.current = requestAnimationFrame(loop)
     }
 
@@ -319,7 +347,75 @@ function Chapter1({
 
   useEffect(() => {
     const handleHudKeyDown = (event: KeyboardEvent) => {
-      if (!narration2Done || isDictionaryOpen) return
+      if (isDictionaryOpen) return
+
+      // ========== E 键 — 全局推进对话/旁白/探索 ==========
+      if (event.key === 'e' || event.key === 'E') {
+        if (isQuizBusy || showBookPopup) return
+        event.preventDefault()
+
+        // 1. 开场旁白阶段
+        if (!narrationDone) {
+          if (narrationIndex < NARRATION_LINES.length - 1) {
+            setNarrationIndex((i) => i + 1)
+          } else {
+            setNarrationDone(true)
+            setDialogActive(true)
+          }
+          return
+        }
+
+        // 2. 阿禾对话阶段
+        if (dialogActive && !dialogFinished) {
+          if (dialogIndex === 2) {
+            setShowBookPopup(true)
+          } else if (dialogIndex < DIALOG_LINES.length - 1) {
+            setDialogIndex((i) => i + 1)
+          } else {
+            setDialogFinished(true)
+            setNarration2Active(true)
+          }
+          return
+        }
+
+        // 3. 第二段旁白阶段
+        if (narration2Active && !narration2Done) {
+          if (narration2Index < NARRATION2_LINES.length - 1) {
+            setNarration2Index((i) => i + 1)
+          } else {
+            setNarration2Done(true)
+          }
+          return
+        }
+
+        // 4. 自由探索阶段 — 检测玩家是否靠近可交互物体
+        if (narration2Done && !showBoundaryInfo && !showLetterPopup) {
+          const playerX = vpRef.current.w / 2
+          const playerY = vpRef.current.h / 2
+          const threshold = 150
+
+          const isNear = (el: HTMLElement | null): boolean => {
+            if (!el) return false
+            const rect = el.getBoundingClientRect()
+            const cx = rect.left + rect.width / 2
+            const cy = rect.top + rect.height / 2
+            return Math.hypot(cx - playerX, cy - playerY) < threshold
+          }
+
+          // 优先级：掉落的信件 > 信箱 > 界碑
+          if (isNear(droppedLetterRef.current)) {
+            setShowLetterPopup(true)
+          } else if (isNear(mailboxRef.current)) {
+            setLetterDropped(true)
+          } else if (isNear(boundaryRef.current)) {
+            setShowBoundaryInfo(true)
+          }
+        }
+        return
+      }
+
+      // ========== 探索阶段专属按键 ==========
+      if (!narration2Done) return
 
       if (event.key === 'Tab') {
         event.preventDefault()
@@ -341,6 +437,18 @@ function Chapter1({
     narration2Done,
     onLeave,
     openDictionary,
+    showBoundaryInfo,
+    showLetterPopup,
+    showBookPopup,
+    isQuizBusy,
+    letterDropped,
+    narrationDone,
+    narrationIndex,
+    dialogActive,
+    dialogFinished,
+    dialogIndex,
+    narration2Active,
+    narration2Index,
   ])
 
   // 恢复存档进度：快进到对应阶段
@@ -437,8 +545,9 @@ function Chapter1({
       if (quizQuestion !== 2) {
         setQuizChoicesOpen(true)
       } else {
-        // Q2 关闭后标记可重开
+        // Q2 关闭后标记可重开，退出 quiz 状态放行 WASD
         setQuizDismissed(true)
+        setQuizActive(false)
       }
     }
   }
@@ -446,6 +555,7 @@ function Chapter1({
   // 重新打开 Q2 答题（关闭后重开）
   const reopenQuiz = () => {
     setQuizDismissed(false)
+    setQuizActive(true)
     setQuizImageOpen(true)
     setQuizImageStep(1)
   }
@@ -456,6 +566,13 @@ function Chapter1({
     setQuizActive(true)
     setQuizImageOpen(true)
     setQuizImageStep(0)
+  }
+
+  // 显示"获得新字形"提示
+  const showGlyphToast = (word: string) => {
+    if (glyphToastTimerRef.current) clearTimeout(glyphToastTimerRef.current)
+    setGlyphToast(word)
+    glyphToastTimerRef.current = setTimeout(() => setGlyphToast(null), 2500)
   }
 
   // 获取当前题目的正确选项
@@ -473,6 +590,15 @@ function Chapter1({
     setQuizLastChoice(choice)
     if (choice === currentCorrect) {
       setQuizFeedback('correct')
+      // 解锁对应词条
+      if (quizQuestion === 1) {
+        unlockEntry('jun')
+        showGlyphToast('君')
+      } else {
+        unlockEntry('wang')
+        unlockEntry('ji')
+        showGlyphToast('忘记·记得')
+      }
     } else {
       setQuizFeedback('wrong')
     }
@@ -488,6 +614,7 @@ function Chapter1({
       } else {
         // Q2 正确 → 进入 Q3 匹配游戏
         setQuizActive(false)
+        setMatchEverStarted(true)
         setMatchActive(true)
         setMatchStep(0)
       }
@@ -647,6 +774,8 @@ function Chapter1({
     const label = String.fromCharCode(65 + choiceIndex) // A/B/C/D
     if (label === QUIZ_Q4_CORRECT) {
       setMatchFinalFeedback('correct')
+      unlockEntry('chunfeng')
+      showGlyphToast('春风')
     } else {
       setMatchFinalFeedback('wrong')
     }
@@ -745,30 +874,37 @@ function Chapter1({
 
           {/* 石碑装饰 */}
           <img
+            ref={boundaryRef}
             src="/assets/FirstLevel/boundary.png"
             alt="石碑"
-            className="chapter1-boundary"
+            className={`chapter1-boundary${isNearBoundary ? ' boundary-near' : ''}`}
             draggable={false}
             onClick={() => setShowBoundaryInfo(true)}
           />
 
           {/* 信箱装饰 */}
           <img
+            ref={mailboxRef}
             src="/assets/FirstLevel/letter.png"
             alt="信箱"
-            className={`chapter1-mailbox${letterDropped ? ' mailbox-open' : ''}`}
+            className={`chapter1-mailbox${letterDropped ? ' mailbox-open' : ''}${isNearMailbox ? ' mailbox-near' : ''}`}
             draggable={false}
             onClick={() => setLetterDropped(true)}
           />
 
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
-            <div className="dropped-letter" onClick={() => setShowLetterPopup(true)}>
+            <div ref={droppedLetterRef} className={`dropped-letter${isNearDroppedLetter ? ' dropped-letter-near' : ''}`} onClick={() => setShowLetterPopup(true)}>
               <span className="dropped-letter-icon">&#9993;</span>
             </div>
           )}
         </div>
       )}
+
+      {/* 操作提示 — 全局显示 */}
+      <div className="chapter1-hint">
+        WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回
+      </div>
 
       {/* HUD — 第二段旁白结束后进入自由探索才显示 */}
       {narration2Done && (
@@ -785,15 +921,12 @@ function Chapter1({
           <div className="chapter1-clue-progress">
             线索 {clueFoundCount}/3
           </div>
-          <div className="chapter1-hint">
-            WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回
-          </div>
           <div className="chapter1-player-marker" aria-hidden="true" />
         </>
       )}
 
       {/* Q3 匹配游戏重开按钮 — 关闭匹配游戏后显示 */}
-      {quizDone && !matchActive && matchFinalStage === 0 && (
+      {matchEverStarted && !matchActive && matchFinalStage === 0 && !quizDone && (
         <button
           className="chapter1-reopen-btn"
           onClick={reopenMatchGame}
@@ -1300,6 +1433,14 @@ function Chapter1({
             </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
+        </div>
+      )}
+
+      {/* 获得新字形提示 */}
+      {glyphToast && (
+        <div className="glyph-toast" key={glyphToast}>
+          <span className="glyph-toast-icon">&#10022;</span>
+          <span className="glyph-toast-text">获得新字形：{glyphToast} 已加入词典</span>
         </div>
       )}
 

@@ -159,6 +159,7 @@ function App() {
           resumeProgress={resumeProgress}
           isDictionaryOpen={dictionary.isDictionaryOpen}
           openDictionary={dictionary.openDictionary}
+          unlockEntry={dictionary.unlockEntry}
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
           onComplete={() => deleteSave()}
