@@ -27,10 +27,16 @@ type SceneId = (typeof SCENE_OPTIONS)[number]['id']
 
 function App() {
   const dictionary = useDictionary()
-  const bgmRef = useRef<HTMLAudioElement | null>(null)
+
+  const [gameSessionKey, setGameSessionKey] = useState(0)
+  const [currentScene, setCurrentScene] = useState<SceneId>(
+    JIANGYONG_VILLAGE_SCENE_ID,
+  )
 
   // ========== 全局背景音乐：女书长卷 ==========
   // 江永村流程（MainMenu/Prologue/TitleCard/Chapter1）播放，女红房/坐歌堂暂停
+  const bgmRef = useRef<HTMLAudioElement | null>(null)
+
   useEffect(() => {
     let audio = bgmRef.current
     if (!audio) {
@@ -45,13 +51,9 @@ function App() {
     } else {
       audio.pause()
     }
-
-    return () => {
-      // 仅在组件卸载时销毁
-    }
   }, [currentScene])
 
-  // 组件卸载时清理
+  // 组件卸载时清理 BGM
   useEffect(() => {
     return () => {
       const a = bgmRef.current
@@ -62,11 +64,6 @@ function App() {
       }
     }
   }, [])
-
-  const [gameSessionKey, setGameSessionKey] = useState(0)
-  const [currentScene, setCurrentScene] = useState<SceneId>(
-    JIANGYONG_VILLAGE_SCENE_ID,
-  )
 
   // ─── 故事模式状态（用户原有逻辑） ───
   const [phase, setPhase] = useState<GamePhase>('menu')
