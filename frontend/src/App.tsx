@@ -301,6 +301,7 @@ function App() {
         onCloseClue={dictionary.closeClue}
         onDismissGuide={dictionary.dismissGuide}
         onOpenClue={dictionary.openClue}
+        onSelectEntry={dictionary.selectEntry}
         onPlaceEntryToSlot={dictionary.placeEntryToSlot}
       />
     </div>

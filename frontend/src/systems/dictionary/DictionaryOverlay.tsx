@@ -29,6 +29,7 @@ type DictionaryOverlayProps = {
   onCloseClue: () => void
   onDismissGuide: () => void
   onOpenClue: (entryId: DictionaryEntry['id']) => void
+  onSelectEntry: (entryId: DictionaryEntry['id']) => void
   onPlaceEntryToSlot: (
     entryId: DictionaryEntry['id'],
     slotId: string,
@@ -94,6 +95,7 @@ export function DictionaryOverlay({
   onCloseClue,
   onDismissGuide,
   onOpenClue,
+  onSelectEntry,
   onPlaceEntryToSlot,
 }: DictionaryOverlayProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -312,7 +314,11 @@ export function DictionaryOverlay({
                   aria-pressed={isActive}
                   onClick={() => {
                     onDismissGuide()
-                    onOpenClue(entry.id)
+                    if (isPuzzleTarget) {
+                      onSelectEntry(entry.id)
+                    } else {
+                      onOpenClue(entry.id)
+                    }
                   }}
                   onDragStart={(event) => {
                     if (!isUnlocked || isPlacedEntry) {
