@@ -112,7 +112,21 @@ export function DictionaryOverlay({
         : null,
     [activeClueEntryId],
   )
-  const remainingEntryCount = entries.length - unlockedEntryIds.length
+  const uniqueEntryLabels = useMemo(
+    () => [...new Set(entries.map((e) => e.label))],
+    [],
+  )
+  const unlockedEntryDefs = useMemo(
+    () => entries.filter((e) => unlockedIds.has(e.id)),
+    [unlockedIds],
+  )
+  const unlockedUniqueLabels = useMemo(
+    () => new Set(unlockedEntryDefs.map((e) => e.label)),
+    [unlockedEntryDefs],
+  )
+  const uniqueLabelTotal = uniqueEntryLabels.length
+  const unlockedUniqueLabelCount = unlockedUniqueLabels.size
+  const remainingByUniqueLabel = uniqueLabelTotal - unlockedUniqueLabelCount
   const shouldShowGuide = !hasSeenGuide && !activeClueEntry
   const placedEntryIds = useMemo(
     () => new Set(Object.values(placedSlots)),
@@ -238,18 +252,18 @@ export function DictionaryOverlay({
           <article className="dictionary-book-page right-book-page">
             <div
               className="dictionary-volume-status"
-              aria-label={`三朝书残卷，待补之字 ${remainingEntryCount}，已识之字 ${unlockedEntryIds.length}`}
+              aria-label={`三朝书残卷，待补之字 ${remainingByUniqueLabel}，已识之字 ${unlockedUniqueLabelCount}`}
             >
               <span className="dictionary-volume-status-title">
                 三朝书残卷
               </span>
               <span>
                 待补之字
-                <strong>{remainingEntryCount}</strong>
+                <strong>{remainingByUniqueLabel}</strong>
               </span>
               <span>
                 已识之字
-                <strong>{unlockedEntryIds.length}</strong>
+                <strong>{unlockedUniqueLabelCount}</strong>
               </span>
             </div>
           </article>
@@ -275,7 +289,7 @@ export function DictionaryOverlay({
             <span>女书字词</span>
             <h2>字词圆谱</h2>
             <p>
-              已解 {unlockedEntryIds.length} / {entries.length}
+              已解 {unlockedUniqueLabelCount} / {uniqueLabelTotal}
             </p>
           </header>
 
