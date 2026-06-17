@@ -8,7 +8,6 @@ const MOVE_SPEED = 500 // 像素/秒
 const SCENE_SCALE = 2.5
 
 const SCENE_IMG = '/assets/FirstLevel/mainscene.png'
-const BGM_AUDIO = '/audio/jiangyong_bgm.mp3'
 
 /** 开场旁白，逐句展示 */
 const NARRATION_LINES = [
@@ -186,25 +185,6 @@ function Chapter1({
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
-  const bgmRef = useRef<HTMLAudioElement | null>(null)
-
-  // ========== 背景音乐 ==========
-  useEffect(() => {
-    const audio = new Audio(BGM_AUDIO)
-    audio.loop = true
-    audio.volume = 0.4
-    audio.play().catch(() => {
-      // 浏览器可能拦截自动播放，静默处理
-    })
-    bgmRef.current = audio
-
-    return () => {
-      audio.pause()
-      audio.src = ''
-      audio.load()
-      bgmRef.current = null
-    }
-  }, [])
 
   // 预加载图片
   useEffect(() => {

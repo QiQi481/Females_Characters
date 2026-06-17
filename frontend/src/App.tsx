@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import MainMenu from './components/MainMenu/MainMenu'
 import Prologue from './components/Prologue/Prologue'
 import TitleCard from './components/TitleCard/TitleCard'
@@ -10,6 +10,8 @@ import { DictionaryOverlay, useDictionary } from './systems/dictionary'
 import EmbroideryRoomPhaser from './scenes/EmbroideryRoom/EmbroideryRoomPhaser'
 import SingingHall from './scenes/SingingHall/SingingHall'
 import './App.css'
+
+const JIANGYONG_BGM = '/audio/jiangyong_bgm.mp3'
 
 type GamePhase = 'menu' | 'prologue' | 'titleCard' | 'chapter1'
 
@@ -25,6 +27,42 @@ type SceneId = (typeof SCENE_OPTIONS)[number]['id']
 
 function App() {
   const dictionary = useDictionary()
+  const bgmRef = useRef<HTMLAudioElement | null>(null)
+
+  // ========== 全局背景音乐：女书长卷 ==========
+  // 江永村流程（MainMenu/Prologue/TitleCard/Chapter1）播放，女红房/坐歌堂暂停
+  useEffect(() => {
+    let audio = bgmRef.current
+    if (!audio) {
+      audio = new Audio(JIANGYONG_BGM)
+      audio.loop = true
+      audio.volume = 0.4
+      bgmRef.current = audio
+    }
+
+    if (currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
+      audio.play().catch(() => {})
+    } else {
+      audio.pause()
+    }
+
+    return () => {
+      // 仅在组件卸载时销毁
+    }
+  }, [currentScene])
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      const a = bgmRef.current
+      if (a) {
+        a.pause()
+        a.src = ''
+        a.load()
+      }
+    }
+  }, [])
+
   const [gameSessionKey, setGameSessionKey] = useState(0)
   const [currentScene, setCurrentScene] = useState<SceneId>(
     JIANGYONG_VILLAGE_SCENE_ID,
