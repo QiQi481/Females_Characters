@@ -9,6 +9,7 @@
 import Phaser from 'phaser';
 import type { GlobalDictionaryBridge } from '../../../game/GlobalDictionaryBridge';
 import { SceneKeys } from '../types';
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from '../../../utils/audioSettings';
 import {
   PLAYER_SPEED,
   INTERACT_DISTANCE,
@@ -79,6 +80,7 @@ export class MainScene extends Phaser.Scene {
   private dictSystem!: DictionarySystem;
   private dictionaryBridge!: GlobalDictionaryBridge;
   private isGlobalDictionaryOpen = false;
+  private bgmVolumeHandler: (() => void) | null = null;
   private pendingDictionaryPuzzle: SingingDictionaryPuzzleConfig | null = null;
   private pendingGlyphToastTargets = new Set<string>();
   private pendingLocalGlyphToastEntryIds = new Set<string>();
@@ -234,7 +236,16 @@ export class MainScene extends Phaser.Scene {
     // ========== 背景音乐 ==========
     const existingBgm = this.sound.get('singing_bgm')
     if (existingBgm) existingBgm.destroy()
-    this.sound.add('singing_bgm', { loop: true, volume: 0.4 }).play()
+    this.sound.add('singing_bgm', { loop: true, volume: getBgmVolume() }).play()
+
+    // 实时响应设置面板的音量变更
+    this.bgmVolumeHandler = () => {
+      const bgm = this.sound.get('singing_bgm')
+      if (bgm && bgm instanceof Phaser.Sound.WebAudioSound) {
+        bgm.setVolume(getBgmVolume())
+      }
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)
 
     const singingHallClueIds = new Set([
       ...SONG_CLUES.map((clue) => clue.id),
@@ -2516,6 +2527,10 @@ export class MainScene extends Phaser.Scene {
 
   shutdown(): void {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
+    if (this.bgmVolumeHandler) {
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler);
+      this.bgmVolumeHandler = null;
+    }
     this.sound.stopAll();
   }
 

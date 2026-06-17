@@ -10,6 +10,7 @@ import { loadGame, deleteSave, hasSave, saveGame, ProgressStage } from './utils/
 import { DictionaryOverlay, useDictionary } from './systems/dictionary'
 import EmbroideryRoomPhaser from './scenes/EmbroideryRoom/EmbroideryRoomPhaser'
 import SingingHall from './scenes/SingingHall/SingingHall'
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from './utils/audioSettings'
 import './App.css'
 
 const JIANGYONG_BGM = '/audio/jiangyong_bgm.mp3'
@@ -43,8 +44,14 @@ function App() {
   useEffect(() => {
     const audio = new Audio(JIANGYONG_BGM)
     audio.loop = true
-    audio.volume = 0.4
+    audio.volume = getBgmVolume()
     bgmRef.current = audio
+
+    // 监听从 SettingsModal 发出的音量变更事件，实时调整音量
+    const onBgmVolumeChange = () => {
+      audio.volume = getBgmVolume()
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
 
     const tryPlay = () => {
       if (audio.paused && currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
@@ -62,15 +69,17 @@ function App() {
 
     return () => {
       events.forEach((e) => document.removeEventListener(e, onUserInteract))
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
     }
   }, [])
 
-  // 根据场景切换播放/暂停
+  // 根据场景切换播放/暂停，并同步最新音量设置
   useEffect(() => {
     const audio = bgmRef.current
     if (!audio) return
 
     if (currentScene === JIANGYONG_VILLAGE_SCENE_ID) {
+      audio.volume = getBgmVolume()
       audio.play().catch(() => {})
     } else {
       audio.pause()

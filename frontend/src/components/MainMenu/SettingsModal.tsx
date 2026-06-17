@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BGM_VOLUME_CHANGE_EVENT } from '../../utils/audioSettings'
 import './SettingsModal.css'
 
 interface GameSettings {
@@ -15,7 +16,7 @@ interface SettingsModalProps {
 const STORAGE_KEY = 'sanchao-shu-settings'
 
 const DEFAULT_SETTINGS: GameSettings = {
-  bgmVolume: 70,
+  bgmVolume: 40,
   sfxVolume: 80,
   textSpeed: 'normal',
 }
@@ -58,6 +59,10 @@ function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setSettings((prev) => {
       const next = { ...prev, ...patch }
       saveSettings(next)
+      // 如果修改了背景音乐音量，通知全局 Audio 实例
+      if ('bgmVolume' in patch) {
+        window.dispatchEvent(new CustomEvent(BGM_VOLUME_CHANGE_EVENT))
+      }
       return next
     })
   }

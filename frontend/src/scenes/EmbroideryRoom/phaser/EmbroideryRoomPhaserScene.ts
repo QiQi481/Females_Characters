@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { SaveSystem } from '../../../game/systems'
 import { finalYanPuzzle, npcConfig } from '../embroideryRoomData'
 import type { EmbroideryDictionaryBridge } from './EmbroideryDictionaryBridge'
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from '../../../utils/audioSettings'
 import {
   EMBROIDERY_ENTRIES,
   EMBROIDERY_FINAL_YAN_UNLOCK,
@@ -92,6 +93,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private saveSystem!: SaveSystem
   private dictionaryBridge!: EmbroideryDictionaryBridge
   private isGlobalDictionaryOpen = false
+  private bgmVolumeHandler: (() => void) | null = null
 
   private player!: Phaser.Physics.Arcade.Sprite
   private keyW!: Phaser.Input.Keyboard.Key
@@ -191,7 +193,16 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     // 移除旧 BGM 避免场景重启时无法播放
     const existingBgm = this.sound.get(BGM_KEY)
     if (existingBgm) existingBgm.destroy()
-    this.sound.add(BGM_KEY, { loop: true, volume: 0.4 }).play()
+    this.sound.add(BGM_KEY, { loop: true, volume: getBgmVolume() }).play()
+
+    // 实时响应设置面板的音量变更
+    this.bgmVolumeHandler = () => {
+      const bgm = this.sound.get(BGM_KEY)
+      if (bgm && bgm instanceof Phaser.Sound.WebAudioSound) {
+        bgm.setVolume(getBgmVolume())
+      }
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)
 
     this.createCombinedNushuTexture('embroidery_nushu_hongzhuang', [
       'embroidery_nushu_hong',
@@ -1875,6 +1886,10 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
   private shutdown(): void {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this)
+    if (this.bgmVolumeHandler) {
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)
+      this.bgmVolumeHandler = null
+    }
     this.sound.stopAll()
     this.restoreNpcAfterDialogue()
   }
