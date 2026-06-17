@@ -1198,7 +1198,7 @@ function Chapter1({
 
             <div className="letter-popup-content">
               <p className="letter-text">
-                XXXXX：<br />
+                亲爱的姐妹：<br />
                 <span className="letter-text-indent">
                   <span className="letter-image-slot">
                     <img
