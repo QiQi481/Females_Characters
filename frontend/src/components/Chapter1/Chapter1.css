@@ -128,7 +128,7 @@
 .chapter1-snow {
   position: absolute;
   left: 40%;
-  top: 60%;
+  top: 55%;
   width: 25%;
   height: auto;
   cursor: pointer;
@@ -146,6 +146,32 @@
 }
 
 @keyframes snowBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ========== 酒坛装饰 ========== */
+.chapter1-winejar {
+  position: absolute;
+  left: 60%;
+  top: 75%;
+  width: 3%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+  animation: winejarBreath 3s ease-in-out infinite;
+}
+
+.chapter1-winejar:hover,
+.chapter1-winejar.winejar-near {
+  animation: none;
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px rgba(255, 205, 128, 0.85))
+          drop-shadow(0 6px 14px rgba(94, 50, 34, 0.4));
+}
+
+@keyframes winejarBreath {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }

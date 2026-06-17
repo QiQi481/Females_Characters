@@ -162,11 +162,14 @@ function Chapter1({
   const [showSwallowInfo, setShowSwallowInfo] = useState(false)
   const [isNearSnow, setIsNearSnow] = useState(false)
   const [showSnowInfo, setShowSnowInfo] = useState(false)
+  const [isNearWinejar, setIsNearWinejar] = useState(false)
+  const [showWinejarInfo, setShowWinejarInfo] = useState(false)
   const boundaryRef = useRef<HTMLImageElement>(null)
   const mailboxRef = useRef<HTMLImageElement>(null)
   const droppedLetterRef = useRef<HTMLDivElement>(null)
   const swallowRef = useRef<HTMLImageElement>(null)
   const snowRef = useRef<HTMLImageElement>(null)
+  const winejarRef = useRef<HTMLImageElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
   const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
@@ -272,7 +275,7 @@ function Chapter1({
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showWinejarInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -346,13 +349,14 @@ function Chapter1({
       setIsNearDroppedLetter(isNear(droppedLetterRef.current))
       setIsNearSwallow(isNear(swallowRef.current))
       setIsNearSnow(isNear(snowRef.current))
+      setIsNearWinejar(isNear(winejarRef.current))
 
       animRef.current = requestAnimationFrame(loop)
     }
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH])
 
   // 图片加载后把初始位置定在画面右下角
   useEffect(() => {
@@ -412,6 +416,7 @@ function Chapter1({
         if (showLetterPopup) { setShowLetterPopup(false); return }
         if (showSwallowInfo) { setShowSwallowInfo(false); return }
         if (showSnowInfo) { setShowSnowInfo(false); return }
+        if (showWinejarInfo) { setShowWinejarInfo(false); return }
         if (showBookPopup) { setShowBookPopup(false); return }
 
         return
@@ -526,8 +531,10 @@ function Chapter1({
             return Math.hypot(cx - playerX, cy - playerY) < threshold
           }
 
-          // 优先级：雪人 > 燕子 > 掉落的信件 > 信箱 > 界碑
-          if (isNear(snowRef.current)) {
+          // 优先级：酒坛 > 雪人 > 燕子 > 掉落的信件 > 信箱 > 界碑
+          if (isNear(winejarRef.current)) {
+            setShowWinejarInfo(true)
+          } else if (isNear(snowRef.current)) {
             setShowSnowInfo(true)
           } else if (isNear(swallowRef.current)) {
             setShowSwallowInfo(true)
@@ -564,6 +571,7 @@ function Chapter1({
     showLetterPopup,
     showSwallowInfo,
     showSnowInfo,
+    showWinejarInfo,
     showBookPopup,
     isQuizBusy,
     letterDropped,
@@ -1059,6 +1067,16 @@ function Chapter1({
             onClick={() => setShowSnowInfo(true)}
           />
 
+          {/* 酒坛 */}
+          <img
+            ref={winejarRef}
+            src="/assets/FirstLevel/Winejar.png"
+            alt="酒坛"
+            className={`chapter1-winejar${isNearWinejar ? ' winejar-near' : ''}`}
+            draggable={false}
+            onClick={() => setShowWinejarInfo(true)}
+          />
+
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
             <div ref={droppedLetterRef} className={`dropped-letter${isNearDroppedLetter ? ' dropped-letter-near' : ''}`} onClick={() => setShowLetterPopup(true)}>
@@ -1227,6 +1245,26 @@ function Chapter1({
             </div>
             <p className="dialog-text">
               明明已经过了2月，但这化雪的寒气，还是把手都冻僵了。先生说得对，这叫'微冷'啊。
+            </p>
+            <span className="dialog-next-icon">&#9660;</span>
+          </div>
+        </div>
+      )}
+
+      {/* 酒坛信息弹窗 */}
+      {showWinejarInfo && (
+        <div className="dialog-overlay" onClick={() => setShowWinejarInfo(false)}>
+          <img
+            src="/assets/FirstLevel/AHe.png"
+            alt="阿禾"
+            className="dialog-portrait"
+          />
+          <div className="dialog-box">
+            <div className="dialog-name-row">
+              <span className="dialog-speaker">阿禾</span>
+            </div>
+            <p className="dialog-text">
+              这是一坛纯酒，上面似乎还有一些字，料峭X风吹酒醒，看起来像是一首诗。
             </p>
             <span className="dialog-next-icon">&#9660;</span>
           </div>
