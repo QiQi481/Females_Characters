@@ -258,7 +258,14 @@ export function useDictionary() {
       }
 
       const entry = entries.find((candidate) => candidate.id === entryId)
-      if (!entry || entryId !== requiredEntryId) {
+      const requiredEntryDef = entries.find(
+        (candidate) => candidate.id === requiredEntryId,
+      )
+      // 允许相同 label 的条目互相替换（如两个"君"可互换）
+      const isLabelEquivalent =
+        entry?.label !== undefined &&
+        entry.label === requiredEntryDef?.label
+      if (!entry || (entryId !== requiredEntryId && !isLabelEquivalent)) {
         setFailedSlotId(slotId)
         setFeedback({
           type: 'error',
@@ -284,22 +291,9 @@ export function useDictionary() {
         slotId,
       })
 
-      if (activePuzzle?.correctEntryId === entryId) {
-        setIsResolvingPuzzle(true)
-        successTimerRef.current = window.setTimeout(() => {
-          setIsDictionaryOpen(false)
-          setActivePuzzle(null)
-          setActiveClueEntryId(null)
-          setFeedback(null)
-          setIsResolvingPuzzle(false)
-          successTimerRef.current = null
-          activePuzzle.onSuccess()
-        }, SUCCESS_CLOSE_DELAY)
-      }
-
       return true
     },
-    [activePuzzle, isResolvingPuzzle, unlockedEntryIds],
+    [isResolvingPuzzle, unlockedEntryIds],
   )
 
   const resetDictionary = useCallback(() => {
