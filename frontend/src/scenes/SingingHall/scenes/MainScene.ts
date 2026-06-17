@@ -1769,7 +1769,7 @@ export class MainScene extends Phaser.Scene {
     const textX = VIEW_WIDTH * 0.12;
     const textY = VIEW_HEIGHT - 340 + 64;  // 唱扇女下方
 
-    const line1 = '"@image:歌.a7b41b0c59.a7b41b0c59.png @image:扇.d957a94e16.d957a94e16.png轻合，此后各自@image:远.8ad8185070.8ad8185070.png @image:行.fb6657a2aa.fb6657a2aa.png；愿我今日所唱，仍能陪你过山过水。"';
+    const line1 = '"@image:歌.a7b41b0c59.png @image:扇.d957a94e16.png轻合，此后各自@image:远.8ad8185070.png @image:行.fb6657a2aa.png；愿我今日所唱，仍能陪你过山过水。"';
     const line2 = '请在字典中找到对应的女书字。';
 
     // 正文（在唱扇女下面）
