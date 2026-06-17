@@ -136,7 +136,7 @@ export class MainScene extends Phaser.Scene {
 
   // ========== 线索进度 ==========
   private clueFoundCount = 0;
-  private clueTotalCount = SONG_CLUES.length + 2; // 5个线索 + 2个NPC
+  private clueTotalCount = SONG_CLUES.length + 1; // 5个线索 + 1个NPC
   private foundClueIds: Set<string> = new Set();
   private clueProgressText!: Phaser.GameObjects.Text;
 
@@ -157,6 +157,7 @@ export class MainScene extends Phaser.Scene {
   private sistersScenePhase3 = false;
   private _sistersKeyHandler: ((event: KeyboardEvent) => void) | null = null;
   private _sistersClickHandler: (() => void) | null = null;
+  private _sistersHiddenObjs: any[] | null = null;
 
   // ========== 纸片大图预览状态 ==========
   private paperPreviewOpen = false;
@@ -1314,10 +1315,17 @@ export class MainScene extends Phaser.Scene {
     this.clueMarkers.forEach((m) => m.setVisible(false));
     this.npcSprites.forEach((s) => s.setVisible(false));
     this.player.setVisible(false);
-    const hudChildren = this.children.getAll('depth', 51) as Phaser.GameObjects.GameObject[];
-    hudChildren.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
-    const hud52Children = this.children.getAll('depth', 52) as Phaser.GameObjects.GameObject[];
-    hud52Children.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });
+    this._sistersHiddenObjs = [];
+    const depths = [51, 52, 53, 60];
+    depths.forEach((d) => {
+      const children = this.children.getAll('depth', d) as Phaser.GameObjects.GameObject[];
+      children.forEach((c) => {
+        if ((c as any).visible !== undefined) {
+          (c as any).setVisible(false);
+          this._sistersHiddenObjs!.push(c as any);
+        }
+      });
+    });
 
     // 相机居中到世界中心
     const cx = GAME_WIDTH / 2;
@@ -1494,6 +1502,10 @@ export class MainScene extends Phaser.Scene {
     this.clueMarkers.forEach((m) => m.setVisible(true));
     this.npcSprites.forEach((s) => s.setVisible(true));
     this.player.setVisible(true);
+    if (this._sistersHiddenObjs) {
+      this._sistersHiddenObjs.forEach((c: any) => { if (c.setVisible) c.setVisible(true); });
+      this._sistersHiddenObjs = null;
+    }
     if (this.savedPlayerPos) {
       this.player.setPosition(this.savedPlayerPos.x, this.savedPlayerPos.y);
     }
@@ -1769,7 +1781,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  /** Phase 3：显示小字内容 */
+  /** Phase 3：显示小字内容（含内联女书字图片） */
   private enterFanPhase3(): void {
     this.fanPreviewPhase2 = false;
 
@@ -1779,16 +1791,16 @@ export class MainScene extends Phaser.Scene {
 
     const textX = VIEW_WIDTH * 0.12;
     const textY = VIEW_HEIGHT - 340 + 64;  // 唱扇女下方
+    const textStyle = { fontSize: '24px', color: '#e8d5b7', fontFamily: 'serif' } as const;
+    const lineHeight = 48;
 
-    const line1 = '"@image:歌.a7b41b0c59.a7b41b0c59.png @image:扇.d957a94e16.d957a94e16.png轻合，此后各自@image:远.8ad8185070.8ad8185070.png @image:行.fb6657a2aa.fb6657a2aa.png；愿我今日所唱，仍能陪你过山过水。"';
+    const line1 = '"__ __轻合，从此各自__ __；愿我今日所唱，仍能陪你过千山万水。"';
     const line2 = '请在字典中找到对应的女书字。';
 
-    // 正文（在唱扇女下面）
-    this.add.text(textX, textY, '', {
-      fontSize: '24px', color: '#e8d5b7', fontFamily: 'serif',
-      wordWrap: { width: VIEW_WIDTH * 0.76 }, lineSpacing: 20,
-    }).setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_text')
-      .setText(line1 + '\n' + line2);
+    this.add.text(textX, textY, line1, textStyle)
+      .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_line1');
+    this.add.text(textX, textY + lineHeight, line2, textStyle)
+      .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setName('fan_dialogue_line2');
 
     // 关闭提示
     this.add.text(VIEW_WIDTH / 2, VIEW_HEIGHT - 50, '按 E 或 点击 返回主场景 | Q / ESC 返回', {
@@ -1803,10 +1815,54 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  /** 点击内联图片，显示大图预览（黑色半透明背景，Q/ESC 关闭） */
+  private showInlineImagePreview(phaserKey: string): void {
+    this.closeInlineImagePreview();
+
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    // 黑色半透明背景
+    this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.7)
+      .setDepth(200).setScrollFactor(0)
+      .setName('inline_preview_overlay');
+
+    // 大图居中显示
+    this.add.image(cx, cy, phaserKey)
+      .setScale(0.5)
+      .setDepth(201).setScrollFactor(0)
+      .setName('inline_preview_big');
+
+    // Q/ESC 关闭
+    const closeHandler = (e: KeyboardEvent) => {
+      if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') {
+        this.closeInlineImagePreview();
+      }
+    };
+    window.addEventListener('keydown', closeHandler);
+    (this as any).__inlinePreviewCloseHandler = closeHandler;
+  }
+
+  /** 关闭内联图片大图预览 */
+  private closeInlineImagePreview(): void {
+    const handler = (this as any).__inlinePreviewCloseHandler;
+    if (handler) {
+      window.removeEventListener('keydown', handler);
+      (this as any).__inlinePreviewCloseHandler = undefined;
+    }
+    ['inline_preview_overlay', 'inline_preview_big'].forEach((name) => {
+      const obj = this.children.getByName(name);
+      if (obj) obj.destroy();
+    });
+  }
+
   /** 关闭唱扇女大图预览 */
   private closeFanPreview(completed = false): void {
     if (!this.fanPreviewOpen) return;
     this.fanPreviewOpen = false;
+
+    // 先关闭内联图片大图预览
+    this.closeInlineImagePreview();
 
     // 移除键盘监听
     if (this._fanKeyHandler) {
@@ -1815,7 +1871,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 销毁预览元素
-    ['fan_overlay', 'fan_big_img', 'fan_close_hint', 'fan_phase1_hint', 'fan_phase2_hint', 'fan_dialogue_title', 'fan_dialogue_text'].forEach((name) => {
+    ['fan_overlay', 'fan_big_img', 'fan_close_hint', 'fan_phase1_hint', 'fan_phase2_hint', 'fan_dialogue_title', 'fan_dialogue_line1', 'fan_dialogue_line2'].forEach((name) => {
       const obj = this.children.getByName(name);
       if (obj) obj.destroy();
     });

@@ -135,6 +135,10 @@ export class BootScene extends Phaser.Scene {
       this.load.image(key, url);
     });
 
+    // ========== 对话内联女书字图片 ==========
+    this.load.image('inline_geshan', assetUrl('歌扇.0cc8cdc349.0cc8cdc349.0cc8cdc349.png'));
+    this.load.image('inline_yuanxing', assetUrl('远行.43d20c358f.43d20c358f.43d20c358f.png'));
+
     // ========== 背景音乐 ==========
     this.load.audio('singing_bgm', '/audio/singing_bgm.mp3');
 

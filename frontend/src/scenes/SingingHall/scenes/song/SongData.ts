@@ -237,7 +237,7 @@ export const SONG_CLUES: Clue[] = SONG_CLUE_SOURCES.map((clue) => ({
 export const SISTERS_NPC: NPC = {
   id: 'npc_sisters',
   sceneId: 'singingHall',
-  name: '__ __ 姐妹',
+  name: '__ __',
   x: 2160,
   y: 800,
   prompt: '按 E 听她们唱读',
