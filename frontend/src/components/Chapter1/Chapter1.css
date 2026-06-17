@@ -211,6 +211,30 @@
   pointer-events: none;
 }
 
+.chapter1-return-btn {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 80;
+  padding: 8px 18px;
+  color: #6f2926;
+  background-color: rgba(244, 226, 191, 0.88);
+  border: 1px solid #c9a87c;
+  border-radius: 6px;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.15s;
+}
+
+.chapter1-return-btn:hover,
+.chapter1-return-btn:focus-visible {
+  background-color: rgba(244, 226, 191, 1);
+  transform: scale(1.05);
+  outline: none;
+}
+
 .chapter1-hint {
   position: fixed;
   left: 50%;

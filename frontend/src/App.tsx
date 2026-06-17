@@ -163,6 +163,7 @@ function App() {
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
           onComplete={() => deleteSave()}
+          onReturnToMenu={returnToMainMenu}
         />
       )}
     </>
