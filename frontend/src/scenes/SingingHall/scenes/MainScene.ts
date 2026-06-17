@@ -975,9 +975,6 @@ export class MainScene extends Phaser.Scene {
   private handleInteract(): void {
     if (!this.canInteract) return;
 
-    // 播放交互音效
-    this.sound.play('bell_click');
-
     // 记录找到的线索
     this.markClueFound(this.currentTarget);
     this.interactHint.setVisible(false);
@@ -1996,9 +1993,9 @@ export class MainScene extends Phaser.Scene {
     if (hint) hint.destroy();
 
     this.pipaLines = [
-      '歌堂是妇女们相聚、传习与学习的地方。',
-      '她们在这里读纸、读扇，把女书中的字句、歌谣和心事一代代传下去。',
-      '笔墨不仅是书写的工具，也像一条细细的线，把姐妹之间的知识、记忆与情感连接起来。',
+      '琵琶声响起时，仿佛把人带回江永女子相聚歌唱的时刻。',
+      '女书不只是写在纸上的文字，也常与歌谣、扇面、三朝书一起，承载女性之间的情感与记忆。',
+      '这件琵琶记录着一段被轻声传唱的故事：有离别、有祝愿，也有姐妹之间不曾说出口的牵挂。',
     ];
     this.pipaTextLine = 0;
 
