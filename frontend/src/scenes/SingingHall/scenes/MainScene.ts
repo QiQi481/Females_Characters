@@ -94,6 +94,7 @@ export class MainScene extends Phaser.Scene {
   private interactHint!: Phaser.GameObjects.Container;
   private _hintText!: Phaser.GameObjects.Text;
   private dictionaryButton!: Phaser.GameObjects.Image;
+  private dictionaryButtonLabel!: Phaser.GameObjects.Text;
   private controlsHint!: Phaser.GameObjects.Text;
 
   // ========== 线索标记精灵 ==========
@@ -370,6 +371,7 @@ export class MainScene extends Phaser.Scene {
 
     if (this.dictionaryButton?.active) {
       this.dictionaryButton.setPosition(cx, 18);
+      this.dictionaryButtonLabel.setPosition(cx, 88);
       this.clueProgressText.setPosition(VIEW_WIDTH - 24, 24);
       this.controlsHint.setPosition(cx, VIEW_HEIGHT - 24);
     }
@@ -512,6 +514,14 @@ export class MainScene extends Phaser.Scene {
     dictBtn.on('pointerout', () => dictBtn.setDisplaySize(110, 85));
     dictBtn.on('pointerdown', () => this.openGlobalDictionary());
 
+    this.dictionaryButtonLabel = this.add.text(VIEW_WIDTH / 2, 88, '词典', {
+      fontSize: '18px',
+      color: '#6f2926',
+      backgroundColor: 'rgba(244, 226, 191, 0.82)',
+      padding: { x: 9, y: 3 },
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
+    }).setOrigin(0.5, 0).setDepth(53).setScrollFactor(0);
+
     this.clueProgressText = this.add.text(VIEW_WIDTH - 24, 24, `线索 ${this.clueFoundCount}/${this.clueTotalCount}`, {
       fontSize: '24px',
       color: '#6f2926',
@@ -523,12 +533,13 @@ export class MainScene extends Phaser.Scene {
     this.controlsHint = this.add.text(
       VIEW_WIDTH / 2,
       VIEW_HEIGHT - 24,
-      'WASD 移动  |  E 交互  |  Tab 词典  |  Q / ESC 返回',
+      'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回',
       {
         fontSize: '22px',
         color: '#4d3b34',
         backgroundColor: 'rgba(244, 226, 191, 0.82)',
         padding: { x: 14, y: 7 },
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
       },
     ).setOrigin(0.5, 1).setDepth(60).setScrollFactor(0);
   }
@@ -2311,6 +2322,7 @@ export class MainScene extends Phaser.Scene {
     // 隐藏词典按钮
     const dictBtn = this.children.getByName?.('dictBtn') as Phaser.GameObjects.Image | undefined;
     if (dictBtn) dictBtn.setVisible(false);
+    this.dictionaryButtonLabel?.setVisible(false);
     // 隐藏底部操作提示
     const hudChildren = this.children.getAll('depth', 51) as Phaser.GameObjects.GameObject[];
     hudChildren.forEach((c) => { if ((c as any).setVisible) (c as any).setVisible(false); });

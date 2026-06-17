@@ -1,0 +1,1009 @@
+/* ========== 关卡容器 ========== */
+.chapter1 {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #1a1008;
+  cursor: crosshair;
+  user-select: none;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+}
+
+/* ========== 加载状态 ========== */
+.chapter1-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.2rem;
+  color: #c9a87c;
+  letter-spacing: 0.2em;
+}
+
+/* ========== 场景 — 大图平移容器 ========== */
+.chapter1-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.chapter1-bg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ========== 石碑装饰 ========== */
+.chapter1-boundary {
+  position: absolute;
+  right: 23%;
+  bottom: 24%;
+  width: 2%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  transition: filter 0.2s;
+  animation: boundaryBreath 2.5s ease-in-out infinite;
+}
+
+.chapter1-boundary:hover {
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5)) brightness(1.1);
+}
+
+@keyframes boundaryBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ========== 信箱装饰 ========== */
+.chapter1-mailbox {
+  position: absolute;
+  left: 67%;
+  bottom: 26%;
+  width: 2%;
+  height: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  transition: filter 0.2s;
+  animation: mailboxBreath 2.8s ease-in-out infinite;
+}
+
+.chapter1-mailbox:hover {
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5)) brightness(1.1);
+}
+
+@keyframes mailboxBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* 信箱打开后不再响应 hover */
+.chapter1-mailbox.mailbox-open {
+  cursor: default;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* ========== 掉落信件 ========== */
+.dropped-letter {
+  position: absolute;
+  left: 68.5%;
+  bottom: 23%;
+  width: 0.875%;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5efe0, #e8dcc8);
+  border: 1px solid #c4a97a;
+  border-radius: 2px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  animation: letterDrop 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dropped-letter-icon {
+  font-size: 0.35em;
+  opacity: 0.7;
+}
+
+@keyframes letterDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-120%) rotate(-15deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-30%) rotate(5deg);
+  }
+  70% {
+    transform: translateY(0%) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(0%) rotate(0deg);
+  }
+}
+
+/* ========== 自由探索 HUD ========== */
+.chapter1-dictionary-btn {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 80;
+  width: 110px;
+  height: 85px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.chapter1-dictionary-btn span {
+  position: absolute;
+  left: 50%;
+  top: 70px;
+  padding: 2px 9px 3px;
+  color: #6f2926;
+  background: rgba(244, 226, 191, 0.82);
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.chapter1-dictionary-btn img {
+  display: block;
+  width: 110px;
+  height: 85px;
+  object-fit: contain;
+  transition:
+    width 160ms ease,
+    height 160ms ease,
+    transform 160ms ease;
+}
+
+.chapter1-dictionary-btn:hover img,
+.chapter1-dictionary-btn:focus-visible img {
+  width: 118px;
+  height: 91px;
+  transform: translate(-4px, -3px);
+}
+
+.chapter1-dictionary-btn:focus-visible {
+  outline: none;
+}
+
+.chapter1-clue-progress {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 80;
+  padding: 9px 16px;
+  color: #6f2926;
+  background-color: rgba(244, 226, 191, 0.9);
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 24px;
+  line-height: normal;
+  pointer-events: none;
+}
+
+.chapter1-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 80;
+  padding: 7px 14px;
+  color: #4d3b34;
+  background-color: rgba(244, 226, 191, 0.82);
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 22px;
+  line-height: normal;
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.chapter1-player-marker {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 20;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7a3020;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* ========== 石碑信息弹窗 ========== */
+.boundary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 10, 5, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.boundary-popup {
+  position: relative;
+  width: min(520px, 88vw);
+  background: linear-gradient(180deg, #faf6ed 0%, #f3ebd8 100%);
+  border: 2px solid #c9a87c;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 40px rgba(60, 30, 10, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  animation: slideUp 0.35s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.boundary-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  padding: 4px 16px;
+  border: 1px solid #c9a87c;
+  border-radius: 4px;
+  background: rgba(250, 246, 237, 0.9);
+  color: #8b4530;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.boundary-close:hover {
+  background: #8b4530;
+  color: #fff;
+  border-color: #8b4530;
+}
+
+.boundary-content {
+  padding: 2rem 2rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5em;
+}
+
+.boundary-location-img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 168, 124, 0.5);
+}
+
+.boundary-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.05rem;
+  line-height: 2;
+  color: #3a2a1a;
+  text-indent: 2em;
+  margin: 0;
+}
+
+/* ========== 开场旁白 ========== */
+.narration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12vh;
+  background: rgba(10, 6, 2, 0.55);
+  cursor: pointer;
+  animation: fadeIn 0.6s ease;
+}
+
+.narration-box {
+  text-align: center;
+  max-width: min(640px, 88vw);
+}
+
+.narration-line {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1.15rem, 3.5vw, 1.5rem);
+  line-height: 2;
+  color: #f5efdf;
+  letter-spacing: 0.15em;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  animation: narrationIn 0.4s ease;
+}
+
+@keyframes narrationIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.narration-click-hint {
+  display: inline-block;
+  margin-top: 2em;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  color: rgba(245, 239, 223, 0.45);
+  letter-spacing: 0.2em;
+  animation: hintPulse 2.5s ease-in-out infinite;
+}
+
+/* ========== 对话框 ========== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  cursor: pointer;
+}
+
+.dialog-portrait {
+  position: absolute;
+  top: 25vh;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100vh;
+  width: auto;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+  animation: portraitIn 0.6s ease;
+}
+
+@keyframes portraitIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dialog-box {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: min(820px, 94vw);
+  min-height: 160px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 3rem 4rem 3rem;
+}
+
+.dialog-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/assets/FirstLevel/conversation.png') center/100% 100% no-repeat;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dialog-name-row,
+.dialog-text,
+.dialog-next-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.dialog-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+}
+
+.dialog-speaker {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.05rem;
+  color: #d4c4a8;
+  letter-spacing: 0.15em;
+}
+
+.dialog-flower {
+  color: #e8b4a0;
+  font-size: 1rem;
+}
+
+.dialog-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1rem, 2.8vw, 1.15rem);
+  line-height: 1.9;
+  color: #ede5d3;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  animation: dialogTextIn 0.25s ease;
+}
+
+@keyframes dialogTextIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dialog-next-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: rgba(220, 200, 170, 0.45);
+  animation: nextPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes nextPulse {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 0.7; transform: translateY(2px); }
+}
+
+/* ========== 信件内容弹窗 ========== */
+.letter-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.letter-popup {
+  position: relative;
+  width: min(640px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #f5efe0 0%, #ede0cc 100%);
+  border: 2px solid #c4a97a;
+  border-radius: 4px;
+  padding: 2.5rem 2rem 2rem;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.letter-popup-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  background: none;
+  border: none;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.9rem;
+  color: #8a7a60;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.letter-popup-close:hover {
+  color: #3a2a1a;
+}
+
+.letter-popup-content {
+  text-align: center;
+}
+
+.letter-text {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.2rem;
+  line-height: 2.2;
+  color: #3a2a1a;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-align: left;
+}
+
+.letter-text-indent {
+  display: inline-block;
+  text-indent: 2em;
+}
+
+.letter-image-slot {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.15em;
+}
+
+.letter-clue-img {
+  display: block;
+  height: 3em;
+  width: auto;
+  border: 1px solid #d4c4a8;
+  border-radius: 2px;
+  background: #fff;
+  padding: 2px;
+  object-fit: contain;
+}
+
+/* ========== 三朝书弹窗 ========== */
+.book-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.book-popup {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  padding: 1rem;
+}
+
+.book-popup-close {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.4rem;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(180, 150, 110, 0.4);
+  border-radius: 3px;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  color: #ded5c0;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  transition: background 0.2s;
+}
+
+.book-popup-close:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.book-popup-content {
+  text-align: center;
+}
+
+.book-placeholder-img {
+  display: block;
+  max-width: 85vw;
+  max-height: 78vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.book-placeholder-hint {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.1rem;
+  color: rgba(220, 200, 170, 0.6);
+  margin-top: 0.8rem;
+  letter-spacing: 0.3em;
+}
+
+/* ========== 关卡流程重开按钮 ========== */
+.chapter1-reopen-btn {
+  position: fixed;
+  top: 116px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 9px 16px;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 20px;
+  color: #4d3b34;
+  background-color: rgba(244, 226, 191, 0.82);
+  border: 0;
+  cursor: pointer;
+  transition: all 0.25s;
+  animation: bookBtnIn 0.4s ease;
+}
+
+.chapter1-reopen-btn:hover,
+.chapter1-reopen-btn:focus-visible {
+  background-color: rgba(244, 226, 191, 0.96);
+  outline: none;
+}
+
+@keyframes bookBtnIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ========== Quiz 图片弹窗 ========== */
+.quiz-image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-image-popup {
+  position: relative;
+  width: min(500px, 88vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem 1.5rem;
+  background: linear-gradient(180deg, #2a1f14 0%, #1e150d 100%);
+  border: 2px solid rgba(201, 168, 124, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.35s ease;
+}
+
+/* Q2 同屏弹窗 — 图片+选项，更宽 */
+.quiz-q2-popup {
+  width: min(600px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding-top: 2.5rem;
+}
+
+.quiz-image-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  padding: 2px 12px;
+  border: 1px solid rgba(201, 168, 124, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #c9a87c;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quiz-image-close:hover {
+  background: rgba(139, 69, 48, 0.5);
+  color: #e8d5b8;
+  border-color: rgba(201, 168, 124, 0.6);
+}
+
+.quiz-image-wrapper {
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+
+.quiz-image-placeholder {
+  display: block;
+  width: 100%;
+  max-height: 35vh;
+  object-fit: contain;
+  border: 1px solid rgba(201, 168, 124, 0.4);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Q2 四图网格 */
+.quiz-image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+
+/* Q4 双图画廊 */
+.quiz-image-gallery {
+  display: flex;
+  gap: 1.5em;
+  justify-content: center;
+  align-items: flex-start;
+  max-width: min(600px, 80vw);
+  animation: slideUp 0.35s ease;
+}
+
+.quiz-image-card {
+  flex: 1;
+  max-width: 280px;
+  padding: 0.8em;
+  background: rgba(40, 30, 20, 0.7);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+}
+
+.quiz-image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 3px;
+  border: 1px solid rgba(201, 168, 124, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.quiz-grid-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid rgba(201, 168, 124, 0.4);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.quiz-click-hint {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.8rem;
+  color: rgba(200, 180, 150, 0.4);
+  letter-spacing: 0.15em;
+  animation: hintPulse 2.5s ease-in-out infinite;
+}
+
+/* ========== Quiz 选择题 ========== */
+.quiz-choices-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8vh;
+  background: rgba(10, 6, 2, 0.45);
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-choices-panel {
+  width: min(560px, 90vw);
+  padding: 1.5rem 1.5rem 1.8rem;
+  background: rgba(25, 18, 12, 0.9);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  animation: slideUp 0.35s ease;
+}
+
+.quiz-choices-title {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.1rem;
+  color: #d4c4a8;
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin: 0 0 1.2em;
+}
+
+.quiz-choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8em;
+}
+
+.quiz-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.75em 1.2em;
+  background: rgba(40, 30, 20, 0.7);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.quiz-choice-btn:hover {
+  background: rgba(60, 40, 25, 0.85);
+  border-color: rgba(201, 168, 124, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.quiz-choice-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: rgba(180, 150, 110, 0.2);
+  border: 1px solid rgba(180, 150, 110, 0.4);
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #d4c4a8;
+  flex-shrink: 0;
+}
+
+.quiz-choice-label {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.15rem;
+  color: #ede5d3;
+  letter-spacing: 0.15em;
+}
+
+/* ========== Q3 匹配游戏 ========== */
+.match-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 2, 0.65);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s ease;
+}
+
+.match-panel {
+  position: relative;
+  width: min(620px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 2rem 1.5rem 1.5rem;
+  background: linear-gradient(180deg, #2a1f14 0%, #1e150d 100%);
+  border: 2px solid rgba(201, 168, 124, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 8px 50px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.35s ease;
+}
+
+.match-close-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  padding: 2px 12px;
+  border: 1px solid rgba(201, 168, 124, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #c9a87c;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.match-close-btn:hover {
+  background: rgba(139, 69, 48, 0.5);
+  color: #e8d5b8;
+  border-color: rgba(201, 168, 124, 0.6);
+}
+
+/* 上半部分 — 左右两列 */
+.match-upper {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.match-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.match-item {
+  padding: 0.55em 0;
+  text-align: center;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1rem;
+  color: #ede5d3;
+  letter-spacing: 0.15em;
+  background: rgba(60, 45, 30, 0.5);
+  border: 1px solid rgba(180, 150, 110, 0.3);
+  border-radius: 5px;
+  cursor: grab;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.match-item:hover {
+  background: rgba(80, 60, 40, 0.6);
+  border-color: rgba(201, 168, 124, 0.5);
+}
+
+.match-item:active {
+  cursor: grabbing;
+}
+
+.match-item.dragging {
+  opacity: 0.35;
+  transform: scale(0.95);
+}
+
+.match-item.placed {
+  opacity: 0.45;
+  border-style: dashed;
+  background: rgba(45, 35, 25, 0.35);
+}
+
+/* 下半部分 — 三个分类盒 */
+.match-lower {
+  display: flex;
+  gap: 1rem;
+}
+
+.match-category {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 4.5em;
+  padding: 0.8em 0.5em;
+  gap: 0.5em;
+  background: rgba(30, 20, 12, 0.5);
+  border: 2px dashed rgba(180, 150, 110, 0.4);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.match-category.drag-over {
+  background: rgba(60, 45, 25, 0.5);
+  border-color: rgba(201, 168, 124, 0.7);
+  border-style: solid;
+  box-shadow: 0 0 12px rgba(201, 168, 124, 0.15);
+}
+
+.match-cat-label {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 1.1rem;
+  color: #c9a87c;
+  letter-spacing: 0.2em;
+}
+
+/* 分类盒内已放置词条 */
+.match-cat-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  justify-content: center;
+}
+
+.match-cat-chip {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.8rem;
+  color: #ede5d3;
+  background: rgba(80, 60, 40, 0.5);
+  border: 1px solid rgba(180, 150, 110, 0.35);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.match-cat-chip:hover {
+  background: rgba(139, 69, 48, 0.45);
+  border-color: rgba(200, 160, 120, 0.5);
+}
+
+/* ========== Quiz 反馈（复用 dialog-overlay 样式） ========== */

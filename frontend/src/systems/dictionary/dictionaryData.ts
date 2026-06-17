@@ -12,9 +12,13 @@ export type DictionaryEntry = {
   label: string
   sceneId: DictionarySceneId
   status: DictionaryEntryStatus
+  isUnlocked?: boolean
   nushuImages: readonly string[]
   targetSlots: readonly string[]
   meaning: string
+  clueTitle?: string
+  clueImage?: string
+  clueLines?: readonly string[]
   position: DictionaryEntryPosition
   size: number
 }
@@ -36,6 +40,7 @@ export type DictionaryPoemSegment =
       type: 'slot'
       slotId: string
       entryId: DictionaryEntry['id']
+      requiredEntryId?: DictionaryEntry['id']
       placeholder: string
     }
 
@@ -122,6 +127,13 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('hong'), nushuAsset('zhuang')],
     targetSlots: ['line-1-red-makeup'],
     meaning: '女子出嫁时的妆饰与衣装，也承载祝愿和情谊。',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/clues/hongzhuang.png',
+    clueLines: [
+      '出门那日，镜匣要合上，木梳也要收好。',
+      '这一身{{nushu}}，不是只为好看。',
+      '它提醒人，今日之后，她要去很远的地方。',
+    ],
     position: { x: 13, y: 62 },
     size: 84,
   },
@@ -133,6 +145,13 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('nv'), nushuAsset('hong')],
     targetSlots: ['line-2-needlework'],
     meaning: '纺织、缝纫、刺绣等传统技艺的统称。',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/items/needle-basket.png',
+    clueLines: [
+      '从前学字，不一定是在书桌前。',
+      '手里做着针线，耳边听着别人读。',
+      '一边绣，一边念，一边记，这就叫{{nushu}}。',
+    ],
     position: { x: 43, y: 61 },
     size: 78,
   },
@@ -144,6 +163,12 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('jin')],
     targetSlots: ['line-1-today'],
     meaning: '今日',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/items/xiupa.png',
+    clueLines: [
+      '这方帕，不能拖到明日了。',
+      '我{{nushu}}日就要把它绣完。',
+    ],
     position: { x: 76, y: 58 },
     size: 66,
   },
@@ -155,6 +180,13 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('yan')],
     targetSlots: ['line-4-words'],
     meaning: '说话',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/npc/xiuniang-dialogue.png',
+    clueLines: [
+      '有些话，到了出门那日，反倒说不出口。',
+      '口中不能{{nushu}}，就让针线替她写。',
+      '所以帕上的字，不只是字。',
+    ],
     position: { x: 88, y: 71 },
     size: 62,
   },
@@ -166,6 +198,13 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('ming')],
     targetSlots: ['line-3-name'],
     meaning: '名字',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/clues/nugong.png',
+    clueLines: [
+      '送人的帕，不能只绣花。',
+      '帕角要留她的{{nushu}}。',
+      '这样多年以后，也还记得是谁送的。',
+    ],
     position: { x: 61, y: 78 },
     size: 70,
   },
@@ -177,6 +216,13 @@ export const entries: readonly DictionaryEntry[] = [
     nushuImages: [nushuAsset('deng')],
     targetSlots: ['line-2-lamp'],
     meaning: '灯下赶绣、读写，是女红房常见的生活图景。',
+    clueTitle: '{{nushu}}',
+    clueImage: '/assets/embroidery-room/clues/deng.png',
+    clueLines: [
+      '白日人多，有些话不好写。',
+      '到了夜里，只剩这一盏{{nushu}}。',
+      '她们便坐下来，一边绣，一边轻声读。',
+    ],
     position: { x: 27, y: 84 },
     size: 64,
   },
@@ -229,12 +275,14 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-1-red-makeup',
         entryId: 'hongzhuang',
+        requiredEntryId: 'hongzhuang',
         placeholder: 'XX',
       },
       {
         type: 'slot',
         slotId: 'line-1-today',
         entryId: 'jin',
+        requiredEntryId: 'jin',
         placeholder: 'X',
       },
       { type: 'text', value: '已为' },
@@ -242,6 +290,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-1-lord',
         entryId: 'jun',
+        requiredEntryId: 'jun',
         placeholder: 'X',
       },
       { type: 'text', value: '成，此后' },
@@ -249,6 +298,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-1-spring-breeze',
         entryId: 'chunfeng',
+        requiredEntryId: 'chunfeng',
         placeholder: 'XX',
       },
       { type: 'text', value: '伴锦程。' },
@@ -261,6 +311,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-2-needlework',
         entryId: 'nugong',
+        requiredEntryId: 'nugong',
         placeholder: 'XX',
       },
       { type: 'text', value: '曾共' },
@@ -268,6 +319,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-2-lamp',
         entryId: 'deng',
+        requiredEntryId: 'deng',
         placeholder: 'X',
       },
       { type: 'text', value: '前密，' },
@@ -275,6 +327,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-2-song-fan',
         entryId: 'geshan',
+        requiredEntryId: 'geshan',
         placeholder: 'XX',
       },
       { type: 'text', value: '还从' },
@@ -282,6 +335,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-2-paper',
         entryId: 'zhi',
+        requiredEntryId: 'zhi',
         placeholder: 'X',
       },
       { type: 'text', value: '上轻。' },
@@ -295,6 +349,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-3-journey',
         entryId: 'yuanxing',
+        requiredEntryId: 'yuanxing',
         placeholder: 'XX',
       },
       { type: 'text', value: '人易' },
@@ -302,6 +357,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-3-forget',
         entryId: 'wang',
+        requiredEntryId: 'wang',
         placeholder: 'X',
       },
       { type: 'text', value: '，人间自有' },
@@ -309,18 +365,21 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-3-remember',
         entryId: 'ji',
+        requiredEntryId: 'ji',
         placeholder: 'X',
       },
       {
         type: 'slot',
         slotId: 'line-3-lord',
         entryId: 'jun',
+        requiredEntryId: 'jun',
         placeholder: 'X',
       },
       {
         type: 'slot',
         slotId: 'line-3-name',
         entryId: 'ming',
+        requiredEntryId: 'ming',
         placeholder: 'X',
       },
       { type: 'text', value: '。' },
@@ -334,6 +393,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-4-words',
         entryId: 'yan',
+        requiredEntryId: 'yan',
         placeholder: 'X',
       },
       { type: 'text', value: '写尽犹余半，留与' },
@@ -341,6 +401,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-4-deep-night',
         entryId: 'shenxiao',
+        requiredEntryId: 'shenxiao',
         placeholder: 'XX',
       },
       { type: 'text', value: '作' },
@@ -348,6 +409,7 @@ export const dictionaryPoemLines: readonly DictionaryPoemLine[] = [
         type: 'slot',
         slotId: 'line-4-rain-sound',
         entryId: 'yusheng',
+        requiredEntryId: 'yusheng',
         placeholder: 'XX',
       },
       { type: 'text', value: '。' },

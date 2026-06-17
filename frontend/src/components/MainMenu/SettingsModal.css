@@ -1,0 +1,193 @@
+/* ========== 遮罩层 ========== */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 10, 5, 0.65);
+  backdrop-filter: blur(4px);
+  animation: settingsFadeIn 0.3s ease;
+}
+
+@keyframes settingsFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ========== 弹窗主体 ========== */
+.settings-modal {
+  position: relative;
+  width: min(420px, 85vw);
+  background: linear-gradient(180deg, #faf6ed 0%, #f3ebd8 100%);
+  border: 2px solid #c9a87c;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 40px rgba(60, 30, 10, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: settingsSlideUp 0.35s ease;
+}
+
+@keyframes settingsSlideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 关闭按钮 ========== */
+.settings-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  padding: 4px 16px;
+  border: 1px solid #c9a87c;
+  border-radius: 4px;
+  background: rgba(250, 246, 237, 0.9);
+  color: #8b4530;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.settings-close:hover {
+  background: #8b4530;
+  color: #fff;
+  border-color: #8b4530;
+}
+
+/* ========== 内容区 ========== */
+.settings-body {
+  padding: 2rem 2rem 2.5rem;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  color: #3a2a1a;
+}
+
+.settings-body h2 {
+  font-size: 1.5rem;
+  color: #5a3020;
+  margin: 0 0 1.2em;
+  text-align: center;
+  letter-spacing: 0.25em;
+}
+
+.settings-body h3 {
+  font-size: 1.1rem;
+  color: #8b4530;
+  margin: 0 0 0.8em;
+  letter-spacing: 0.15em;
+  text-align: center;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid rgba(201, 168, 124, 0.4);
+}
+
+/* ========== 分区 ========== */
+.settings-section {
+  margin-bottom: 1.8em;
+}
+
+/* ========== 行 ========== */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6em 0;
+  gap: 1em;
+}
+
+.setting-label {
+  font-size: 1rem;
+  color: #4a3020;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ========== 滑动条 ========== */
+.slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.setting-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #d4b896, #a85c42);
+  outline: none;
+  cursor: pointer;
+}
+
+.setting-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8b4530;
+  border: 2px solid #faf6ed;
+  box-shadow: 0 1px 4px rgba(60, 30, 10, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.setting-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.setting-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8b4530;
+  border: 2px solid #faf6ed;
+  box-shadow: 0 1px 4px rgba(60, 30, 10, 0.3);
+  cursor: pointer;
+}
+
+.slider-val {
+  font-size: 0.9rem;
+  color: #8b4530;
+  min-width: 2em;
+  text-align: right;
+}
+
+/* ========== 速度选择按钮 ========== */
+.speed-options {
+  display: flex;
+  gap: 0.4em;
+}
+
+.speed-btn {
+  padding: 0.35em 1.2em;
+  border: 1px solid #c9a87c;
+  border-radius: 4px;
+  background: rgba(250, 246, 237, 0.8);
+  color: #8b4530;
+  font-family: inherit;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.speed-btn:hover {
+  background: rgba(201, 168, 124, 0.2);
+}
+
+.speed-btn.active {
+  background: #8b4530;
+  color: #faf6ed;
+  border-color: #8b4530;
+}
+
+

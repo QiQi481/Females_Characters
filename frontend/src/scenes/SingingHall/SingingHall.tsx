@@ -14,22 +14,26 @@ type SingingHallProps = {
   isDictionaryOpen: boolean
   openDictionary: (puzzle?: DictionaryPuzzle) => void
   unlockEntry: (entryId: DictionaryEntry['id']) => void
+  onReturnToMenu: () => void
 }
 
 function SingingHall({
   isDictionaryOpen,
   openDictionary,
   unlockEntry,
+  onReturnToMenu,
 }: SingingHallProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const openDictionaryRef = useRef(openDictionary)
   const unlockEntryRef = useRef(unlockEntry)
+  const returnToMenuRef = useRef(onReturnToMenu)
 
   useEffect(() => {
     openDictionaryRef.current = openDictionary
     unlockEntryRef.current = unlockEntry
-  }, [openDictionary, unlockEntry])
+    returnToMenuRef.current = onReturnToMenu
+  }, [onReturnToMenu, openDictionary, unlockEntry])
 
   useEffect(() => {
     const container = containerRef.current
@@ -38,6 +42,7 @@ function SingingHall({
     const dictionaryBridge: GlobalDictionaryBridge = {
       openDictionary: (puzzle) => openDictionaryRef.current(puzzle),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
+      returnToMenu: () => returnToMenuRef.current(),
     }
     const game = new Phaser.Game(
       createSingingHallGameConfig(container, dictionaryBridge),

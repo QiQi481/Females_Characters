@@ -235,7 +235,7 @@ export const EMBROIDERY_INTERACTIONS: EmbroideryInteraction[] = [
         text: [
           '白日人多，有些话不好写。',
           '到了夜里，只剩这一盏{{nushu}}。',
-          '她们就在灯前绣，也在灯前读。',
+          '她们便坐下来，一边绣，一边轻声读。',
         ].join('\n'),
         nushuTextureKeys: ['embroidery_nushu_deng'],
       },

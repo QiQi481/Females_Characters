@@ -1,0 +1,68 @@
+.titlecard {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 复用主菜单背景 */
+.titlecard-bg {
+  position: absolute;
+  inset: 0;
+  background: url('/assets/main-menu/main_menu_bg.png') center/cover no-repeat;
+  filter: brightness(0.55);
+}
+
+.titlecard-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1.2s ease, transform 1s ease;
+}
+
+.titlecard-content.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.titlecard-title {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  font-weight: 400;
+  color: #faf6ed;
+  letter-spacing: 0.3em;
+  margin: 0 0 0.5em;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(200, 160, 100, 0.3);
+}
+
+.titlecard-subtitle {
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  color: rgba(250, 246, 237, 0.85);
+  letter-spacing: 0.25em;
+  margin: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.titlecard-hint {
+  display: inline-block;
+  margin-top: 3em;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: 0.95rem;
+  color: rgba(250, 246, 237, 0.55);
+  letter-spacing: 0.2em;
+  animation: hintPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.85; }
+}

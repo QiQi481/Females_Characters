@@ -1,0 +1,128 @@
+.prologue {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  color: #f7e8ca;
+}
+
+.prologue-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #e8dcc4;
+  background-image: url('/assets/main-menu/main_menu_bg.png');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.prologue-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(32, 20, 16, 0.02) 0%,
+      rgba(32, 20, 16, 0.04) 48%,
+      rgba(32, 20, 16, 0.24) 100%
+    );
+  pointer-events: none;
+}
+
+.prologue-dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: 25px;
+  z-index: 2;
+  width: min(88vw, 1500px);
+  height: 300px;
+  padding: 0;
+  color: #f1f1ee;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.prologue-dialogue::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/assets/ui/dialogue-box.png');
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.prologue-dialogue-text {
+  position: absolute;
+  left: calc(50% - 390px);
+  top: 91px;
+  width: 790px;
+  margin: 0;
+  color: #f1f1ee;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 29px;
+  line-height: 48px;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.prologue-controls-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  z-index: 3;
+  color: #4d3b34;
+  background-color: rgba(244, 226, 191, 0.82);
+  padding: 7px 14px;
+  font-size: 22px;
+  line-height: normal;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .prologue-dialogue {
+    width: 94vw;
+  }
+
+  .prologue-dialogue-text {
+    left: 12%;
+    width: 76%;
+  }
+}
+
+@media (max-width: 560px) {
+  .prologue-dialogue-text {
+    top: 82px;
+    font-size: 22px;
+    line-height: 40px;
+  }
+
+  .prologue-controls-hint {
+    font-size: 16px;
+  }
+}
+
+@media (max-height: 560px) {
+  .prologue-dialogue {
+    bottom: 16px;
+    height: 240px;
+  }
+
+  .prologue-dialogue-text {
+    top: 72px;
+    font-size: 24px;
+    line-height: 40px;
+  }
+
+  .prologue-controls-hint {
+    bottom: 15px;
+  }
+}

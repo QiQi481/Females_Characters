@@ -48,9 +48,8 @@ const CULTURE_PREVIEW_MAX_IMAGE_HEIGHT_RATIO = 0.72
 const CULTURE_PREVIEW_IMAGE_OFFSET_X = -90
 const CULTURE_PREVIEW_IMAGE_OFFSET_Y = 0
 const CULTURE_PREVIEW_TITLE_BODY_GAP = 42
-const DIALOGUE_NPC_HEIGHT_RATIO = 0.86
-const DIALOGUE_NPC_BOTTOM_OFFSET = 110
 const PLAYER_START_POSITION = { x: 400, y: 400 } as const
+const EMBROIDERY_INTRO_SEEN_FLAG = 'embroideryIntroSeen'
 const EMBROIDERY_ROOM_COMPLETION_FLAG = 'embroideryRoomCompleted'
 const EMBROIDERY_YAN_RESOLVED_FLAG = 'embroideryYanResolved'
 const PRE_FINAL_CLUE_IDS = [
@@ -65,6 +64,11 @@ const MAIN_CLUE_IDS = [
   ...PRE_FINAL_CLUE_IDS,
   FINAL_YAN_CLUE_ID,
 ] as const
+const NUSHU_INTERACTION_LABEL_IDS = new Set([
+  'embroidery_lamp',
+  'embroidery_red_makeup',
+  'embroidery_sewing_basket',
+])
 const INTRO_DIALOGUE_LINES = [
   '这屋里的东西，都是要被带走的。',
   '帕子、针线、灯下写过的话，都不是摆设。',
@@ -100,7 +104,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private keyTab!: Phaser.Input.Keyboard.Key
 
   private interactionSprites = new Map<string, Phaser.GameObjects.Image>()
-  private interactionLabels = new Map<string, Phaser.GameObjects.Text>()
+  private interactionLabels = new Map<string, Phaser.GameObjects.Container>()
   private interactionBaseScales = new Map<
     string,
     { scaleX: number; scaleY: number }
@@ -113,6 +117,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private clueProgressText!: Phaser.GameObjects.Text
   private controlsText!: Phaser.GameObjects.Text
   private dictionaryButton!: Phaser.GameObjects.Image
+  private dictionaryButtonLabel!: Phaser.GameObjects.Text
   private toastText!: Phaser.GameObjects.Text
   private toastGlyphContainer!: Phaser.GameObjects.Container
   private toastGlyphBackground!: Phaser.GameObjects.Rectangle
@@ -236,7 +241,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.bindKeys()
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this)
-    this.startIntroDialogue()
+    this.initializeIntroDialogue()
   }
 
   update(): void {
@@ -337,23 +342,89 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
         }),
       )
 
-      const label = this.add.text(
-        interaction.x,
+      const label = this.createInteractionLabel(
+        interaction,
         interaction.y + image.displayHeight / 2 - 16,
-        interaction.title,
-        {
-          fontSize: '28px',
-          color: '#6f2926',
-          backgroundColor: 'rgba(244, 226, 191, 0.88)',
-          padding: { x: 12, y: 6 },
-          fontFamily: '"SimSun", "Microsoft YaHei", serif',
-        },
       )
-      label.setOrigin(0.5)
-      label.setDepth(9)
       label.setVisible(false)
       this.interactionLabels.set(interaction.id, label)
     })
+  }
+
+  private createInteractionLabel(
+    interaction: EmbroideryInteraction,
+    y: number,
+  ): Phaser.GameObjects.Container {
+    if (
+      NUSHU_INTERACTION_LABEL_IDS.has(interaction.id) &&
+      interaction.unlock
+    ) {
+      return this.createNushuInteractionLabel(
+        interaction.x,
+        y,
+        interaction.unlock.nushuTextureKeys,
+      )
+    }
+
+    const text = this.add.text(0, 0, interaction.title, {
+      fontSize: '28px',
+      color: '#6f2926',
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
+    })
+    text.setOrigin(0.5)
+
+    const background = this.add.rectangle(
+      0,
+      0,
+      text.width + 24,
+      text.height + 12,
+      0xf4e2bf,
+      0.88,
+    )
+    background.setStrokeStyle(1, 0x9b5a38, 0.36)
+
+    const label = this.add.container(interaction.x, y, [background, text])
+    label.setDepth(9)
+    return label
+  }
+
+  private createNushuInteractionLabel(
+    x: number,
+    y: number,
+    textureKeys: readonly string[],
+  ): Phaser.GameObjects.Container {
+    const glyphHeight = 63
+    const glyphWidth = textureKeys.length > 1 ? 42 : 48
+    const gap = textureKeys.length > 1 ? -10 : 0
+    const contentWidth =
+      textureKeys.length * glyphWidth +
+      Math.max(0, textureKeys.length - 1) * gap
+    const background = this.add.rectangle(
+      0,
+      0,
+      68,
+      58,
+      0xf4e2bf,
+      0.9,
+    )
+    background.setStrokeStyle(1, 0x9b5a38, 0.38)
+
+    const label = this.add.container(x, y, [background])
+    const startX = -contentWidth / 2 + glyphWidth / 2
+
+    textureKeys.forEach((textureKey, index) => {
+      const glyph = this.add.image(
+        startX + index * (glyphWidth + gap),
+        0,
+        textureKey,
+      )
+      glyph.setDisplaySize(glyphWidth, glyphHeight)
+      glyph.setBlendMode(Phaser.BlendModes.MULTIPLY)
+      label.add(glyph)
+    })
+
+    label.setDepth(9)
+    return label
   }
 
   private setIntroInteractionVisibility(visible: boolean): void {
@@ -420,6 +491,19 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
         this.dictionaryButton.setDisplaySize(110, 85),
       )
 
+    this.dictionaryButtonLabel = this.add.text(width / 2, 88, '词典', {
+      fontSize: '18px',
+      color: '#6f2926',
+      backgroundColor: 'rgba(244, 226, 191, 0.82)',
+      padding: { x: 9, y: 3 },
+      fontFamily: '"SimSun", "Microsoft YaHei", serif',
+    })
+    this.dictionaryButtonLabel
+      .setOrigin(0.5, 0)
+      .setDepth(61)
+      .setScrollFactor(0)
+      .setVisible(false)
+
     this.clueProgressText = this.add.text(
       width - 24,
       24,
@@ -446,6 +530,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
         color: '#4d3b34',
         backgroundColor: 'rgba(244, 226, 191, 0.82)',
         padding: { x: 14, y: 7 },
+        fontFamily: '"SimSun", "Microsoft YaHei", serif',
       },
     )
     this.controlsText
@@ -1134,6 +1219,22 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     )
   }
 
+  private initializeIntroDialogue(): void {
+    if (this.saveSystem.isSceneCompleted(EMBROIDERY_INTRO_SEEN_FLAG)) {
+      this.introDialogueState = 'complete'
+      this.dialogueOpen = false
+      this.npcDialogueMode = 'none'
+      this.dialogueContainer.setVisible(false)
+      this.setIntroInteractionVisibility(true)
+      this.dictionaryButton.setVisible(true)
+      this.dictionaryButtonLabel.setVisible(true)
+      this.showExplorationControls()
+      return
+    }
+
+    this.startIntroDialogue()
+  }
+
   private closePreview(): void {
     this.activePreview = null
     this.culturePreviewTextVisible = false
@@ -1163,12 +1264,14 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     if (this.introDialogueState === 'complete') return
 
     this.introDialogueState = 'complete'
+    this.saveSystem.markSceneCompleted(EMBROIDERY_INTRO_SEEN_FLAG)
     this.dialogueOpen = false
     this.npcDialogueMode = 'none'
     this.dialogueContainer.setVisible(false)
     this.restoreNpcAfterDialogue()
     this.setIntroInteractionVisibility(true)
     this.dictionaryButton.setVisible(true)
+    this.dictionaryButtonLabel.setVisible(true)
     this.showExplorationControls()
   }
 
@@ -1683,6 +1786,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private handleResize(gameSize: Phaser.Structs.Size): void {
     const { width, height } = gameSize
     this.dictionaryButton.setPosition(width / 2, 18)
+    this.dictionaryButtonLabel.setPosition(width / 2, 88)
     this.clueProgressText.setPosition(width - 24, 24)
     this.controlsText.setPosition(width / 2, height - 24)
     this.interactHint.setPosition(width / 2, height - 105)
