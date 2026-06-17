@@ -142,6 +142,9 @@ export class BootScene extends Phaser.Scene {
     // ========== 背景音乐 ==========
     this.load.audio('singing_bgm', '/audio/singing_bgm.mp3');
 
+    // ========== 交互音效 ==========
+    this.load.audio('bell_click', '/audio/nushu_ui_folk_bell_click_under1s.wav');
+
     // ========== 用图形生成简单贴图（不需要外部资源） ==========
     // 玩家 - 蓝色圆形
     this.createCircleTexture('player', 16, 0x4a90d9);

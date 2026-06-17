@@ -70,7 +70,7 @@ const GLOBAL_DICTIONARY_PUZZLES: Record<
     puzzleId: 'singing-hall-journey',
     activeEntryId: 'yuanxing',
     contextSentence: '歌辞随女子离开熟悉之地，也被带往更远的地方。',
-    localEntryIds: ['song_sheng', 'song_ji'],
+    localEntryIds: [],
   },
 }
 
@@ -974,6 +974,9 @@ export class MainScene extends Phaser.Scene {
 
   private handleInteract(): void {
     if (!this.canInteract) return;
+
+    // 播放交互音效
+    this.sound.play('bell_click');
 
     // 记录找到的线索
     this.markClueFound(this.currentTarget);
@@ -2271,11 +2274,11 @@ export class MainScene extends Phaser.Scene {
     const keyHandler = (e: KeyboardEvent) => {
       if (!this.bimoPreviewOpen) return;
       if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') {
-        this.closeBimoPreview();
+        this.closeBimoPreview(false);
       } else if (this.bimoPreviewPhase1 && (e.key === 'e' || e.key === 'E')) {
         this.enterBimoPhase2();
       } else if (!this.bimoPreviewPhase1 && (e.key === 'e' || e.key === 'E')) {
-        this.closeBimoPreview();
+        this.closeBimoPreview(true);
       }
     };
     window.addEventListener('keydown', keyHandler);
@@ -2310,12 +2313,12 @@ export class MainScene extends Phaser.Scene {
     const overlay = this.children.getByName('bimo_overlay') as Phaser.GameObjects.Rectangle;
     if (overlay) {
       overlay.removeAllListeners('pointerdown');
-      overlay.on('pointerdown', () => this.closeBimoPreview());
+      overlay.on('pointerdown', () => this.closeBimoPreview(true));
     }
   }
 
   /** 关闭笔墨大图预览 */
-  private closeBimoPreview(): void {
+  private closeBimoPreview(completed: boolean = false): void {
     if (!this.bimoPreviewOpen) return;
     this.bimoPreviewOpen = false;
 
@@ -2332,6 +2335,22 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.scene.resume();
+
+    if (completed) {
+      // 解锁 song_ji（记）词条
+      const entry = SONG_ENTRIES.find((e) => e.id === 'song_ji');
+      if (entry && !this.saveSystem.getEntry('song_ji')?.unlocked) {
+        this.dictSystem.unlock({ ...entry });
+      }
+      // 显示新字形提示
+      const textureKeys = LOCAL_ENTRY_NUSHU_TEXTURE_KEYS.song_ji;
+      if (textureKeys?.length) {
+        this.showNewGlyphToast(textureKeys);
+      } else {
+        this.showToast('词条"记"已解锁');
+      }
+      this.checkAllMatched();
+    }
   }
 
   /** 解锁"声"词条 */
