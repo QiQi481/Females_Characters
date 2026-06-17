@@ -66,14 +66,14 @@ const MATCH_LEFT_ITEMS  = ['丝带笔触', '燕子', '冻僵的手', '读音']
 const MATCH_RIGHT_ITEMS = ['柳条', '温暖的风', '诗', '雪']
 
 /** Q3 匹配游戏 — 下方分类盒 */
-const MATCH_CATEGORIES = ['形与景', '触与候', '音与字']
+const MATCH_CATEGORIES = ['燕子', '老伯', '酒坛']
 
 /** Q3 匹配游戏 — 每个词条放置后阿禾的补充对话 */
 const MATCH_COMMENTARY: Record<string, string> = {
   '柳条': '柳枝',
   '温暖的风': '温暖的风',
   '诗': '料X□□XX醒',
-  '雪': '那天下雪？不对……',
+  '雪': '那天下雪...',
   '丝带笔触': '先生写这个字时，笔画像丝带',
   '燕子': '窗外有燕子叫',
   '冻僵的手': '我手冻僵了，写不稳',
@@ -82,14 +82,14 @@ const MATCH_COMMENTARY: Record<string, string> = {
 
 /** Q3 匹配游戏 — 每个词条的正确分类 */
 const MATCH_CORRECT: Record<string, string> = {
-  '丝带笔触': '形与景',
-  '燕子': '形与景',
-  '柳条': '形与景',
-  '冻僵的手': '触与候',
-  '温暖的风': '触与候',
-  '雪': '触与候',
-  '读音': '音与字',
-  '诗': '音与字',
+  '丝带笔触': '燕子',
+  '燕子': '燕子',
+  '柳条': '燕子',
+  '冻僵的手': '老伯',
+  '温暖的风': '老伯',
+  '雪': '老伯',
+  '读音': '酒坛',
+  '诗': '酒坛',
 }
 
 /** Q3 匹配游戏 — 全部分类词条 */
@@ -97,15 +97,15 @@ const MATCH_ALL_ITEMS = [...MATCH_LEFT_ITEMS, ...MATCH_RIGHT_ITEMS]
 
 /** Q3 匹配游戏 — 分类完成时阿禾的补充对话 */
 const CATEGORY_COMPLETION: Record<string, { correct: string[]; commentary: string }> = {
-  '形与景': {
+  '燕子': {
     correct: ['丝带笔触', '燕子', '柳条'],
     commentary: '丝带飘起来的样子……像柳条，窗外的燕子叽叽喳喳',
   },
-  '触与候': {
+  '老伯': {
     correct: ['冻僵的手', '温暖的风', '雪'],
     commentary: '那天好像下雪？我的手冻僵了写不稳，先生说它是微冷的',
   },
-  '音与字': {
+  '酒坛': {
     correct: ['读音', '诗'],
     commentary: '我填错过很多次……',
   },
@@ -205,8 +205,6 @@ function Chapter1({
   const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
   const [matchQ3Transition, setMatchQ3Transition] = useState(false) // Q3 全部正确 → 过渡对话"去女红房"
   const [showQ3Hint, setShowQ3Hint] = useState(false) // Q3 前旁白提示
-  const [matchAutoClassified, setMatchAutoClassified] = useState<Set<string>>(new Set()) // 探索场景时自动完成的分类
-  const [pendingQ3AutoClassify, setPendingQ3AutoClassify] = useState<string | null>(null) // 关闭线索弹窗后自动归类到哪个分类
   // 获得新字形提示
   const [glyphToast, setGlyphToast] = useState<string | null>(null)
   const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -415,7 +413,9 @@ function Chapter1({
         if (matchActive && matchStep === 1) { closeMatchGame(); return }
         if (showBoundaryInfo) { setShowBoundaryInfo(false); return }
         if (showLetterPopup) { setShowLetterPopup(false); return }
-        if (showSwallowInfo || showSnowInfo || showWinejarInfo) { closeClueInfoAndCheckQ3(); return }
+        if (showSwallowInfo) { setShowSwallowInfo(false); return }
+        if (showSnowInfo) { setShowSnowInfo(false); return }
+        if (showWinejarInfo) { setShowWinejarInfo(false); return }
         if (showBookPopup) { setShowBookPopup(false); return }
 
         return
@@ -537,13 +537,10 @@ function Chapter1({
 
           // 优先级：酒坛 > 雪人 > 燕子 > 掉落的信件 > 信箱 > 界碑
           if (isNear(winejarRef.current)) {
-            if (matchEverStarted) setPendingQ3AutoClassify('音与字')
             setShowWinejarInfo(true)
           } else if (isNear(snowRef.current)) {
-            if (matchEverStarted) setPendingQ3AutoClassify('触与候')
             setShowSnowInfo(true)
           } else if (isNear(swallowRef.current)) {
-            if (matchEverStarted) setPendingQ3AutoClassify('形与景')
             setShowSwallowInfo(true)
           } else if (isNear(droppedLetterRef.current)) {
             setShowLetterPopup(true)
@@ -607,7 +604,6 @@ function Chapter1({
     matchQ3Transition,
     showQ3Hint,
     matchEverStarted,
-    pendingQ3AutoClassify,
   ])
 
   // 恢复存档进度：快进到对应阶段
@@ -777,7 +773,6 @@ function Chapter1({
         setMatchEverStarted(true)
         setMatchPlacements({})
         setMatchCategoryDone(new Set())
-        setMatchAutoClassified(new Set())
         setMatchActive(true)
         setMatchStep(0)
       }
@@ -803,38 +798,6 @@ function Chapter1({
     setShowQ3Hint(false)
   }
 
-  /** 探索场景中与燕子/雪人/酒坛交互 → 自动分类到 Q3 匹配游戏 */
-  const handleQ3AutoClassify = (category: string) => {
-    if (matchAutoClassified.has(category)) return
-    if (matchFinalStage > 0 || matchQ3Transition) return // Q4 或过渡中不再自动分类
-
-    const { correct } = CATEGORY_COMPLETION[category]
-    setMatchPlacements((prev) => {
-      const next = { ...prev }
-      correct.forEach((item) => { next[item] = category })
-      return next
-    })
-    setMatchAutoClassified((prev) => new Set(prev).add(category))
-    setMatchCategoryDone((prev) => new Set(prev).add(category)) // 防止 checkMatchProgress 重复弹出
-    setMatchActive(true)
-    setMatchStep(1)
-    setMatchCommentary(null)
-    setMatchAllWrong(false)
-    setMatchCatCommentary(category)
-  }
-
-  /** 关闭线索信息弹窗 → 如果有待处理的 Q3 自动归类则触发 */
-  const closeClueInfoAndCheckQ3 = () => {
-    setShowSwallowInfo(false)
-    setShowSnowInfo(false)
-    setShowWinejarInfo(false)
-    const pending = pendingQ3AutoClassify
-    if (pending) {
-      setPendingQ3AutoClassify(null)
-      handleQ3AutoClassify(pending)
-    }
-  }
-
   // Q3 匹配游戏 — 阿禾说完话 → 展示匹配界面
   const advanceMatchStep = () => {
     if (matchStep === 0) {
@@ -848,7 +811,6 @@ function Chapter1({
       setMatchFinalStage(0)
       setMatchFinalFeedback(null)
       setMatchQ3Transition(false)
-      setMatchAutoClassified(new Set())
       setMatchStep(1)
       // 匹配界面展示后，阿禾给出探索提示
       setShowQ3Hint(true)
@@ -962,7 +924,6 @@ function Chapter1({
     setMatchCommentary(null)
     setMatchCatCommentary(null)
     setMatchQ3Transition(false)
-    setMatchAutoClassified(new Set())
   }
 
   // Q3 过渡对话 — 关闭并完成章节
@@ -1113,9 +1074,6 @@ function Chapter1({
             className={`chapter1-swallow${isNearSwallow ? ' swallow-near' : ''}`}
             draggable={false}
             onClick={() => {
-              if (matchEverStarted) {
-                setPendingQ3AutoClassify('形与景')
-              }
               setShowSwallowInfo(true)
             }}
           />
@@ -1128,9 +1086,6 @@ function Chapter1({
             className={`chapter1-snow${isNearSnow ? ' snow-near' : ''}`}
             draggable={false}
             onClick={() => {
-              if (matchEverStarted) {
-                setPendingQ3AutoClassify('触与候')
-              }
               setShowSnowInfo(true)
             }}
           />
@@ -1143,9 +1098,6 @@ function Chapter1({
             className={`chapter1-winejar${isNearWinejar ? ' winejar-near' : ''}`}
             draggable={false}
             onClick={() => {
-              if (matchEverStarted) {
-                setPendingQ3AutoClassify('音与字')
-              }
               setShowWinejarInfo(true)
             }}
           />
@@ -1283,7 +1235,7 @@ function Chapter1({
 
       {/* 燕子信息弹窗 */}
       {showSwallowInfo && (
-        <div className="dialog-overlay" onClick={closeClueInfoAndCheckQ3}>
+        <div className="dialog-overlay" onClick={() => setShowSwallowInfo(false)}>
           <img
             src="/assets/FirstLevel/AHe.png"
             alt="阿禾"
@@ -1303,7 +1255,7 @@ function Chapter1({
 
       {/* 雪人信息弹窗 */}
       {showSnowInfo && (
-        <div className="dialog-overlay" onClick={closeClueInfoAndCheckQ3}>
+        <div className="dialog-overlay" onClick={() => setShowSnowInfo(false)}>
           <div className="dialog-box">
             <div className="dialog-name-row">
               <span className="dialog-speaker">老伯</span>
@@ -1318,7 +1270,7 @@ function Chapter1({
 
       {/* 酒坛信息弹窗 */}
       {showWinejarInfo && (
-        <div className="dialog-overlay" onClick={closeClueInfoAndCheckQ3}>
+        <div className="dialog-overlay" onClick={() => setShowWinejarInfo(false)}>
           <img
             src="/assets/FirstLevel/AHe.png"
             alt="阿禾"
