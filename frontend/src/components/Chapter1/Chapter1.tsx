@@ -567,6 +567,21 @@ function Chapter1({
           closeLetterPopup()
           return
         }
+        if (showSwallowInfo) {
+          event.preventDefault()
+          setShowSwallowInfo(false)
+          return
+        }
+        if (showSnowInfo) {
+          event.preventDefault()
+          setShowSnowInfo(false)
+          return
+        }
+        if (showWinejarInfo) {
+          event.preventDefault()
+          setShowWinejarInfo(false)
+          return
+        }
         if (showLabelInfo) {
           event.preventDefault()
           advanceLabelDialogue()
@@ -1303,14 +1318,16 @@ function Chapter1({
             draggable={false}
           />
 
-          {/* 雪人 — 仅 E 键交互 */}
-          <img
-            ref={snowRef}
-            src="/assets/FirstLevel/daniang.png"
-            alt="大娘"
-            className={`chapter1-snow${nearestInteractionId === 'snow' ? ' snow-near' : ''}`}
-            draggable={false}
-          />
+          {/* 雪人 — 仅 E 键交互，对话时隐藏 */}
+          {!showSnowInfo && (
+            <img
+              ref={snowRef}
+              src="/assets/FirstLevel/daniang.png"
+              alt="大娘"
+              className={`chapter1-snow${nearestInteractionId === 'snow' ? ' snow-near' : ''}`}
+              draggable={false}
+            />
+          )}
 
           {/* 酒坛 — 仅 E 键交互 */}
           <img
