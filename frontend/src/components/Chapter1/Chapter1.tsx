@@ -19,6 +19,7 @@ type Chapter1InteractionId =
   | 'swallow'
   | 'snow'
   | 'winejar'
+  | 'label'
 
 const CHAPTER1_INTERACTION_LABELS: Record<Chapter1InteractionId, string> = {
   boundary: '石碑',
@@ -27,6 +28,7 @@ const CHAPTER1_INTERACTION_LABELS: Record<Chapter1InteractionId, string> = {
   swallow: '燕子',
   snow: '大娘',
   winejar: '酒坛',
+  label: '标签',
 }
 
 /** 开场旁白，逐句展示 */
@@ -160,6 +162,7 @@ function Chapter1({
   const [imgReady, setImgReady] = useState(false)
   const [showBoundaryInfo, setShowBoundaryInfo] = useState(false)
   const [letterDropped, setLetterDropped] = useState(false)
+  const [letterDropAnimDone, setLetterDropAnimDone] = useState(false)
   const [showLetterPopup, setShowLetterPopup] = useState(false)
   // 玩家靠近可交互物体时，只高亮最近的一个目标
   const [nearestInteractionId, setNearestInteractionId] = useState<Chapter1InteractionId | null>(null)
@@ -167,12 +170,14 @@ function Chapter1({
   const [showSwallowInfo, setShowSwallowInfo] = useState(false)
   const [showSnowInfo, setShowSnowInfo] = useState(false)
   const [showWinejarInfo, setShowWinejarInfo] = useState(false)
+  const [showLabelInfo, setShowLabelInfo] = useState(false)
   const boundaryRef = useRef<HTMLImageElement>(null)
   const mailboxRef = useRef<HTMLImageElement>(null)
   const droppedLetterRef = useRef<HTMLDivElement>(null)
   const swallowRef = useRef<HTMLImageElement>(null)
   const snowRef = useRef<HTMLImageElement>(null)
   const winejarRef = useRef<HTMLImageElement>(null)
+  const labelRef = useRef<HTMLImageElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
   const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
@@ -233,6 +238,7 @@ function Chapter1({
       { id: 'letter', el: droppedLetterRef.current, enabled: letterDropped },
       { id: 'mailbox', el: mailboxRef.current, enabled: !letterDropped },
       { id: 'boundary', el: boundaryRef.current, enabled: true },
+      { id: 'label', el: labelRef.current, enabled: true },
     ]
 
     let nearestId: Chapter1InteractionId | null = null
@@ -382,7 +388,7 @@ function Chapter1({
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, tutorialPhase, sceneW, sceneH, getNearestInteractionId])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showLabelInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, tutorialPhase, sceneW, sceneH, getNearestInteractionId])
 
   // 图片加载后把初始位置对齐 Phaser 场景的出生点
   useEffect(() => {
@@ -583,7 +589,7 @@ function Chapter1({
         }
 
         // 4. 自由探索阶段 — 触发最近的可交互物体
-        if (narration2Done && !showBoundaryInfo && !showLetterPopup) {
+        if (narration2Done && !showBoundaryInfo && !showLetterPopup && !showLabelInfo) {
           const screenDx = playerWorldRef.current.x - cameraRef.current.x
           const screenDy = playerWorldRef.current.y - cameraRef.current.y
           const playerX = vpRef.current.w / 2 + screenDx
@@ -603,8 +609,11 @@ function Chapter1({
             setShowLetterPopup(true)
           } else if (nearestId === 'mailbox') {
             setLetterDropped(true)
+            setLetterDropAnimDone(false) // 触发下落动画
           } else if (nearestId === 'boundary') {
             setShowBoundaryInfo(true)
+          } else if (nearestId === 'label') {
+            setShowLabelInfo(true)
           }
         }
         return
@@ -1218,9 +1227,22 @@ function Chapter1({
             draggable={false}
           />
 
+          {/* 标签 — 仅 E 键交互 */}
+          <img
+            ref={labelRef}
+            src="/assets/FirstLevel/label.png"
+            alt="标签"
+            className={`chapter1-label${nearestInteractionId === 'label' ? ' label-near' : ''}`}
+            draggable={false}
+          />
+
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
-            <div ref={droppedLetterRef} className={`dropped-letter${nearestInteractionId === 'letter' ? ' dropped-letter-near' : ''}`}>
+            <div
+              ref={droppedLetterRef}
+              className={`dropped-letter${!letterDropAnimDone ? ' letter-drop-anim' : ''}${nearestInteractionId === 'letter' ? ' dropped-letter-near' : ''}`}
+              onAnimationEnd={() => setLetterDropAnimDone(true)}
+            >
               <img src="/assets/FirstLevel/envelope.png" alt="信件" className="dropped-letter-img" />
             </div>
           )}
@@ -1368,6 +1390,13 @@ function Chapter1({
         speaker: '阿禾',
         text: '这是一坛纯酒，上面似乎还有一些字，料峭X风吹酒醒，看起来像是一首诗。',
         onClick: () => setShowWinejarInfo(false),
+      })}
+
+      {/* 标签信息弹窗 */}
+      {showLabelInfo && renderCharacterDialogue({
+        speaker: '阿禾',
+        text: '这个标签上写着一些字，似乎与女书有关。',
+        onClick: () => setShowLabelInfo(false),
       })}
 
       {/* 石碑信息弹窗 */}

@@ -56,7 +56,6 @@
   bottom: 26%;
   width: 5%;
   height: auto;
-  cursor: pointer;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
   animation: boundaryBreath 2.5s ease-in-out infinite;
@@ -80,7 +79,6 @@
   bottom: 18%;
   width: 6%;
   height: auto;
-  cursor: pointer;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
   animation: mailboxBreath 2.8s ease-in-out infinite;
@@ -111,7 +109,6 @@
   top: 13%;
   width: 10%;
   height: auto;
-  cursor: pointer;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
   animation: swallowBreath 3s ease-in-out infinite;
@@ -136,7 +133,6 @@
   top: 36%;
   width: 14%;
   height: auto;
-  cursor: pointer;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
   animation: snowBreath 3s ease-in-out infinite;
@@ -160,7 +156,6 @@
   top: 67%;
   width: 14%;
   height: auto;
-  cursor: pointer;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
   animation: winejarBreath 3s ease-in-out infinite;
@@ -177,6 +172,29 @@
   50% { transform: translateY(-5px); }
 }
 
+/* ========== 标签装饰 ========== */
+.chapter1-label {
+  position: absolute;
+  left: 40%;
+  top: 20%;
+  width: 2%;
+  height: auto;
+  opacity: 0.92;
+  transition: opacity 160ms ease, transform 160ms ease;
+  animation: labelBreath 2.8s ease-in-out infinite;
+}
+
+.chapter1-label.label-near {
+  animation: none;
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+@keyframes labelBreath {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 /* ========== 掉落信件 ========== */
 .dropped-letter {
   position: absolute;
@@ -185,14 +203,16 @@
   width: 5%;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  animation: letterDrop 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-  cursor: pointer;
   pointer-events: auto;
   opacity: 0.92;
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.dropped-letter.dropped-letter-near {
+.dropped-letter.letter-drop-anim {
+  animation: letterDrop 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.dropped-letter.dropped-letter-near:not(.letter-drop-anim) {
   opacity: 1;
   transform: scale(1.25);
 }
@@ -1314,3 +1334,5 @@
     opacity: 0;
   }
 }
+
+
