@@ -213,7 +213,7 @@ function Chapter1({
   const placedSlotCountAtStartRef = useRef(Object.keys(placedSlots).length) // 进入引导时已放置的槽位数
   // Q3 匹配游戏
   const [matchActive, setMatchActive] = useState(false)
-  const [matchStep, setMatchStep] = useState(0) // 0=阿禾说话, 1=匹配界面
+  const [matchStep, setMatchStep] = useState(0) // 0=阿禾说话, 1=阿禾提示, 2=匹配界面
   const [matchPlacements, setMatchPlacements] = useState<Record<string, string>>({})
   const [draggingItem, setDraggingItem] = useState<string | null>(null)
   const [dragOverCat, setDragOverCat] = useState<string | null>(null)
@@ -225,12 +225,11 @@ function Chapter1({
   const [matchFinalFeedback, setMatchFinalFeedback] = useState<string | null>(null) // Q4 反馈
   const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
   const [matchQ3Transition, setMatchQ3Transition] = useState(false) // Q3 全部正确 → 过渡对话"去女红房"
-  const [showQ3Hint, setShowQ3Hint] = useState(false) // Q3 前旁白提示
   // 获得新字形提示
   const [glyphToast, setGlyphToast] = useState<string | null>(null)
   const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
-  const isQuizBusy = showQ3Hint || matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
+  const isQuizBusy = matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
@@ -470,14 +469,14 @@ function Chapter1({
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
         event.preventDefault()
 
-        if (showQ3Hint) { closeQ3Hint(); return }
         if (quizFeedback !== null) { closeQuizFeedback(); return }
         if (matchQ3Transition) { closeQ3Transition(); return }
         if (matchFinalFeedback !== null) { closeQ4Feedback(); return }
         if (matchAllWrong) { closeMatchAllWrong(); return }
         if (matchCommentary !== null) { closeMatchCommentary(); return }
         if (matchCatCommentary !== null) { closeMatchCatCommentary(); return }
-        if (matchActive && matchStep === 1) { closeMatchGame(); return }
+        if (matchActive && matchStep <= 1) { advanceMatchStep(); return }
+        if (matchActive && matchStep === 2) { closeMatchGame(); return }
         if (showBoundaryInfo) { setShowBoundaryInfo(false); return }
         if (showLetterPopup) { closeLetterPopup(); return }
         if (showSwallowInfo) { setShowSwallowInfo(false); return }
@@ -492,12 +491,6 @@ function Chapter1({
       }
       // ========== E 键 — 全局推进对话/旁白/探索 ==========
       if (event.key === 'e' || event.key === 'E') {
-        // Q3 阿禾提示 → 关闭提示（匹配题保持开启）
-        if (showQ3Hint) {
-          event.preventDefault()
-          closeQ3Hint()
-          return
-        }
         // Q1/Q2：反馈（正确/错误）的 阿禾回应 → 关闭
         if (quizFeedback !== null) {
           event.preventDefault()
@@ -534,8 +527,8 @@ function Chapter1({
           closeMatchAllWrong()
           return
         }
-        // Q3 匹配：阿禾说话 → 推进到匹配界面
-        if (matchActive && matchStep === 0) {
+        // Q3 匹配：阿禾说话 / 阿禾提示 → 推进
+        if (matchActive && matchStep <= 1) {
           event.preventDefault()
           advanceMatchStep()
           return
@@ -742,7 +735,6 @@ function Chapter1({
     matchFinalStage,
     matchFinalFeedback,
     matchQ3Transition,
-    showQ3Hint,
     matchEverStarted,
     showLabelInfo,
     labelStep,
@@ -792,7 +784,7 @@ function Chapter1({
       setQuizQ1Done(true)
       setQuizQ2Done(true)
       setMatchActive(true)
-      setMatchStep(1)
+      setMatchStep(2)
     }
     // IN_Q4 / DONE 难以精确恢复，从匹配游戏开始即可
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -994,14 +986,13 @@ function Chapter1({
     setQuizChoicesOpen(true)
   }
 
-  // 关闭 Q3 阿禾提示 → 只关闭提示，保持匹配题开启
-  const closeQ3Hint = () => {
-    setShowQ3Hint(false)
-  }
-
-  // Q3 匹配游戏 — 阿禾说完话 → 展示匹配界面
+  // Q3 匹配游戏 — 阿禾说完话 → 提示 → 匹配界面
   const advanceMatchStep = () => {
     if (matchStep === 0) {
+      // 展示提示对话
+      setMatchStep(1)
+    } else if (matchStep === 1) {
+      // 展示匹配界面
       setMatchPlacements({})
       setDraggingItem(null)
       setDragOverCat(null)
@@ -1012,9 +1003,7 @@ function Chapter1({
       setMatchFinalStage(0)
       setMatchFinalFeedback(null)
       setMatchQ3Transition(false)
-      setMatchStep(1)
-      // 匹配界面展示后，阿禾给出探索提示
-      setShowQ3Hint(true)
+      setMatchStep(2)
     }
   }
 
@@ -1198,7 +1187,7 @@ function Chapter1({
   // 重新打开Q3匹配游戏（恢复之前已拖拽的词条）
   const reopenMatchGame = () => {
     setMatchActive(true)
-    setMatchStep(1)
+    setMatchStep(2)
     setDraggingItem(null)
     setDragOverCat(null)
     setMatchCommentary(null)
@@ -1698,11 +1687,11 @@ function Chapter1({
         </div>
       )}
 
-      {/* Q3 阿禾提示 — 引导玩家去探索场景（在匹配题上方） */}
-      {showQ3Hint && renderCharacterDialogue({
+      {/* Q3 阿禾提示 — 引导玩家去探索场景（匹配题之前） */}
+      {matchActive && matchStep === 1 && renderCharacterDialogue({
         speaker: '阿禾',
         text: '如果你觉得困难，周围的环境应该还有其他的线索',
-        onClick: closeQ3Hint,
+        onClick: advanceMatchStep,
         zIndex: 105,
       })}
 
@@ -1716,7 +1705,7 @@ function Chapter1({
       })}
 
       {/* Q3 匹配界面 */}
-      {matchActive && matchStep === 1 && (
+      {matchActive && matchStep === 2 && (
         <div className="match-overlay">
           <div className="match-panel">
             <button className="match-close-btn" onClick={closeMatchGame}>关闭</button>
