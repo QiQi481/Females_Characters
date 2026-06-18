@@ -1375,15 +1375,38 @@ function Chapter1({
 
 
 
-      {/* 底部操作指南 — 固定文本，与场景二对齐 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && (
+      {/* 底部操作指南 — 仅在纯自由探索时显示（无对话/弹窗/Quiz） */}
+      {narration2Done &&
+       tutorialPhase === 'done' &&
+       postQ1DialogueStep < 0 &&
+       !(guideDictDone && !guideDictDismissed) &&
+       !showBoundaryInfo &&
+       !showLetterPopup &&
+       !showSwallowInfo &&
+       !showSnowInfo &&
+       !showWinejarInfo &&
+       !showLabelInfo &&
+       !showBookPopup &&
+       !isQuizBusy && (
         <div className="chapter1-hint">
           WASD 移动 | E 交互{quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回
         </div>
       )}
 
-      {/* 线索交互提示 — 红色方框，与场景二的 interactHint 对齐 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && nearestInteractionId && (
+      {/* 线索交互提示 — 仅在纯自由探索时显示 */}
+      {narration2Done &&
+       tutorialPhase === 'done' &&
+       postQ1DialogueStep < 0 &&
+       !(guideDictDone && !guideDictDismissed) &&
+       !showBoundaryInfo &&
+       !showLetterPopup &&
+       !showSwallowInfo &&
+       !showSnowInfo &&
+       !showWinejarInfo &&
+       !showLabelInfo &&
+       !showBookPopup &&
+       !isQuizBusy &&
+       nearestInteractionId && (
         <div className="chapter1-interact-hint">
           E 交互 · {CHAPTER1_INTERACTION_LABELS[nearestInteractionId]}
         </div>
