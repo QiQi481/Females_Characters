@@ -24,6 +24,7 @@ function TitleCard({ title, subtitle, backgroundImage, onContinue }: TitleCardPr
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== 'e') return
       event.preventDefault()
+      event.stopImmediatePropagation()
       handleContinue()
     }
 
