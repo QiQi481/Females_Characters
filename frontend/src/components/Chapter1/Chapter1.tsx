@@ -461,6 +461,17 @@ function Chapter1({
     prevDictOpenRef.current = isDictionaryOpen
   }, [isDictionaryOpen, quizQ1Done, postQ1DialogueStep, placedSlots, guideDictDone])
 
+  // Tab 键捕获阶段拦截 — 教程/Q1 完成前禁止切换焦点
+  useEffect(() => {
+    const captureTab = (e: KeyboardEvent) => {
+      if (e.key === 'Tab' && (!narration2Done || tutorialPhase !== 'done' || !quizQ1Done)) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('keydown', captureTab, true) // capture phase, 最早拦截
+    return () => window.removeEventListener('keydown', captureTab, true)
+  }, [narration2Done, tutorialPhase, quizQ1Done])
+
   useEffect(() => {
     const handleHudKeyDown = (event: KeyboardEvent) => {
       if (isDictionaryOpen) return
@@ -674,13 +685,15 @@ function Chapter1({
       }
 
       // ========== 探索阶段专属按键 ==========
-      if (!narration2Done || tutorialPhase !== 'done') return
-
+      // Tab 键：教程阶段和 Q1 结束前完全禁用
       if (event.key === 'Tab') {
-        event.preventDefault()
+        event.preventDefault() // 阻止浏览器默认焦点切换
+        if (!narration2Done || tutorialPhase !== 'done' || !quizQ1Done) return // 旁白提示"按 Tab"前禁止打开字典
         openDictionary()
         return
       }
+
+      if (!narration2Done || tutorialPhase !== 'done') return
 
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
         event.preventDefault()
@@ -741,6 +754,8 @@ function Chapter1({
     postQ1DialogueStep,
     guideDictDone,
     guideDictDismissed,
+    tutorialPhase,
+    quizQ1Done,
   ])
 
   // 若已有字典放置记录（存档恢复），跳过引导对话
@@ -1354,23 +1369,25 @@ function Chapter1({
       {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && (
         <div className="chapter1-hint">
           {nearestInteractionId
-            ? `WASD 移动 | E 交互 · ${CHAPTER1_INTERACTION_LABELS[nearestInteractionId]} | Tab 词典 | Q / ESC 返回`
-            : 'WASD 移动 | Tab 词典 | Q / ESC 返回'}
+            ? `WASD 移动 | E 交互 · ${CHAPTER1_INTERACTION_LABELS[nearestInteractionId]}${quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回`
+            : `WASD 移动${quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回`}
         </div>
       )}
 
-      {/* HUD — 教程结束后进入自由探索才显示 */}
+      {/* HUD — 教程结束后进入自由探索才显示，词典按钮在 Q1 完成后才出现 */}
       {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && (
         <>
-          <button
-            className="chapter1-dictionary-btn"
-            type="button"
-            aria-label="打开词典"
-            onClick={openDictionary}
-          >
-            <img src="/assets/ui/open_book_icon.png" alt="" />
-            <span>词典</span>
-          </button>
+          {quizQ1Done && (
+            <button
+              className="chapter1-dictionary-btn"
+              type="button"
+              aria-label="打开词典"
+              onClick={openDictionary}
+            >
+              <img src="/assets/ui/open_book_icon.png" alt="" />
+              <span>词典</span>
+            </button>
+          )}
           <div className="chapter1-clue-progress">
             线索 {clueFoundCount}/3
           </div>
