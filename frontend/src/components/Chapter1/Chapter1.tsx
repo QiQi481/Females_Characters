@@ -8,7 +8,6 @@ const MOVE_SPEED = 400 // 像素/秒，与 Phaser 场景对齐
 const SCENE_SCALE = 2
 
 const SCENE_IMG = '/assets/FirstLevel/mainscene.png'
-const INTRO_SCENE_BG = '/assets/FirstLevel/jiangyong_intro_bg.png'
 const AHE_DIALOGUE_IMG = '/assets/FirstLevel/ahe-dialogue.png'
 const DANIANG_DIALOGUE_IMG = '/assets/FirstLevel/daniang.png'
 const CHAPTER1_INTERACT_DISTANCE = 150
@@ -184,6 +183,8 @@ function Chapter1({
   const [narration2Index, setNarration2Index] = useState(0)
   const [narration2Active, setNarration2Active] = useState(false)
   const [narration2Done, setNarration2Done] = useState(false)
+  // 自由探索教程（narration2 结束后自动触发）
+  const [tutorialPhase, setTutorialPhase] = useState<'none' | 'ahe-dialogue' | 'narration' | 'done'>('none')
   // Quiz 状态
   const [quizActive, setQuizActive] = useState(false)
   const [quizQuestion, setQuizQuestion] = useState(1) // 当前题目序号 1/2
@@ -311,7 +312,7 @@ function Chapter1({
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showWinejarInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done)) return
+    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showWinejarInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done) || tutorialPhase !== 'done') return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -381,7 +382,7 @@ function Chapter1({
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, sceneW, sceneH, getNearestInteractionId])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, tutorialPhase, sceneW, sceneH, getNearestInteractionId])
 
   // 图片加载后把初始位置对齐 Phaser 场景的出生点
   useEffect(() => {
@@ -422,6 +423,7 @@ function Chapter1({
     narrationDone,
     quizActive,
     quizDone,
+    tutorialPhase,
   ])
 
   useEffect(() => {
@@ -563,7 +565,20 @@ function Chapter1({
             setNarration2Index((i) => i + 1)
           } else {
             setNarration2Done(true)
+            setTutorialPhase('ahe-dialogue')
           }
+          return
+        }
+
+        // 3.5 自由探索教程 — 阿禾对话
+        if (tutorialPhase === 'ahe-dialogue') {
+          setTutorialPhase('narration')
+          return
+        }
+
+        // 3.6 自由探索教程 — 操作提示旁白
+        if (tutorialPhase === 'narration') {
+          setTutorialPhase('done')
           return
         }
 
@@ -596,7 +611,7 @@ function Chapter1({
       }
 
       // ========== 探索阶段专属按键 ==========
-      if (!narration2Done) return
+      if (!narration2Done || tutorialPhase !== 'done') return
 
       if (event.key === 'Tab') {
         event.preventDefault()
@@ -678,6 +693,7 @@ function Chapter1({
     if (resumeProgress >= ProgressStage.QUIZ) {
       setNarration2Done(true)
       setNarration2Active(false)
+      setTutorialPhase('done')
     }
     if (resumeProgress >= ProgressStage.MATCH_Q3) {
       setQuizDone(true)
@@ -730,7 +746,25 @@ function Chapter1({
       setNarration2Index((i) => i + 1)
     } else {
       setNarration2Done(true)
+      setTutorialPhase('ahe-dialogue')
     }
+  }
+
+  // 自由探索教程：narration2 结束后自动触发阿禾对话
+  useEffect(() => {
+    if (narration2Done && tutorialPhase === 'none') {
+      setTutorialPhase('ahe-dialogue')
+    }
+  }, [narration2Done, tutorialPhase])
+
+  // 教程阿禾对话点击
+  const handleTutorialAheClick = () => {
+    setTutorialPhase('narration')
+  }
+
+  // 教程旁白点击
+  const handleTutorialNarrationClick = () => {
+    setTutorialPhase('done')
   }
 
   // 关闭信件弹窗 — 首次关闭触发 Quiz，Quiz 内错误后关闭则继续流程
@@ -1193,15 +1227,9 @@ function Chapter1({
         </div>
       )}
 
-      {!narration2Done && (
-        <div
-          className="chapter1-intro-bg"
-          aria-hidden="true"
-          style={{ backgroundImage: `url(${INTRO_SCENE_BG})` }}
-        />
-      )}
 
-      {narration2Done && (
+
+      {narration2Done && tutorialPhase === 'done' && (
         <div className="chapter1-hint">
           {nearestInteractionId
             ? `WASD 移动 | E 交互 · ${CHAPTER1_INTERACTION_LABELS[nearestInteractionId]} | Tab 词典 | Q / ESC 返回`
@@ -1209,8 +1237,8 @@ function Chapter1({
         </div>
       )}
 
-      {/* HUD — 第二段旁白结束后进入自由探索才显示 */}
-      {narration2Done && (
+      {/* HUD — 教程结束后进入自由探索才显示 */}
+      {narration2Done && tutorialPhase === 'done' && (
         <>
           <button
             className="chapter1-dictionary-btn"
@@ -1279,6 +1307,25 @@ function Chapter1({
           <div className="narration-box">
             <p className="narration-line" key={narration2Index}>
               {NARRATION2_LINES[narration2Index]}
+            </p>
+            <span className="narration-click-hint">E / 点击继续</span>
+          </div>
+        </div>
+      )}
+
+      {/* 自由探索教程 — 阿禾对话 */}
+      {tutorialPhase === 'ahe-dialogue' && renderCharacterDialogue({
+        speaker: '阿禾',
+        text: '让我们先来看看门口这个信箱吧。',
+        onClick: handleTutorialAheClick,
+      })}
+
+      {/* 自由探索教程 — 操作提示旁白 */}
+      {tutorialPhase === 'narration' && (
+        <div className="narration-overlay" onClick={handleTutorialNarrationClick}>
+          <div className="narration-box">
+            <p className="narration-line">
+              请使用 WSAD 控制小红球瞄准信箱，然后按 E 进行交互。
             </p>
             <span className="narration-click-hint">E / 点击继续</span>
           </div>
