@@ -1,6 +1,10 @@
 ﻿import { useCallback, useState, useRef, useEffect } from 'react'
 import './Chapter1.css'
 import { ProgressStage } from '../../utils/gameSave'
+import {
+  dictionaryPoemLines,
+  entries,
+} from '../../systems/dictionary/dictionaryData'
 
 const MOVE_SPEED = 400 // 像素/秒，与 Phaser 场景对齐
 
@@ -8,9 +12,11 @@ const MOVE_SPEED = 400 // 像素/秒，与 Phaser 场景对齐
 const SCENE_SCALE = 2
 
 const SCENE_IMG = '/assets/FirstLevel/mainscene.png'
+const INTRO_BG_IMG = '/assets/FirstLevel/jiangyong_intro_bg.png'
 const AHE_DIALOGUE_IMG = '/assets/FirstLevel/ahe-dialogue.png'
 const DANIANG_DIALOGUE_IMG = '/assets/FirstLevel/daniang.png'
 const CHAPTER1_INTERACT_DISTANCE = 150
+const INTRO_LOADING_DELAY_MS = 500
 
 type Chapter1InteractionId =
   | 'boundary'
@@ -129,7 +135,7 @@ const QUIZ_Q4_CORRECT = 'A'
 
 /** 获取 Quiz 错误反馈文本 */
 const getQuizWrongFeedback = (question: number, choice: string): string => {
-  if (question === 1) return '嗯，我不太确定'
+  if (question === 1) return '一般来讲，信的语法是先称呼对方。'
   if (choice === 'B') return '嗯，我不太确定'
   return '......真的有这种词存在吗？'
 }
@@ -181,12 +187,12 @@ function Chapter1({
   const winejarRef = useRef<HTMLImageElement>(null)
   const labelRef = useRef<HTMLImageElement>(null)
   const [showBookPopup, setShowBookPopup] = useState(false)
-  const [bookPopupShown, setBookPopupShown] = useState(false)
   const [narrationIndex, setNarrationIndex] = useState(0)
   const [narrationDone, setNarrationDone] = useState(false)
   const [dialogIndex, setDialogIndex] = useState(0)
   const [dialogActive, setDialogActive] = useState(false)
   const [dialogFinished, setDialogFinished] = useState(false)
+  const [introLoading, setIntroLoading] = useState(false)
   const [narration2Index, setNarration2Index] = useState(0)
   const [narration2Active, setNarration2Active] = useState(false)
   const [narration2Done, setNarration2Done] = useState(false)
@@ -199,9 +205,9 @@ function Chapter1({
   const [quizImageStep, setQuizImageStep] = useState(0) // 0=阿禾说话, 1=展示图片
   const [quizChoicesOpen, setQuizChoicesOpen] = useState(false)
   const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null)
+  const [quizFeedbackStep, setQuizFeedbackStep] = useState(0)
+  const [showGuideBookPreview, setShowGuideBookPreview] = useState(false)
   const [quizLastChoice, setQuizLastChoice] = useState('')
-  const [quizNarrationOpen, setQuizNarrationOpen] = useState(false)
-  const [quizLetterMode, setQuizLetterMode] = useState(false)
   const [quizDone, setQuizDone] = useState(false)
   const [quizDismissed, setQuizDismissed] = useState(false) // Q1/Q2 关闭后是否可重开
   const [quizQ1Done, setQuizQ1Done] = useState(false) // Q1 已正确完成，等待 label 触发 Q2
@@ -215,7 +221,7 @@ function Chapter1({
       return new Set([...prev, id])
     })
   }, [])
-  const [postQ1DialogueStep, setPostQ1DialogueStep] = useState(-1) // Q1正确后额外对话：-1=未激活, 0=阿禾, 1=旁白
+  const [postQ1DialogueStep, setPostQ1DialogueStep] = useState(-1) // Q1正确后额外对话：-1=未激活, 0/1=阿禾, 2=旁白
   const [guideDictDone, setGuideDictDone] = useState(false) // 新手引导字典匹配已完成
   const [guideDictDismissed, setGuideDictDismissed] = useState(false) // 台词是否已关闭
   const placedSlotCountAtStartRef = useRef(Object.keys(placedSlots).length) // 进入引导时已放置的槽位数
@@ -236,26 +242,30 @@ function Chapter1({
   // 获得新字形提示
   const [glyphToast, setGlyphToast] = useState<string | null>(null)
   const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const introLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
-  const isQuizBusy = matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizNarrationOpen || quizActive
+  const isQuizBusy = showGuideBookPreview || matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizActive
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
+  const isGuideStage =
+    (narration2Active && !narration2Done) ||
+    (narration2Done && !guideDictDismissed)
 
   const getNearestInteractionId = useCallback((playerX: number, playerY: number): Chapter1InteractionId | null => {
-    const tutorialDone = guideDictDone && guideDictDismissed
+    const fullExplorationUnlocked = guideDictDone && guideDictDismissed
     const interactions: Array<{
       id: Chapter1InteractionId
       el: HTMLElement | null
       enabled: boolean
     }> = [
-      { id: 'winejar', el: winejarRef.current, enabled: tutorialDone },
-      { id: 'snow', el: snowRef.current, enabled: tutorialDone },
-      { id: 'swallow', el: swallowRef.current, enabled: tutorialDone },
+      { id: 'winejar', el: winejarRef.current, enabled: fullExplorationUnlocked },
+      { id: 'snow', el: snowRef.current, enabled: fullExplorationUnlocked },
+      { id: 'swallow', el: swallowRef.current, enabled: fullExplorationUnlocked },
       { id: 'letter', el: droppedLetterRef.current, enabled: letterDropped },
       { id: 'mailbox', el: mailboxRef.current, enabled: !letterDropped },
-      { id: 'boundary', el: boundaryRef.current, enabled: tutorialDone },
-      { id: 'label', el: labelRef.current, enabled: tutorialDone },
+      { id: 'boundary', el: boundaryRef.current, enabled: fullExplorationUnlocked },
+      { id: 'label', el: labelRef.current, enabled: fullExplorationUnlocked },
     ]
 
     let nearestId: Chapter1InteractionId | null = null
@@ -323,6 +333,14 @@ function Chapter1({
   useEffect(() => {
     if (isDictionaryOpen) keysRef.current.clear()
   }, [isDictionaryOpen])
+
+  useEffect(() => {
+    return () => {
+      if (introLoadingTimerRef.current) {
+        clearTimeout(introLoadingTimerRef.current)
+      }
+    }
+  }, [])
 
   // 窗口 resize
   useEffect(() => {
@@ -413,7 +431,7 @@ function Chapter1({
     const hw = vpRef.current.w / 2
     const hh = vpRef.current.h / 2
     const startX = 400
-    const startY = 400
+    const startY = 750
     const clamp = (v: number, min: number, max: number) =>
       Math.max(min, Math.min(max, v))
     const camX = clamp(startX, hw, sceneW - hw)
@@ -470,6 +488,22 @@ function Chapter1({
     prevDictOpenRef.current = isDictionaryOpen
   }, [isDictionaryOpen, quizQ1Done, postQ1DialogueStep, placedSlots, guideDictDone])
 
+  const finishIntroDialog = useCallback(() => {
+    setDialogFinished(true)
+    setDialogActive(false)
+    setIntroLoading(true)
+
+    if (introLoadingTimerRef.current) {
+      clearTimeout(introLoadingTimerRef.current)
+    }
+
+    introLoadingTimerRef.current = setTimeout(() => {
+      setIntroLoading(false)
+      setNarration2Active(true)
+      introLoadingTimerRef.current = null
+    }, INTRO_LOADING_DELAY_MS)
+  }, [])
+
   // Tab 键捕获阶段拦截 — 教程/Q1 完成前禁止切换焦点
   useEffect(() => {
     const captureTab = (e: KeyboardEvent) => {
@@ -484,10 +518,12 @@ function Chapter1({
   useEffect(() => {
     const handleHudKeyDown = (event: KeyboardEvent) => {
       if (isDictionaryOpen) return
+      if (introLoading) return
 
       // ========== Q/ESC — 关闭当前弹窗/对话 ==========
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
         event.preventDefault()
+        if (isGuideStage) return
 
         if (quizFeedback !== null) { closeQuizFeedback(); return }
         if (matchQ3Transition) { closeQ3Transition(); return }
@@ -570,6 +606,12 @@ function Chapter1({
           handleBookPopupClose()
           return
         }
+        if (showGuideBookPreview) {
+          event.preventDefault()
+          setShowGuideBookPreview(false)
+          setPostQ1DialogueStep(0)
+          return
+        }
         if (showBoundaryInfo) {
           event.preventDefault()
           setShowBoundaryInfo(false)
@@ -631,8 +673,7 @@ function Chapter1({
           } else if (dialogIndex < DIALOG_LINES.length - 1) {
             setDialogIndex((i) => i + 1)
           } else {
-            setDialogFinished(true)
-            setNarration2Active(true)
+            finishIntroDialog()
           }
           return
         }
@@ -744,6 +785,7 @@ function Chapter1({
     showSnowInfo,
     showWinejarInfo,
     showBookPopup,
+    showGuideBookPreview,
     isQuizBusy,
     letterDropped,
     narrationDone,
@@ -756,6 +798,8 @@ function Chapter1({
     quizImageOpen,
     quizImageStep,
     quizFeedback,
+    quizFeedbackStep,
+    quizQuestion,
     matchActive,
     matchStep,
     matchCommentary,
@@ -770,6 +814,9 @@ function Chapter1({
     postQ1DialogueStep,
     guideDictDone,
     guideDictDismissed,
+    isGuideStage,
+    introLoading,
+    finishIntroDialog,
     tutorialPhase,
     quizQ1Done,
   ])
@@ -790,7 +837,6 @@ function Chapter1({
     if (resumeProgress >= ProgressStage.DIALOG) {
       setNarrationDone(true)
       setDialogActive(true)
-      setBookPopupShown(true)
     }
     if (resumeProgress >= ProgressStage.NARRATION2) {
       setDialogFinished(true)
@@ -839,15 +885,13 @@ function Chapter1({
     } else if (dialogIndex < DIALOG_LINES.length - 1) {
       setDialogIndex((i) => i + 1)
     } else {
-      setDialogFinished(true)
-      setNarration2Active(true)
+      finishIntroDialog()
     }
   }
 
   // 关闭三朝书，继续对话
   const handleBookPopupClose = () => {
     setShowBookPopup(false)
-    setBookPopupShown(true)
     setDialogIndex((i) => i + 1)
   }
 
@@ -878,14 +922,11 @@ function Chapter1({
     setTutorialPhase('done')
   }
 
-  // 关闭信件弹窗 — 首次关闭触发 Quiz，Quiz 内错误后关闭则继续流程
+  // 关闭信件弹窗 — 首次关闭触发 Quiz
   const closeLetterPopup = () => {
     setShowLetterPopup(false)
-    if (quizLetterMode) {
-      setQuizLetterMode(false)
-      setQuizNarrationOpen(true)
-    } else if (!quizActive && !quizDone && !quizDismissed && !quizQ1Done) {
-      startQuizImage(1)
+    if (!quizActive && !quizDone && !quizDismissed && !quizQ1Done) {
+      startQuizImage(1, 1)
     }
   }
 
@@ -936,12 +977,10 @@ function Chapter1({
   // 选择答案
   const handleQuizChoice = (choice: string) => {
     setQuizChoicesOpen(false)
+    setQuizImageOpen(false)
+    setQuizImageStep(0)
     setQuizDismissed(false)
-    // Q2 选项在图片弹窗内，关闭图片弹窗
-    if (quizQuestion === 2) {
-      setQuizImageOpen(false)
-      setQuizImageStep(0)
-    }
+    setQuizFeedbackStep(0)
     setQuizLastChoice(choice)
     if (choice === currentCorrect) {
       setQuizFeedback('correct')
@@ -963,12 +1002,18 @@ function Chapter1({
   // 关闭反馈 → Q1 正确则开始 Q2，Q2 正确则结束，错误则重试
   const closeQuizFeedback = () => {
     const isCorrect = quizFeedback === 'correct'
+    if (isCorrect && quizQuestion === 1 && quizFeedbackStep === 0) {
+      setQuizFeedbackStep(1)
+      return
+    }
+
     setQuizFeedback(null)
+    setQuizFeedbackStep(0)
     if (isCorrect) {
       if (quizQuestion === 1) {
-        // Q1 正确 → 阿禾对话 + 字典教程旁白 → 最后 setQuizQ1Done
+        // Q1 正确 → 预览三朝书残卷 → 阿禾对话 + 字典教程旁白
         setQuizActive(false)
-        setPostQ1DialogueStep(0)
+        setShowGuideBookPreview(true)
       } else {
         // Q2 正确 → 阿禾发言 → 匹配题界面 → 阿禾提示
         setQuizActive(false)
@@ -980,9 +1025,11 @@ function Chapter1({
         setMatchStep(0)
       }
     } else if (quizQuestion === 1) {
-      // Q1 错误：展示信件 + 旁白提示
-      setQuizLetterMode(true)
-      setShowLetterPopup(true)
+      // Q1 错误：阿禾提示后直接回到同屏选择题
+      setQuizQuestion(1)
+      setQuizActive(true)
+      setQuizImageOpen(true)
+      setQuizImageStep(1)
     } else {
       // Q2 错误：重新展示四张图，看完后再选
       setQuizImageOpen(true)
@@ -990,10 +1037,12 @@ function Chapter1({
     }
   }
 
-  // Q1 正确后的额外对话推进：阿禾 → 旁白 → 完成
+  // Q1 正确后的额外对话推进：阿禾两句 → 旁白 → 完成
   const advancePostQ1Dialogue = () => {
     if (postQ1DialogueStep === 0) {
-      setPostQ1DialogueStep(1) // 进入旁白
+      setPostQ1DialogueStep(1)
+    } else if (postQ1DialogueStep === 1) {
+      setPostQ1DialogueStep(2) // 进入旁白
     } else {
       setPostQ1DialogueStep(-1)
       setQuizQ1Done(true)
@@ -1009,12 +1058,6 @@ function Chapter1({
       setLabelStep(0)
       startQuizImage(2, 1) // 跳过 step 0 阿禾对话，因为 labelStep 3 已说过
     }
-  }
-
-  // 关闭 Quiz 旁白 → 回到 Q1 选择题
-  const closeQuizNarration = () => {
-    setQuizNarrationOpen(false)
-    setQuizChoicesOpen(true)
   }
 
   // Q3 匹配游戏 — 阿禾说完话 → 提示 → 匹配界面
@@ -1241,6 +1284,7 @@ function Chapter1({
     portraitSrc = AHE_DIALOGUE_IMG,
     zIndex = 85,
     children,
+    controlsText = 'E / 点击继续 | Q / ESC 返回',
   }: {
     speaker: string
     text?: string
@@ -1248,6 +1292,7 @@ function Chapter1({
     portraitSrc?: string
     zIndex?: number
     children?: React.ReactNode
+    controlsText?: string
   }) => (
     <div
       className="chapter1-dialog-layer"
@@ -1273,10 +1318,17 @@ function Chapter1({
         ) : null}
       </section>
       <div className="chapter1-dialog-controls">
-        E / 点击继续 | Q / ESC 返回
+        {controlsText}
       </div>
     </div>
   )
+
+  const showIntroBackdrop =
+    !introLoading && (!narrationDone || (dialogActive && !dialogFinished))
+  const closeGuideBookPreview = () => {
+    setShowGuideBookPreview(false)
+    setPostQ1DialogueStep(0)
+  }
 
   return (
     <div className="chapter1">
@@ -1305,13 +1357,15 @@ function Chapter1({
           />
 
           {/* 石碑装饰 — 仅 E 键交互 */}
-          <img
-            ref={boundaryRef}
-            src="/assets/FirstLevel/boundary.png"
-            alt="石碑"
-            className={`chapter1-boundary${nearestInteractionId === 'boundary' ? ' boundary-near' : ''}`}
-            draggable={false}
-          />
+          {!isGuideStage && (
+            <img
+              ref={boundaryRef}
+              src="/assets/FirstLevel/boundary.png"
+              alt="石碑"
+              className={`chapter1-boundary${nearestInteractionId === 'boundary' ? ' boundary-near' : ''}`}
+              draggable={false}
+            />
+          )}
 
           {/* 信箱装饰 — 仅 E 键交互 */}
           <img
@@ -1323,16 +1377,18 @@ function Chapter1({
           />
 
           {/* 燕子 — 仅 E 键交互 */}
-          <img
-            ref={swallowRef}
-            src="/assets/FirstLevel/swallow.png"
-            alt="燕子"
-            className={`chapter1-swallow${nearestInteractionId === 'swallow' ? ' swallow-near' : ''}`}
-            draggable={false}
-          />
+          {!isGuideStage && (
+            <img
+              ref={swallowRef}
+              src="/assets/FirstLevel/swallow.png"
+              alt="燕子"
+              className={`chapter1-swallow${nearestInteractionId === 'swallow' ? ' swallow-near' : ''}`}
+              draggable={false}
+            />
+          )}
 
           {/* 雪人 — 仅 E 键交互，对话时隐藏 */}
-          {!showSnowInfo && (
+          {!isGuideStage && !showSnowInfo && (
             <img
               ref={snowRef}
               src="/assets/FirstLevel/daniang.png"
@@ -1343,22 +1399,26 @@ function Chapter1({
           )}
 
           {/* 酒坛 — 仅 E 键交互 */}
-          <img
-            ref={winejarRef}
-            src="/assets/FirstLevel/Winejar.png"
-            alt="酒坛"
-            className={`chapter1-winejar${nearestInteractionId === 'winejar' ? ' winejar-near' : ''}`}
-            draggable={false}
-          />
+          {!isGuideStage && (
+            <img
+              ref={winejarRef}
+              src="/assets/FirstLevel/Winejar.png"
+              alt="酒坛"
+              className={`chapter1-winejar${nearestInteractionId === 'winejar' ? ' winejar-near' : ''}`}
+              draggable={false}
+            />
+          )}
 
           {/* 标签 — 仅 E 键交互 */}
-          <img
-            ref={labelRef}
-            src="/assets/FirstLevel/label.png"
-            alt="标签"
-            className={`chapter1-label${nearestInteractionId === 'label' ? ' label-near' : ''}`}
-            draggable={false}
-          />
+          {!isGuideStage && (
+            <img
+              ref={labelRef}
+              src="/assets/FirstLevel/label.png"
+              alt="标签"
+              className={`chapter1-label${nearestInteractionId === 'label' ? ' label-near' : ''}`}
+              draggable={false}
+            />
+          )}
 
           {/* 掉落的信件 — 替代图 */}
           {letterDropped && (
@@ -1370,6 +1430,73 @@ function Chapter1({
               <img src="/assets/FirstLevel/envelope.png" alt="信件" className="dropped-letter-img" />
             </div>
           )}
+        </div>
+      )}
+
+      {showIntroBackdrop && (
+        <div
+          className="chapter1-intro-bg"
+          style={{ backgroundImage: `url(${INTRO_BG_IMG})` }}
+          aria-hidden="true"
+        />
+      )}
+
+      {introLoading && (
+        <div className="chapter1-intro-loading" role="status" aria-live="polite">
+          <p className="chapter1-intro-loading-title">女书·江永</p>
+          <p className="chapter1-intro-loading-subtitle">加载中……</p>
+        </div>
+      )}
+
+      {showGuideBookPreview && (
+        <div className="chapter1-guide-book-overlay" onClick={closeGuideBookPreview}>
+          <div className="chapter1-guide-book-stage">
+            <section
+              className="chapter1-guide-book"
+              aria-label="三朝书残卷预览"
+            >
+              <div className="chapter1-guide-book-meta">
+                <span>三朝书残卷</span>
+                <span>待补之字 14</span>
+                <span>已识之字 1</span>
+              </div>
+              <div className="chapter1-guide-book-poem">
+                {dictionaryPoemLines.map((line) => (
+                  <p key={line.id}>
+                    {line.segments.map((segment, index) => {
+                      if (segment.type === 'text') {
+                        return (
+                          <span key={`${line.id}-text-${index}`}>
+                            {segment.value}
+                          </span>
+                        )
+                      }
+
+                      const placedEntryId = placedSlots[segment.slotId]
+                      const placedEntry = placedEntryId
+                        ? entries.find((entry) => entry.id === placedEntryId)
+                        : null
+                      const isJunTarget = segment.slotId === 'line-1-lord'
+
+                      return (
+                        <span
+                          className={`chapter1-guide-book-slot${
+                            placedEntry ? ' is-placed' : ''
+                          }${isJunTarget ? ' is-current' : ''}`}
+                          key={segment.slotId}
+                        >
+                          {placedEntry?.label ?? segment.placeholder}
+                        </span>
+                      )
+                    })}
+                  </p>
+                ))}
+              </div>
+            </section>
+          </div>
+          <div className="chapter1-object-preview-hint">
+            E / 点击 继续
+          </div>
         </div>
       )}
 
@@ -1389,7 +1516,9 @@ function Chapter1({
        !showBookPopup &&
        !isQuizBusy && (
         <div className="chapter1-hint">
-          WASD 移动 | E 交互{quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回
+          {isGuideStage
+            ? `WASD 移动 | E 交互${quizQ1Done ? ' | Tab 词典' : ''}`
+            : `WASD 移动 | E 交互${quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回`}
         </div>
       )}
 
@@ -1476,6 +1605,7 @@ function Chapter1({
         speaker: DIALOG_LINES[dialogIndex].speaker,
         text: DIALOG_LINES[dialogIndex].text,
         onClick: handleDialogClick,
+        controlsText: 'E / 点击继续',
       })}
 
       {/* 第二段旁白 — 对话结束后显示 */}
@@ -1495,6 +1625,7 @@ function Chapter1({
         speaker: '阿禾',
         text: '让我们先来看看门口这个信箱吧。',
         onClick: handleTutorialAheClick,
+        controlsText: 'E / 点击继续',
       })}
 
       {/* 自由探索教程 — 操作提示旁白 */}
@@ -1520,7 +1651,7 @@ function Chapter1({
             />
           </div>
           <div className="chapter1-object-preview-hint">
-            E / 点击 继续 | Q / ESC 返回
+            E / 点击 继续
           </div>
         </div>
       )}
@@ -1605,19 +1736,14 @@ function Chapter1({
       {showLetterPopup && (
         <div className="chapter1-object-preview-overlay" onClick={closeLetterPopup}>
           <div className="chapter1-object-preview-stage">
-            <div className="chapter1-object-preview-letter">
-              <p className="letter-text">
-                <img
-                  src="/assets/FirstLevel/Q1.png"
-                  alt="Q1"
-                  className="letter-clue-img"
-                />
-                亲启，展信安
-              </p>
-            </div>
+            <img
+              src="/assets/FirstLevel/jun.png"
+              alt="信件"
+              className="chapter1-object-preview-image chapter1-object-preview-jun"
+            />
           </div>
           <div className="chapter1-object-preview-hint">
-            E / 点击 继续 | Q / ESC 返回
+            E / 点击 继续
           </div>
         </div>
       )}
@@ -1629,21 +1755,41 @@ function Chapter1({
         speaker: '阿禾',
         text: quizQuestion === 1 ? QUIZ_Q1_DIALOG : QUIZ_Q2_DIALOG,
         onClick: closeQuizImage,
+        controlsText: isGuideStage ? 'E / 点击继续' : undefined,
       })}
 
-      {/* Quiz 图片弹窗 — Q1 单图 */}
+      {/* Quiz 图片弹窗 — Q1 信件同屏选择 */}
       {quizImageOpen && quizImageStep === 1 && quizQuestion === 1 && (
-        <div className="quiz-image-overlay" onClick={closeQuizImage}>
-          <div className="quiz-image-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="quiz-image-close" onClick={closeQuizImage}>关闭</button>
-            <div className="quiz-image-wrapper">
+        <div className="quiz-context-overlay">
+          <div className="quiz-context-stage">
+            <div className="quiz-context-image-panel">
               <img
-                src="/assets/FirstLevel/Q1.png"
-                alt="女书字"
-                className="quiz-image-placeholder"
+                src="/assets/FirstLevel/jun.png"
+                alt="信件"
+                className="quiz-context-letter"
               />
             </div>
-            <span className="quiz-click-hint">点击任意处继续</span>
+            <div className="quiz-context-panel">
+              <p className="quiz-context-title">
+                <img
+                  src="/assets/FirstLevel/Q1.png"
+                  alt="女书字"
+                  className="quiz-context-glyph"
+                />
+                <span>这个字在信中指的是谁呢？</span>
+              </p>
+              <div className="quiz-context-choices">
+                {QUIZ_Q1_CHOICES.map((label, i) => {
+                  const key = String.fromCharCode(65 + i)
+                  return (
+                    <button key={key} className="quiz-choice-btn" onClick={() => handleQuizChoice(key)}>
+                      <span className="quiz-choice-key">{key}</span>
+                      <span className="quiz-choice-label">{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1696,27 +1842,59 @@ function Chapter1({
       )}
 
       {/* Quiz 反馈 — 阿禾回应（统一对话界面） */}
-      {quizFeedback !== null && renderCharacterDialogue({
+      {quizFeedback !== null && quizFeedback === 'correct' && quizQuestion === 1 && renderCharacterDialogue({
+        speaker: '阿禾',
+        onClick: closeQuizFeedback,
+        controlsText: isGuideStage ? 'E / 点击继续' : undefined,
+        children: (
+          <>
+            <p className="chapter1-dialog-text-line">这个字像是在称呼收信的人，也就是“你”。</p>
+            {quizFeedbackStep > 0 && (
+              <p className="chapter1-dialog-text-line">我们把它放回三朝书里试试吧。</p>
+            )}
+          </>
+        ),
+      })}
+      {quizFeedback !== null && !(quizFeedback === 'correct' && quizQuestion === 1) && renderCharacterDialogue({
         speaker: '阿禾',
         text: quizFeedback === 'correct'
-          ? '嗯，也许您是对的'
+          ? '嗯，确实是这个'
           : getQuizWrongFeedback(quizQuestion, quizLastChoice),
         onClick: closeQuizFeedback,
+        controlsText: isGuideStage ? 'E / 点击继续' : undefined,
       })}
 
       {/* Q1 正确后 — 阿禾额外对话："你"字放到字典 */}
-      {postQ1DialogueStep === 0 && renderCharacterDialogue({
+      {(postQ1DialogueStep === 0 || postQ1DialogueStep === 1) && renderCharacterDialogue({
         speaker: '阿禾',
-        text: '现在让我们将这个字补上吧，将这个字放到您认为合适的位置即可，我想这个\'你\'字应该放在"已为"下面？',
         onClick: advancePostQ1Dialogue,
+        controlsText: 'E / 点击继续',
+        children: (
+          <>
+            <p className="chapter1-dialog-text-line">
+              它应该放在这句话里“为谁而成”的位置。
+            </p>
+            {postQ1DialogueStep === 1 && (
+              <p className="chapter1-dialog-text-line">
+                你看，空着的这一处，正好在“已为”和“成”之间。
+              </p>
+            )}
+          </>
+        ),
       })}
 
       {/* Q1 正确后 — 旁白：字典教程 */}
-      {postQ1DialogueStep === 1 && (
+      {postQ1DialogueStep === 2 && (
         <div className="narration-overlay" onClick={advancePostQ1Dialogue}>
           <div className="narration-box">
             <p className="narration-line">
-              按 Tab 键可以打开词典，将解锁的字拖到字典中的方框中，如果位置正确则完成该字符的破解。
+              按 Tab 键，或点击上方的
+              <img
+                src="/assets/ui/open_book_icon.png"
+                alt="书本图标"
+                className="narration-inline-book-icon"
+              />
+              ，可以打开词典。将解锁的字拖到三朝书残卷的方框里，位置正确即可完成解读。
             </p>
             <span className="narration-click-hint">E / 点击继续</span>
           </div>
@@ -1728,19 +1906,8 @@ function Chapter1({
         speaker: '阿禾',
         text: '接下来我和您继续寻找其他线索',
         onClick: () => setGuideDictDismissed(true),
+        controlsText: 'E / 点击继续',
       })}
-
-      {/* Quiz 旁白 — 错误后提示重新思考 */}
-      {quizNarrationOpen && (
-        <div className="narration-overlay" onClick={closeQuizNarration}>
-          <div className="narration-box">
-            <p className="narration-line">
-              一般来讲，信的语法是怎样的呢？
-            </p>
-            <span className="narration-click-hint">E / 点击继续</span>
-          </div>
-        </div>
-      )}
 
       {/* Q3 阿禾提示 — 引导玩家去探索场景（匹配题之前） */}
       {matchActive && matchStep === 1 && renderCharacterDialogue({
@@ -1938,7 +2105,7 @@ function Chapter1({
       )}
 
       {/* 返回主菜单按钮 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && (
+      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !isGuideStage && (
         <button
           className="chapter1-return-btn"
           type="button"
