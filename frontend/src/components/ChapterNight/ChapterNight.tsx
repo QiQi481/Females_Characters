@@ -55,6 +55,9 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
     glyphToastTimerRef.current = setTimeout(() => setGlyphToast(null), 2200)
   }
 
+  // 报幕关闭后短暂屏蔽 E 键，防止 key-repeat / 长按残留触发对话
+  const eCooldownRef = useRef(false)
+
   // titleCard 结束后触发阿禾对话
   useEffect(() => {
     if (!titleDone) return
@@ -72,6 +75,12 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
     nightDialogueLinesRef.current = lines
     rainEnabledRef.current = unlockedEntryCount >= 5
     setNightDialogueStep(0)
+    // 冷却期：阻止报幕关闭瞬间的 E 键残留
+    eCooldownRef.current = true
+    const cooldownTimer = setTimeout(() => {
+      eCooldownRef.current = false
+    }, 500)
+    return () => clearTimeout(cooldownTimer)
   }, [titleDone, unlockedEntryCount])
 
   // 追踪对话是否已开始
@@ -293,9 +302,10 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
     const handleHudKeyDown = (event: KeyboardEvent) => {
       if (isDictionaryOpen || !titleDone || isEnding) return
 
-      // 深夜对话中：E 推进对话
+      // 深夜对话中：E 推进对话（冷却期内忽略）
       if (isNightDialogueActive) {
         if (event.key === 'e' || event.key === 'E') {
+          if (eCooldownRef.current) return
           event.preventDefault()
           advanceNightDialogue()
         }
