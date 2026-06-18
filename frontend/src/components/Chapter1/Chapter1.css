@@ -198,8 +198,8 @@
 /* ========== 掉落信件 ========== */
 .dropped-letter {
   position: absolute;
-  left: 20%;
-  bottom: 10%;
+  left: 6%;
+  bottom: 0%;
   width: 5%;
   aspect-ratio: 3 / 4;
   overflow: hidden;
