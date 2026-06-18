@@ -2,6 +2,8 @@
 import TitleCard from '../TitleCard/TitleCard'
 import RainPhaserOverlay from './RainPhaserOverlay'
 import type { DictionaryPuzzle } from '../../systems/dictionary/dictionaryData'
+import { dictionaryPoemLines, entries } from '../../systems/dictionary/dictionaryData'
+import type { DictionaryPoemSegment } from '../../systems/dictionary/dictionaryData'
 import './ChapterNight.css'
 
 const MOVE_SPEED = 500
@@ -36,11 +38,12 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
   const dialogueStartedRef = useRef(false)
 
   // ── 结尾演出 ──
-  // midnightTitle(5s,雨声渐大) → unlock 深宵+雨声 → poemHint(3s) → fillPuzzle(填词) → poemReveal(3s) → blackout → credits
-  type EndingPhase = 'none' | 'midnightTitle' | 'poemHint' | 'fillPuzzle' | 'poemReveal' | 'blackout' | 'credits'
+  // midnightTitle(5s,雨声渐大) → unlock 深宵+雨声 → poemHint(3s) → fillPuzzle(填词) → poemReveal(3s) → sanChaoBook → blackout → credits
+  type EndingPhase = 'none' | 'midnightTitle' | 'poemHint' | 'fillPuzzle' | 'poemReveal' | 'sanChaoBook' | 'blackout' | 'credits'
   type FillPuzzleStep = 'dialogue1' | 'waitingForFill' | 'dialogue2'
   const [endingPhase, setEndingPhase] = useState<EndingPhase>('none')
   const [fillPuzzleStep, setFillPuzzleStep] = useState<FillPuzzleStep>('dialogue1')
+  const [sanChaoBookDone, setSanChaoBookDone] = useState(false)
   const [rainVolume, setRainVolume] = useState(0.55)
   const endingTriggeredRef = useRef(false)
   const rainDelayRef = useRef(false)
@@ -160,11 +163,11 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
     }
   }, [endingPhase, fillPuzzleStep, placedSlots])
 
-  // 第三次报幕第二段（poemReveal）：停顿 3 秒 → 自动黑屏
+  // 第三次报幕第二段（poemReveal）：停顿 3 秒 → 进入三朝书补全
   useEffect(() => {
     if (endingPhase !== 'poemReveal') return
     const timer = setTimeout(() => {
-      setEndingPhase('blackout')
+      setEndingPhase('sanChaoBook')
     }, 3000)
     return () => clearTimeout(timer)
   }, [endingPhase])
@@ -211,6 +214,53 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [endingPhase, fillPuzzleStep])
+
+  // sanChaoBook 阶段：E 键 / 点击补全三朝书
+  const completeSanChaoBook = () => {
+    if (endingPhase !== 'sanChaoBook' || sanChaoBookDone) return
+    setSanChaoBookDone(true)
+  }
+
+  const goToBlackout = () => {
+    if (endingPhase !== 'sanChaoBook' || !sanChaoBookDone) return
+    setEndingPhase('blackout')
+  }
+
+  useEffect(() => {
+    if (endingPhase !== 'sanChaoBook') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        completeSanChaoBook()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [endingPhase, sanChaoBookDone])
+
+  // 将诗句的 segments 展平为逐字单元格数组（供竖排渲染）
+  interface VerseCell {
+    char: string
+    isSlot: boolean
+  }
+
+  const flattenSegments = (segments: readonly DictionaryPoemSegment[], filled: boolean, hideNonSlot = false): VerseCell[] => {
+    const cells: VerseCell[] = []
+    for (const seg of segments) {
+      if (seg.type === 'text') {
+        for (const ch of seg.value) {
+          cells.push({ char: (filled || !hideNonSlot) ? ch : '○', isSlot: false })
+        }
+      } else {
+        const entry = entries.find((e) => e.id === seg.entryId)
+        const label = entry?.label ?? seg.placeholder
+        for (const ch of label) {
+          cells.push({ char: filled ? ch : '○', isSlot: true })
+        }
+      }
+    }
+    return cells
+  }
 
   const isEnding = endingPhase !== 'none'
 
@@ -613,7 +663,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
         </>
       )}
 
-      {/* 第三次报幕第二段：揭示完整诗句 — 3s 后自动黑屏 */}
+      {/* 第三次报幕第二段：揭示完整诗句 — 3s 后进入三朝书补全 */}
       {endingPhase === 'poemReveal' && (
         <div className="chapter-night-ending chapter-night-ending--locked">
           <div className="chapter-night-ending-bg" />
@@ -622,6 +672,76 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
               千言写尽犹余半，留与深宵作雨声
             </h1>
           </div>
+        </div>
+      )}
+
+      {/* 三朝书补全 — 摊开书页，竖排诗句 + 空格填充 */}
+      {endingPhase === 'sanChaoBook' && (
+        <div
+          className={`chapter-night-sanchaoshu-stage${sanChaoBookDone ? ' is-done' : ''}`}
+          onClick={sanChaoBookDone ? undefined : completeSanChaoBook}
+        >
+          <div className="chapter-night-ending-bg" />
+
+          {/* 摊开的三朝书 */}
+          <div className={`chapter-night-sanchaoshu-book${sanChaoBookDone ? ' is-done' : ''}`}>
+            {/* 左页 — 空白页面 */}
+            <div className="chapter-night-sanchaoshu-page is-left">
+              <div className="chapter-night-sanchaoshu-page-label">三朝书</div>
+            </div>
+
+            {/* 右页 — 全部诗句内容，E前隐藏 E后发光补全 */}
+            <div className="chapter-night-sanchaoshu-page is-right">
+              <div className="chapter-night-sanchaoshu-page-label">三朝书</div>
+              <div className="chapter-night-sanchaoshu-poem">
+                {dictionaryPoemLines.map((line) => {
+                  const cells = flattenSegments(line.segments, sanChaoBookDone, true)
+                  return (
+                    <div className="chapter-night-sanchaoshu-poem-col" key={line.id}>
+                      {cells.map((cell, ci) => {
+                        const cls = sanChaoBookDone ? 'is-revealed' : 'is-hidden'
+                        return (
+                          <span
+                            className={`chapter-night-sanchaoshu-char ${cls}`}
+                            key={ci}
+                            style={{ animationDelay: sanChaoBookDone ? `${ci * 0.05}s` : undefined }}
+                          >
+                            {cell.char}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 未补全时：操作提示 */}
+          {!sanChaoBookDone && (
+            <p className="chapter-night-sanchaoshu-hint">
+              按 E 或点击补全
+            </p>
+          )}
+
+          {/* 补全后：文案 + 下一页按钮 */}
+          {sanChaoBookDone && (
+            <div className="chapter-night-sanchaoshu-complete">
+              <p className="chapter-night-sanchaoshu-text">
+                三朝书上的空白，终于被补上了。
+              </p>
+              <p className="chapter-night-sanchaoshu-text">
+                那些曾经读不懂的字，慢慢有了声音。
+              </p>
+              <button
+                className="chapter-night-sanchaoshu-next-btn"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); goToBlackout() }}
+              >
+                下一页
+              </button>
+            </div>
+          )}
         </div>
       )}
 
