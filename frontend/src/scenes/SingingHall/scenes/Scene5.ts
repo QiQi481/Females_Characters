@@ -1014,11 +1014,15 @@ export class Scene5 extends Phaser.Scene {
           this.startDialogue(SINGER_NPC_NAME, [...PAPER_DIALOGUE_LINES], () => {
             this.unlockEntriesForClue('clue_paper');
             this.showPendingNewGlyphToast('clue_paper');
+            this.dictionaryBridge.unlockEntry('zhi');
+            this.pendingDictionaryPuzzle = null;
           });
         } else if (clue.id === 'clue_fan') {
           this.startDialogue(SINGER_NPC_NAME, [...FAN_DIALOGUE_LINES], () => {
             this.unlockEntriesForClue('clue_fan');
             this.showPendingNewGlyphToast('clue_fan');
+            this.dictionaryBridge.unlockEntry('geshan');
+            this.pendingDictionaryPuzzle = null;
           });
         } else if (clue.id === 'clue_basket') {
           this.startDialogue(SINGER_NPC_NAME, [...BIMO_DIALOGUE_LINES], () => {
@@ -1035,17 +1039,7 @@ export class Scene5 extends Phaser.Scene {
         }
       }
     } else if (this.currentTarget === 'npc_sisters') {
-      this.startDialogue('围坐姐妹', [...SISTERS_DIALOGUE_LINES], () => {
-        const shouldShowQueuedToast =
-          this.pendingLocalGlyphToastEntryIds.has('song_sheng');
-        const unlockedNow = this.unlockSistersEntry();
-        if (shouldShowQueuedToast) {
-          this.showPendingLocalGlyphToast('song_sheng');
-        } else if (unlockedNow) {
-          const textureKeys = LOCAL_ENTRY_NUSHU_TEXTURE_KEYS.song_sheng;
-          if (textureKeys?.length) this.showNewGlyphToast(textureKeys);
-        }
-      });
+      this.startDialogue('围坐姐妹', [...SISTERS_DIALOGUE_LINES]);
     } else if (this.currentTarget === 'npc_girl') {
       this.startGirlIntroDialogue();
     }
@@ -1063,8 +1057,6 @@ export class Scene5 extends Phaser.Scene {
       if (dictionaryPuzzle) {
         this.pendingDictionaryPuzzle = dictionaryPuzzle;
         this.pendingGlyphToastTargets.add(target);
-      } else if (target === 'npc_sisters') {
-        this.pendingLocalGlyphToastEntryIds.add('song_sheng');
       }
     }
 
@@ -1782,6 +1774,8 @@ export class Scene5 extends Phaser.Scene {
 
     this.markClueFound(SINGER_NPC_ID);
     this.showPendingNewGlyphToast('npc_girl');
+    this.dictionaryBridge.unlockEntry('yuanxing');
+    this.pendingDictionaryPuzzle = null;
     this.showExplorationControls();
   }
 
