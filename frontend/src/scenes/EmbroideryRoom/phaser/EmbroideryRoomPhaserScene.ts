@@ -1517,16 +1517,25 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.controlsText.setText(DIALOGUE_CONTROLS_LABEL)
   }
 
+  /**
+   * 渲染可见对话行。
+   * 使用动态累计高度定位各行，确保长文本自动换行后不会重叠。
+   * 同时根据实际内容高度动态调整对话框背景尺寸，防止文字超出边框。
+   */
   private renderVisibleDialogueLines(lines: readonly string[]): void {
     this.dialogueLinesContainer.removeAll(true)
 
-    lines.forEach((line, lineIndex) => {
-      const y = DIALOGUE_TEXT_Y + lineIndex * DIALOGUE_LINE_HEIGHT
-      const lineContainer = this.add.container(DIALOGUE_TEXT_X, y)
+    let currentY = DIALOGUE_TEXT_Y
+    const lineGap = 6
+
+    lines.forEach((line) => {
+      const lineContainer = this.add.container(DIALOGUE_TEXT_X, currentY)
       const [prefix, suffix] = line.split(NUSHU_TOKEN)
 
       if (suffix === undefined) {
-        lineContainer.add(this.createDialogueLineText(line, 0, 0, true))
+        const text = this.createDialogueLineText(line, 0, 0, true)
+        lineContainer.add(text)
+        currentY += text.height + lineGap
       } else {
         const prefixText = this.createDialogueLineText(prefix, 0, 0)
         lineContainer.add(prefixText)
@@ -1537,17 +1546,33 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
           prefixText.width + 10,
           glyphCenterY,
         )
-        lineContainer.add(
-          this.createDialogueLineText(
-            suffix,
-            prefixText.width + glyphWidth + 22,
-            0,
-          ),
+        const suffixText = this.createDialogueLineText(
+          suffix,
+          prefixText.width + glyphWidth + 22,
+          0,
         )
+        lineContainer.add(suffixText)
+        const lineHeight = Math.max(
+          prefixText.height,
+          suffixText.height,
+          DIALOGUE_GLYPH_HEIGHT,
+        )
+        currentY += lineHeight + lineGap
       }
 
       this.dialogueLinesContainer.add(lineContainer)
     })
+
+    // 动态调整对话框背景高度，防止文字超出边框
+    const contentHeight = currentY - DIALOGUE_TEXT_Y
+    const boxPadding = 120
+    const newBoxHeight = Math.max(300, contentHeight + boxPadding)
+    this.dialogueBox.setDisplaySize(
+      Math.min(this.scale.gameSize.width * 0.88, 1500),
+      newBoxHeight,
+    )
+    // 提示文字跟随对话框底部
+    this.dialogueHint.setPosition(520, newBoxHeight / 2 - 58)
   }
 
   private createDialogueLineText(

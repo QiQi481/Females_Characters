@@ -6,6 +6,7 @@ import { EmbroideryRoomPhaserScene } from '../EmbroideryRoom/phaser/EmbroideryRo
 import type { GlobalDictionaryBridge } from '../../game/GlobalDictionaryBridge'
 import { BootScene } from './scenes/BootScene';
 import { MainScene } from './scenes/MainScene';
+import { Scene5 } from './scenes/Scene5';
 import { SceneKeys, type SceneKey } from './types'
 
 /** 视口尺寸（屏幕可见区域） */
@@ -55,7 +56,7 @@ export function createPhaserGameConfig(
         debug: false,
       },
     },
-    scene: [BootScene, MainScene, EmbroideryRoomPhaserScene],
+    scene: [BootScene, MainScene, Scene5, EmbroideryRoomPhaserScene],
     callbacks: {
       preBoot: (game) => {
         game.registry.set('startScene', startScene)
@@ -75,7 +76,7 @@ export function createSingingHallGameConfig(
 ): Phaser.Types.Core.GameConfig {
   return createPhaserGameConfig(
     parent,
-    SceneKeys.MAIN,
+    SceneKeys.SCENE5,
     dictionaryBridge,
   )
 }

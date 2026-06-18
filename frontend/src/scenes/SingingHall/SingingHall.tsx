@@ -6,6 +6,7 @@ import type {
 } from '../../systems/dictionary'
 import type { GlobalDictionaryBridge } from '../../game/GlobalDictionaryBridge'
 import { createSingingHallGameConfig } from './config'
+import { Scene5 } from './scenes/Scene5'
 import { MainScene } from './scenes/MainScene'
 import { SceneKeys } from './types'
 import './SingingHall.css'
@@ -61,8 +62,8 @@ function SingingHall({
   }, [])
 
   useEffect(() => {
-    const scene = gameRef.current?.scene.getScene(SceneKeys.MAIN)
-    if (scene instanceof MainScene) {
+    const scene = gameRef.current?.scene.getScene(SceneKeys.SCENE5)
+    if (scene instanceof Scene5) {
       scene.setGlobalDictionaryOpen(isDictionaryOpen)
     }
   }, [isDictionaryOpen])

@@ -16,6 +16,7 @@ export type {
 export const SceneKeys = {
   BOOT: 'SingingHallBootScene',
   MAIN: 'SingingHallMainScene',
+  SCENE5: 'Scene5',
   EMBROIDERY: 'EmbroideryRoomScene',
 } as const
 

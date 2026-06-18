@@ -26,6 +26,7 @@ const fanTextUrl = assetUrl('fan_text.png');
 const nvshuGirlUrl = assetUrl('nvshu_girl.png');
 const nvshuGirlTextUrl = assetUrl('nvshu_girl_text.png');
 const bimoBigUrl = assetUrl('bimo_big.png');
+const dialogueBoxUrl = '/assets/ui/dialogue-box.png';
 const paperTextUrl = assetUrl('paper_text.png');
 const openBookIconUrl = '/assets/ui/open_book_icon.png';
 const nushuAssetUrl = (fileName: string): string =>
@@ -127,6 +128,9 @@ export class BootScene extends Phaser.Scene {
 
     // 笔墨大图预览
     this.load.image('bimo_big_img', bimoBigUrl);
+
+    // 唱扇女对话框（对齐 Scene 2 的 dialogue-box.png）
+    this.load.image('singing_dialogue_box', dialogueBoxUrl);
 
     // 传唱纸片上方文字图片（纸）
     this.load.image('paper_text_img', paperTextUrl);

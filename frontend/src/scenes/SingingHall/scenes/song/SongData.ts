@@ -11,7 +11,7 @@ import type {
 
 // ==================== 场景2词条定义 ====================
 
-/** 场景2需要解锁的5个女书词条 */
+/** 场景2需要解锁的4个女书词条 */
 export const SONG_ENTRIES: DictionaryEntry[] = [
   {
     id: 'song_ge',
@@ -65,19 +65,6 @@ export const SONG_ENTRIES: DictionaryEntry[] = [
     sceneId: 'singingHall',
     hint: '从传唱纸片中发现',
   },
-  {
-    id: 'song_ji',
-    nvshuChar: '𛆅', // 女书"记"
-    chinese: '记',
-    nushuText: '𛆅',
-    meaning: '记',
-    clueIds: ['clue_basket'],
-    isMainEntry: true,
-    unlocked: false,
-    matched: false,
-    sceneId: 'singingHall',
-    hint: '从笔墨中发现',
-  },
 ];
 
 // ==================== 中文槽位配置 ====================
@@ -88,7 +75,6 @@ export const SONG_SLOTS = [
   { chinese: '声', correctEntryId: 'song_sheng' },
   { chinese: '扇', correctEntryId: 'song_shan' },
   { chinese: '传', correctEntryId: 'song_chuan' },
-  { chinese: '记', correctEntryId: 'song_ji' },
 ];
 
 // ==================== 场景2线索 ====================
@@ -163,7 +149,7 @@ const SONG_CLUE_SOURCES: SingingClueSource[] = [
     type: 'view',
     prompt: '按 E 查看笔墨',
     isFake: false,
-    entryIds: ['song_ji'],
+    entryIds: [],
     displayText: `【笔墨】
 
 一套精致的文房四宝摆在桌上。
@@ -172,10 +158,6 @@ const SONG_CLUE_SOURCES: SingingClueSource[] = [
 
 砚台里还残留着淡淡的墨迹，
 似乎有人刚刚用它写过什么字。
-
-笔杆上刻有一个小小的女书符号：
-
-   𛆅 —— 记
 
 这些歌谣正是靠笔墨记录下来，才能世代相传。`,
   },
@@ -256,16 +238,31 @@ export const SISTERS_NPC: NPC = {
   unlockEntryIds: ['song_sheng'],
 };
 
-/** 唱扇女 NPC - 已移除 */
-// export const SINGER_NPC: NPC = { ... };  // 已删除，不再使用
+// ==================== 唱扇女 NPC 配置 ====================
+
+/** 唱扇女 NPC ID */
+export const SINGER_NPC_ID = 'npc_girl';
+
+/** 唱扇女 NPC 名称 */
+export const SINGER_NPC_NAME = '唱扇女';
+
+/** 唱扇女介绍对话（对齐 Scene 2 绣娘介绍对话） */
+export const SINGER_INTRO_DIALOGUE_LINES = [
+  '歌堂是古代当地女性传习的场所，',
+  '女书的创制是妇女维护自身利益的迫切需要。',
+  '女书作品内容主要是诉苦，用于女性内部的情感交流。',
+] as const;
+
+/** 唱扇女介绍对话已查看标记 */
+export const SINGING_GIRL_INTRO_SEEN_FLAG = 'singingGirlIntroSeen';
 
 // ==================== 推测句子 ====================
 
-/** 最终句子：歌声传记（词条ID顺序） */
-export const FINAL_SENTENCE_IDS = ['song_ge', 'song_sheng', 'song_chuan', 'song_ji'];
+/** 最终句子：歌声传（词条ID顺序） */
+export const FINAL_SENTENCE_IDS = ['song_ge', 'song_sheng', 'song_chuan'];
 
 /** 最终句子中文 */
-export const FINAL_SENTENCE_CN = '歌声传记';
+export const FINAL_SENTENCE_CN = '歌声传';
 
 /** 完成提示 */
 export const COMPLETION_MESSAGE = '「你听懂了唱扇女中被传下来的记忆。」';
