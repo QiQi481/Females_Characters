@@ -205,6 +205,7 @@ function Chapter1({
   const [quizDone, setQuizDone] = useState(false)
   const [quizDismissed, setQuizDismissed] = useState(false) // Q1/Q2 关闭后是否可重开
   const [quizQ1Done, setQuizQ1Done] = useState(false) // Q1 已正确完成，等待 label 触发 Q2
+  const [quizQ2Done, setQuizQ2Done] = useState(false) // Q2 已正确完成，防止 label 重复触发
   const [labelStep, setLabelStep] = useState(0) // label 多段对话步骤 0-3
   const [postQ1DialogueStep, setPostQ1DialogueStep] = useState(-1) // Q1正确后额外对话：-1=未激活, 0=阿禾, 1=旁白
   const [guideDictDone, setGuideDictDone] = useState(false) // 新手引导字典匹配已完成
@@ -656,6 +657,7 @@ function Chapter1({
           } else if (nearestId === 'boundary') {
             setShowBoundaryInfo(true)
           } else if (nearestId === 'label') {
+            if (quizQ2Done) return // Q2 已完成，禁止重复触发
             setShowLabelInfo(true)
             setLabelStep(0)
           }
@@ -766,12 +768,14 @@ function Chapter1({
       setQuizDone(true)
       setQuizActive(false)
       setQuizQ1Done(true)
+      setQuizQ2Done(true)
     }
     if (resumeProgress >= ProgressStage.IN_MATCH) {
       // 直接打开匹配游戏
       setQuizDone(true)
       setQuizActive(false)
       setQuizQ1Done(true)
+      setQuizQ2Done(true)
       setMatchActive(true)
       setMatchStep(1)
     }
@@ -874,11 +878,11 @@ function Chapter1({
   }
 
   // 开始 Quiz 图片阶段
-  const startQuizImage = (q: number) => {
+  const startQuizImage = (q: number, initialStep = 0) => {
     setQuizQuestion(q)
     setQuizActive(true)
     setQuizImageOpen(true)
-    setQuizImageStep(0)
+    setQuizImageStep(initialStep)
   }
 
   // 显示"获得新字形"提示
@@ -930,6 +934,7 @@ function Chapter1({
       } else {
         // Q2 正确 → 阿禾发言 → 匹配题界面 → 阿禾提示
         setQuizActive(false)
+        setQuizQ2Done(true)
         setMatchEverStarted(true)
         setMatchPlacements({})
         setMatchCategoryDone(new Set())
@@ -964,7 +969,7 @@ function Chapter1({
     } else {
       setShowLabelInfo(false)
       setLabelStep(0)
-      startQuizImage(2)
+      startQuizImage(2, 1) // 跳过 step 0 阿禾对话，因为 labelStep 3 已说过
     }
   }
 
