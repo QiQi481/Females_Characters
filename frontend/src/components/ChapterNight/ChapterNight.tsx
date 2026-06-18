@@ -336,21 +336,25 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
 
       {/* 深夜阿禾对话 */}
       {isNightDialogueActive && (
-        <div className="dialog-overlay" onClick={advanceNightDialogue}>
+        <div className="chapter-night-dialog-layer" onClick={advanceNightDialogue}>
           <img
             src="/assets/FirstLevel/ahe-dialogue.png"
             alt="阿禾"
-            className="dialog-portrait"
+            className="chapter-night-dialog-portrait"
+            draggable={false}
           />
-          <div className="dialog-box">
-            <div className="dialog-name-row">
-              <span className="dialog-speaker">阿禾</span>
-              <span className="dialog-flower">&#10047;</span>
-            </div>
-            <p className="dialog-text" key={nightDialogueStep}>
+          <section
+            className="chapter-night-dialog-box"
+            role="dialog"
+            aria-label="阿禾对话"
+          >
+            <div className="chapter-night-dialog-name">阿禾</div>
+            <p className="chapter-night-dialog-text" key={nightDialogueStep}>
               {nightDialogueLinesRef.current[nightDialogueStep]}
             </p>
-            <span className="dialog-next-icon">&#9660;</span>
+          </section>
+          <div className="chapter-night-dialog-controls">
+            E / 点击继续 | Q / ESC 返回
           </div>
         </div>
       )}
