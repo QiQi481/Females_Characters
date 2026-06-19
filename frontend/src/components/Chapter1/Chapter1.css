@@ -649,8 +649,15 @@
 }
 
 /* 标签对话累积文本：行间距参考对话框正文 line-height (48px) 的视觉节奏 */
+/* 标签对话累积文本：行间无额外间距，紧密连续 */
 .chapter1-label-dialog-lines .chapter1-dialog-text-line + .chapter1-dialog-text-line {
-  margin-top: 14px;
+  margin-top: 0;
+}
+
+/* 标签对话第三句中的内嵌图片：对齐微调，确保不撑高行盒 */
+.chapter1-label-dialog-lines .chapter1-dialog-inline-img-spring {
+  height: 1.25em;
+  vertical-align: text-bottom;
 }
 
 /* 标签对话逐句渐入动画 */
