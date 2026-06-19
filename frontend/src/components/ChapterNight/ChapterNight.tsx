@@ -39,12 +39,16 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
   const dialogueStartedRef = useRef(false)
 
   // ── 结尾演出 ──
-  // midnightTitle(5s,雨声渐大) → unlock 深宵+雨声 → poemHint(3s) → fillPuzzle(填词) → poemReveal(3s) → sanChaoBook → blackout → credits
-  type EndingPhase = 'none' | 'midnightTitle' | 'poemHint' | 'fillPuzzle' | 'poemReveal' | 'sanChaoBook' | 'blackout' | 'credits'
+  // midnightTitle(5s,雨声渐大) → unlock 深宵+雨声 → poemHint(3s) → fillPuzzle(填词) → poemReveal(3s) → embroideryMemory → zuoshantangMemory → sanChaoBook → aHeFinalDialogue → blackout → credits
+  type EndingPhase = 'none' | 'midnightTitle' | 'poemHint' | 'fillPuzzle' | 'poemReveal' | 'sanChaoBook' | 'embroideryMemory' | 'zuoshantangMemory' | 'aHeFinalDialogue' | 'blackout' | 'credits'
   type FillPuzzleStep = 'dialogue1' | 'waitingForFill' | 'dialogue2'
   const [endingPhase, setEndingPhase] = useState<EndingPhase>('none')
   const [fillPuzzleStep, setFillPuzzleStep] = useState<FillPuzzleStep>('dialogue1')
   const [sanChaoBookDone, setSanChaoBookDone] = useState(false)
+  const [embroideryTextShown, setEmbroideryTextShown] = useState(false)
+  const [zuoshantangTextShown, setZuoshantangTextShown] = useState(false)
+  const [aHeFinalStep, setAHeFinalStep] = useState(0) // 0=第一行, 1=第二行
+  const [aHeFinalTextRevealed, setAHeFinalTextRevealed] = useState(0) // 当前行已显示字符数
   const [rainVolume, setRainVolume] = useState(0.55)
   const endingTriggeredRef = useRef(false)
   const rainDelayRef = useRef(false)
@@ -164,13 +168,17 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
     }
   }, [endingPhase, fillPuzzleStep, placedSlots])
 
-  // 第三次报幕第二段（poemReveal）：停顿 3 秒 → 进入三朝书补全
+  // 第三次报幕第二段（poemReveal）：玩家按 E/点击 后进入女红空间回忆
   useEffect(() => {
     if (endingPhase !== 'poemReveal') return
-    const timer = setTimeout(() => {
-      setEndingPhase('sanChaoBook')
-    }, 3000)
-    return () => clearTimeout(timer)
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        setEndingPhase('embroideryMemory')
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
   }, [endingPhase])
 
   // 黑屏后进入致谢名单
@@ -222,9 +230,55 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
     setSanChaoBookDone(true)
   }
 
-  const goToBlackout = () => {
+  const goToZuoshantangFromEmbroidery = () => {
+    if (endingPhase !== 'embroideryMemory' || !embroideryTextShown) return
+    setZuoshantangTextShown(false)
+    setEndingPhase('zuoshantangMemory')
+  }
+
+  const showEmbroideryText = () => {
+    if (endingPhase !== 'embroideryMemory' || embroideryTextShown) return
+    setEmbroideryTextShown(true)
+  }
+
+  const goToSanChaoBookFromZuoshantang = () => {
+    if (endingPhase !== 'zuoshantangMemory' || !zuoshantangTextShown) return
+    setSanChaoBookDone(false)
+    setEndingPhase('sanChaoBook')
+  }
+
+  const showZuoshantangText = () => {
+    if (endingPhase !== 'zuoshantangMemory' || zuoshantangTextShown) return
+    setZuoshantangTextShown(true)
+  }
+
+  const AHE_FINAL_LINES = [
+    '谢谢你。你不是替我找到了答案。',
+    '你是陪我把她的话听完了。',
+  ] as const
+
+  const goToAHeFinalDialogueFromSanchao = () => {
     if (endingPhase !== 'sanChaoBook' || !sanChaoBookDone) return
-    setEndingPhase('blackout')
+    setAHeFinalStep(0)
+    setAHeFinalTextRevealed(0)
+    setEndingPhase('aHeFinalDialogue')
+  }
+
+  const advanceAHeFinalDialogue = () => {
+    if (endingPhase !== 'aHeFinalDialogue') return
+    const fullText = AHE_FINAL_LINES[aHeFinalStep]
+    // 如果文字还没打完，直接显示全部
+    if (aHeFinalTextRevealed < fullText.length) {
+      setAHeFinalTextRevealed(fullText.length)
+      return
+    }
+    // 文字已打完，推进下一步
+    if (aHeFinalStep === 0) {
+      setAHeFinalStep(1)
+      setAHeFinalTextRevealed(0)
+    } else {
+      setEndingPhase('blackout')
+    }
   }
 
   useEffect(() => {
@@ -232,12 +286,79 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'e' || e.key === 'E') {
         e.preventDefault()
-        completeSanChaoBook()
+        if (!sanChaoBookDone) {
+          completeSanChaoBook()
+        } else {
+          goToAHeFinalDialogueFromSanchao()
+        }
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [endingPhase, sanChaoBookDone])
+
+  // aHeFinalDialogue 阶段：E 键推进对话
+  useEffect(() => {
+    if (endingPhase !== 'aHeFinalDialogue') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        advanceAHeFinalDialogue()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [endingPhase, aHeFinalStep])
+
+  // aHeFinalDialogue 阶段：逐字出现打字效果
+  useEffect(() => {
+    if (endingPhase !== 'aHeFinalDialogue') {
+      setAHeFinalTextRevealed(0)
+      return
+    }
+    const fullText = AHE_FINAL_LINES[aHeFinalStep]
+    if (aHeFinalTextRevealed >= fullText.length) return
+
+    const timer = setTimeout(() => {
+      setAHeFinalTextRevealed((prev) => Math.min(prev + 1, fullText.length))
+    }, 80) // 每字 80ms，缓缓出现
+
+    return () => clearTimeout(timer)
+  }, [endingPhase, aHeFinalStep, aHeFinalTextRevealed])
+
+  // embroideryMemory 阶段：E 键显示文案 / 再按进入坐唱堂回忆
+  useEffect(() => {
+    if (endingPhase !== 'embroideryMemory') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        if (!embroideryTextShown) {
+          showEmbroideryText()
+        } else {
+          goToZuoshantangFromEmbroidery()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [endingPhase, embroideryTextShown])
+
+  // zuoshantangMemory 阶段：E 键显示文案 / 再按进入三朝书补全
+  useEffect(() => {
+    if (endingPhase !== 'zuoshantangMemory') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        if (!zuoshantangTextShown) {
+          showZuoshantangText()
+        } else {
+          goToSanChaoBookFromZuoshantang()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [endingPhase, zuoshantangTextShown])
 
   // 将诗句的 segments 展平为逐字单元格数组（供竖排渲染）
   interface VerseCell {
@@ -507,8 +628,8 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         <div className="chapter-night-overlay" />
       )}
 
-      {/* 雨滴效果 — Phaser WebGL 渲染 */}
-      <RainPhaserOverlay active={showRain} volume={rainVolume} />
+      {/* 雨滴效果 — Phaser WebGL 渲染；阿禾最终对话时提升层级以显示在场景上方 */}
+      <RainPhaserOverlay active={showRain} volume={rainVolume} zIndex={endingPhase === 'aHeFinalDialogue' ? 99 : 4} />
 
       {/* 词典按钮 — 结尾演出时隐藏 */}
       {titleDone && !isEnding && (
@@ -552,8 +673,8 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         />
       )}
 
-      {/* 深夜阿禾对话 */}
-      {isNightDialogueActive && (
+      {/* 深夜阿禾对话 — 结尾演出时不显示 */}
+      {isNightDialogueActive && !isEnding && (
         <div className="chapter-night-dialog-layer" onClick={advanceNightDialogue}>
           <img
             src="/assets/FirstLevel/ahe-dialogue.png"
@@ -669,14 +790,18 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         </>
       )}
 
-      {/* 第三次报幕第二段：揭示完整诗句 — 3s 后进入三朝书补全 */}
+      {/* 第三次报幕第二段：揭示完整诗句 — 玩家点击/E键 后进入女红空间回忆 */}
       {endingPhase === 'poemReveal' && (
-        <div className="chapter-night-ending chapter-night-ending--locked">
+        <div
+          className="chapter-night-ending chapter-night-ending--clickable"
+          onClick={() => setEndingPhase('embroideryMemory')}
+        >
           <div className="chapter-night-ending-bg" />
           <div className="chapter-night-ending-content">
             <h1 className="chapter-night-ending-title chapter-night-ending-title--poem">
               千言写尽犹余半，留与深宵作雨声
             </h1>
+            <p className="chapter-night-sanchaoshu-hint">按 E / 点击继续</p>
           </div>
         </div>
       )}
@@ -685,7 +810,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
       {endingPhase === 'sanChaoBook' && (
         <div
           className={`chapter-night-sanchaoshu-stage${sanChaoBookDone ? ' is-done' : ''}`}
-          onClick={sanChaoBookDone ? undefined : completeSanChaoBook}
+          onClick={sanChaoBookDone ? goToAHeFinalDialogueFromSanchao : completeSanChaoBook}
         >
           <div className="chapter-night-ending-bg" />
 
@@ -710,7 +835,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
                           <span
                             className={`chapter-night-sanchaoshu-char ${cls}`}
                             key={ci}
-                            style={{ animationDelay: sanChaoBookDone ? `${ci * 0.05}s` : undefined }}
+                            style={{ animationDelay: sanChaoBookDone ? `${ci * 0.1}s` : undefined }}
                           >
                             {cell.char}
                           </span>
@@ -730,7 +855,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
             </p>
           )}
 
-          {/* 补全后：文案 + 下一页按钮 */}
+          {/* 补全后：文案 + 提示 */}
           {sanChaoBookDone && (
             <div className="chapter-night-sanchaoshu-complete">
               <p className="chapter-night-sanchaoshu-text">
@@ -739,15 +864,100 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
               <p className="chapter-night-sanchaoshu-text">
                 那些曾经读不懂的字，慢慢有了声音。
               </p>
-              <button
-                className="chapter-night-sanchaoshu-next-btn"
-                type="button"
-                onClick={(e) => { e.stopPropagation(); goToBlackout() }}
-              >
-                下一页
-              </button>
+              <p className="chapter-night-sanchaoshu-next-hint">点击继续</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 女红空间回忆页 — 三朝书翻页后展示 */}	
+      {endingPhase === 'embroideryMemory' && (
+        <div
+          className="chapter-night-embroidery-memory"
+          onClick={embroideryTextShown ? goToZuoshantangFromEmbroidery : undefined}
+        >
+          <div className="chapter-night-ending-bg" />
+
+          <div className="chapter-night-embroidery-memory-image">
+            <img
+              src="/assets/nightscene/nvgong_asset.png"
+              alt="女红空间回忆"
+              draggable={false}
+            />
+          </div>
+
+          {embroideryTextShown && (
+            <div className="chapter-night-embroidery-memory-text">
+              <p>有些话写在纸上，有些话，就绣在帕上。</p>
+              <p>帕子小，能带在身上。离家的人，也能把话带走。</p>
+            </div>
+          )}
+
+          <p className="chapter-night-sanchaoshu-hint">
+            {embroideryTextShown ? '点击继续' : '按 E'}
+          </p>
+        </div>
+      )}
+
+      {/* 坐唱堂回忆页 — 女红空间翻页后展示 */}
+      {endingPhase === 'zuoshantangMemory' && (
+        <div
+          className="chapter-night-zuoshantang-memory"
+          onClick={zuoshantangTextShown ? goToSanChaoBookFromZuoshantang : undefined}
+        >
+          <div className="chapter-night-ending-bg" />
+
+          <div className="chapter-night-zuoshantang-memory-image">
+            <img
+              src="/assets/nightscene/zuoshantang_asset.png"
+              alt="坐唱堂回忆"
+              draggable={false}
+            />
+          </div>
+
+          {zuoshantangTextShown && (
+            <div className="chapter-night-zuoshantang-memory-text">
+              <p>歌扇还从纸上轻，</p>
+              <p>远行的人，也会记得旧时的声音。</p>
+            </div>
+          )}
+
+          <p className="chapter-night-sanchaoshu-hint">
+            {zuoshantangTextShown ? '点击继续' : '按 E'}
+          </p>
+        </div>
+      )}
+
+      {/* 阿禾最终对话 — sanChaoBook 之后，黑屏之前 */}
+      {endingPhase === 'aHeFinalDialogue' && (
+        <div className="chapter-night-ahe-final-dialogue" onClick={advanceAHeFinalDialogue}>
+          <img
+            src="/assets/FirstLevel/jiangyong_intro_bg.png"
+            alt=""
+            className="chapter-night-ahe-final-bg"
+            draggable={false}
+          />
+          <div className="chapter-night-ahe-final-vignette" />
+          <img
+            src="/assets/FirstLevel/ahe-dialogue.png"
+            alt="阿禾"
+            className="chapter-night-dialog-portrait chapter-night-ahe-final-portrait"
+            draggable={false}
+          />
+          <section
+            className="chapter-night-dialog-box chapter-night-ahe-final-dialog-box"
+            role="dialog"
+            aria-label="阿禾对话"
+          >
+            <div className="chapter-night-dialog-name">阿禾</div>
+            <p className="chapter-night-dialog-text" key={`ahe-final-${aHeFinalStep}`}>
+              {AHE_FINAL_LINES[aHeFinalStep].slice(0, aHeFinalTextRevealed)}
+              <span className="chapter-night-ahe-final-cursor" />
+            </p>
+          </section>
+          <div className="chapter-night-dialog-controls">
+            E / 点击继续
+          </div>
         </div>
       )}
 

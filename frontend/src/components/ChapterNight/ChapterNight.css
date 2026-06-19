@@ -661,7 +661,6 @@
   place-items: center;
   font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
   font-size: clamp(16px, 1.7vw, 26px);
-  color: #3d302b;
   letter-spacing: 0;
   line-height: 1;
 }
@@ -681,7 +680,7 @@
 
 .chapter-night-sanchaoshu-char.is-revealed {
   color: #000;
-  animation: sanChaoRightGlow 1s ease both;
+  animation: sanChaoRightGlow 1.6s ease both;
   animation-delay: var(--animation-delay, 0s);
 }
 
@@ -754,33 +753,237 @@
   }
 }
 
-/* ── 下一页按钮（右下角） ── */
-.chapter-night-sanchaoshu-next-btn {
-  position: fixed;
-  bottom: 4vh;
-  right: 4vw;
-  z-index: 2000;
-  padding: 9px 24px;
-  background: rgba(15, 25, 45, 0.72);
-  border: 1px solid rgba(195, 155, 95, 0.4);
-  border-radius: 4px;
-  color: #cdc4ad;
+/* ── 补全后提示（居中半透明小字） ── */
+.chapter-night-sanchaoshu-next-hint {
+  margin: 1.2rem auto 0;
+  text-align: center;
   font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
-  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
-  letter-spacing: 0.14em;
-  cursor: pointer;
-  transition: all 0.25s;
+  font-size: clamp(0.75rem, 1.3vw, 0.95rem);
+  color: rgba(205, 196, 173, 0.45);
+  letter-spacing: 0.12em;
   opacity: 0;
-  animation: sanChaoNextBtnIn 0.5s ease 0.5s forwards;
+  animation: sanChaoHintIn 0.5s ease 0.6s forwards;
 }
 
-@keyframes sanChaoNextBtnIn {
+@keyframes sanChaoHintIn {
   to { opacity: 1; }
 }
 
-.chapter-night-sanchaoshu-next-btn:hover {
-  background: rgba(28, 48, 78, 0.82);
-  border-color: rgba(215, 185, 115, 0.65);
-  color: #eee2ca;
-  box-shadow: 0 0 18px rgba(195, 145, 75, 0.18);
+/* ================================================================
+   女红空间回忆页 — 三朝书翻页后展示
+   ================================================================ */
+
+.chapter-night-embroidery-memory {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.chapter-night-embroidery-memory-image {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: embroideryImageIn 1s ease 0.2s forwards;
+}
+
+.chapter-night-embroidery-memory-image img {
+  display: block;
+  max-width: min(72vw, 700px);
+  max-height: min(52vh, 420px);
+  object-fit: contain;
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.45));
+}
+
+@keyframes embroideryImageIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 文案区域 ── */
+.chapter-night-embroidery-memory-text {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.4rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: embroideryTextIn 0.85s ease 0.15s forwards;
+}
+
+.chapter-night-embroidery-memory-text p {
+  margin: 0.2em 0;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1rem, 1.9vw, 1.45rem);
+  color: #f0e6d2;
+  letter-spacing: 0.1em;
+  line-height: 1.85;
+  text-shadow: 0 1px 8px rgba(255, 190, 110, 0.22);
+}
+
+@keyframes embroideryTextIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================================================
+   坐唱堂回忆页 — 女红空间翻页后展示
+   ================================================================ */
+
+.chapter-night-zuoshantang-memory {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.chapter-night-zuoshantang-memory-image {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: zuoshantangImageIn 1s ease 0.2s forwards;
+}
+
+.chapter-night-zuoshantang-memory-image img {
+  display: block;
+  max-width: min(72vw, 700px);
+  max-height: min(52vh, 420px);
+  object-fit: contain;
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.45));
+}
+
+@keyframes zuoshantangImageIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 文案区域 ── */
+.chapter-night-zuoshantang-memory-text {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.4rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: zuoshantangTextIn 0.85s ease 0.15s forwards;
+}
+
+.chapter-night-zuoshantang-memory-text p {
+  margin: 0.2em 0;
+  font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+  font-size: clamp(1rem, 1.9vw, 1.45rem);
+  color: #f0e6d2;
+  letter-spacing: 0.1em;
+  line-height: 1.85;
+  text-shadow: 0 1px 8px rgba(255, 190, 110, 0.22);
+}
+
+@keyframes zuoshantangTextIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================================================
+   阿禾最终对话 — sanChaoBook 之后，黑屏之前
+   ================================================================ */
+
+.chapter-night-ahe-final-dialogue {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+.chapter-night-ahe-final-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.35) saturate(0.6);
+  animation: aheFinalBgIn 1s ease forwards;
+}
+
+@keyframes aheFinalBgIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.chapter-night-ahe-final-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 30%, transparent 40%, rgba(5, 5, 15, 0.65) 100%);
+  pointer-events: none;
+}
+
+.chapter-night-ahe-final-portrait {
+  z-index: 2;
+  animation: aheFinalPortraitIn 0.8s ease both;
+}
+
+@keyframes aheFinalPortraitIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.chapter-night-ahe-final-dialog-box {
+  z-index: 3;
+  animation: aheFinalDialogBoxIn 0.5s ease 0.25s both;
+}
+
+@keyframes aheFinalDialogBoxIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* 阿禾最终对话 — 打字光标闪烁 */
+.chapter-night-ahe-final-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: #d4c8a0;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: aheFinalCursorBlink 0.7s step-end infinite;
+}
+
+@keyframes aheFinalCursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
 }
