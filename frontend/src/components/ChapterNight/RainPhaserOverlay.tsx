@@ -263,9 +263,10 @@ function createRainGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConfig
 interface RainPhaserOverlayProps {
   active: boolean
   volume?: number
+  zIndex?: number
 }
 
-function RainPhaserOverlay({ active, volume }: RainPhaserOverlayProps) {
+function RainPhaserOverlay({ active, volume, zIndex = 4 }: RainPhaserOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const sceneRef = useRef<RainScene | null>(null)
@@ -384,7 +385,7 @@ function RainPhaserOverlay({ active, volume }: RainPhaserOverlayProps) {
   return (
     <div
       ref={containerRef}
-      style={{ position: 'fixed', inset: 0, zIndex: 4, pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, zIndex, pointerEvents: 'none' }}
     />
   )
 }
