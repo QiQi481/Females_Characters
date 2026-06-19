@@ -375,19 +375,6 @@ export function DictionaryOverlay({
           )}
         </aside>
 
-        {guideState && (
-          <div
-            className={`dictionary-interaction-guide is-${guideState}`}
-            role={guideState === 'drag' ? 'status' : 'note'}
-          >
-            <span>
-              {guideState === 'drag'
-                ? '按住字牌 | 拖入残卷空缺'
-                : '鼠标点按 女书字 | 读取线索'}
-            </span>
-          </div>
-        )}
-
         {guideState !== 'drag' && (
           <div
             className="dictionary-close-guide"

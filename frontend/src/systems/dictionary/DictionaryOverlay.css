@@ -760,24 +760,7 @@
   pointer-events: none;
 }
 
-.dictionary-interaction-guide {
-  position: absolute;
-  z-index: 9;
-  left: 50%;
-  bottom: 24px;
-  width: fit-content;
-  max-width: 88vw;
-  margin: 0;
-  padding: 7px 14px;
-  color: #4d3b34;
-  background-color: rgba(244, 226, 191, 0.82);
-  font-family: 'SimSun', 'Microsoft YaHei', serif;
-  font-size: 22px;
-  line-height: normal;
-  text-align: center;
-  pointer-events: none;
-  transform: translateX(-50%);
-}
+
 
 .dictionary-close-guide {
   position: absolute;
@@ -981,9 +964,7 @@
     font-size: clamp(16px, 1.92vw, 22px);
   }
 
-  .dictionary-interaction-guide {
-    font-size: 18px;
-  }
+
 
   .dictionary-close-guide {
     font-size: 16px;
@@ -1040,10 +1021,7 @@
     line-height: 1.4;
   }
 
-  .dictionary-interaction-guide {
-    bottom: 14px;
-    font-size: 18px;
-  }
+
 
   .dictionary-close-guide {
     bottom: 14px;
