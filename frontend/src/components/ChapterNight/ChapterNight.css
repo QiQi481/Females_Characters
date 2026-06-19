@@ -456,6 +456,16 @@
   animation: chapterNightDialogTextIn 0.25s ease;
 }
 
+/* 阿禾深夜对话中的女书字形内嵌图片：透明背景 + 黑字转暖金色 */
+.chapter-night-dialog-inline-img {
+  display: inline;
+  height: 1.3em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 0.12em;
+  filter: brightness(0) invert(1) sepia(0.8) saturate(200%) hue-rotate(-20deg);
+}
+
 @keyframes chapterNightDialogTextIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }

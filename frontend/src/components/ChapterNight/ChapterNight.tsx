@@ -689,7 +689,39 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
           >
             <div className="chapter-night-dialog-name">阿禾</div>
             <p className="chapter-night-dialog-text" key={nightDialogueStep}>
-              {nightDialogueLinesRef.current[nightDialogueStep]}
+              {nightDialogueStep === 4 ? (
+                <>
+                  留与
+                  <img
+                    src="/assets/FirstLevel/midnight1.png"
+                    alt=""
+                    className="chapter-night-dialog-inline-img"
+                    draggable={false}
+                  />
+                  <img
+                    src="/assets/FirstLevel/midnight2.png"
+                    alt=""
+                    className="chapter-night-dialog-inline-img"
+                    draggable={false}
+                  />
+                  作
+                  <img
+                    src="/assets/FirstLevel/rain1.png"
+                    alt=""
+                    className="chapter-night-dialog-inline-img"
+                    draggable={false}
+                  />
+                  <img
+                    src="/assets/FirstLevel/rain2.png"
+                    alt=""
+                    className="chapter-night-dialog-inline-img"
+                    draggable={false}
+                  />
+                  ，留至什么，当作什么呢？
+                </>
+              ) : (
+                nightDialogueLinesRef.current[nightDialogueStep]
+              )}
             </p>
           </section>
           <div className="chapter-night-dialog-controls">
