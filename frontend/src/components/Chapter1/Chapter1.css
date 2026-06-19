@@ -648,6 +648,27 @@
   margin-top: 2px;
 }
 
+/* 标签对话累积文本：行间距参考对话框正文 line-height (48px) 的视觉节奏 */
+.chapter1-label-dialog-lines .chapter1-dialog-text-line + .chapter1-dialog-text-line {
+  margin-top: 14px;
+}
+
+/* 标签对话逐句渐入动画 */
+.chapter1-label-line-in {
+  animation: chapter1LabelLineIn 0.35s ease;
+}
+
+@keyframes chapter1LabelLineIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 对话中内嵌图片（如 [记] → remember2.png） */
 .chapter1-dialog-inline-img {
   display: inline;

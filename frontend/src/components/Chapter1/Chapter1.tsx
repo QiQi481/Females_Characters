@@ -1091,14 +1091,19 @@ function Chapter1({
     }
   }
 
-  // label 多段对话推进 → 最后一步触发 Q2
+  // label 多段对话推进（0-2 累积显示三句话，3 为问答触发句）
   const advanceLabelDialogue = () => {
-    if (labelStep < 3) {
+    if (labelStep < 2) {
+      // 逐句追加显示（保留之前的内容）
       setLabelStep((s) => s + 1)
+    } else if (labelStep === 2) {
+      // 三句展示完毕，进入问答提示
+      setLabelStep(3)
     } else {
+      // 问答对话结束，触发 Q2 图片问答
       setShowLabelInfo(false)
       setLabelStep(0)
-      startQuizImage(2, 1) // 跳过 step 0 阿禾对话，因为 labelStep 3 已说过
+      startQuizImage(2, 1)
     }
   }
 
@@ -1732,31 +1737,42 @@ function Chapter1({
         ),
       })}
 
-      {/* 标签多段对话 — 最后一段触发 Q2 */}
-      {showLabelInfo && labelStep === 0 && renderCharacterDialogue({
-        speaker: '阿禾',
-        text: '这棵树下，以前有人挂小木牌。',
-        onClick: advanceLabelDialogue,
-      })}
-      {showLabelInfo && labelStep === 1 && renderCharacterDialogue({
-        speaker: '阿禾',
-        text: '不是为了求什么大事，只是怕有些人、有些话，被日子冲走。',
-        onClick: advanceLabelDialogue,
-      })}
-      {showLabelInfo && labelStep === 2 && renderCharacterDialogue({
+      {/* 标签多段对话 — 三句话在同一个对话框内逐句累积显示 */}
+      {showLabelInfo && labelStep <= 2 && renderCharacterDialogue({
         speaker: '阿禾',
         onClick: advanceLabelDialogue,
         children: (
-          <>
-            写下来，挂在这里，就是想让人
-            <img
-              src="/assets/FirstLevel/remember3.png"
-              alt="记"
-              className="chapter1-dialog-inline-img-spring"
-              draggable={false}
-            />
-            得。
-          </>
+          <div className="chapter1-label-dialog-lines">
+            <p
+              key="label-line-0"
+              className="chapter1-dialog-text-line chapter1-label-line-in"
+            >
+              这棵树下，以前有人挂小木牌。
+            </p>
+            {labelStep >= 1 && (
+              <p
+                key="label-line-1"
+                className="chapter1-dialog-text-line chapter1-label-line-in"
+              >
+                不是为了求什么大事，只是怕有些人、有些话，被日子冲走。
+              </p>
+            )}
+            {labelStep >= 2 && (
+              <p
+                key="label-line-2"
+                className="chapter1-dialog-text-line chapter1-label-line-in"
+              >
+                写下来，挂在这里，就是想让人
+                <img
+                  src="/assets/FirstLevel/remember3.png"
+                  alt="记"
+                  className="chapter1-dialog-inline-img-spring"
+                  draggable={false}
+                />
+                得。
+              </p>
+            )}
+          </div>
         ),
       })}
       {showLabelInfo && labelStep === 3 && renderCharacterDialogue({
