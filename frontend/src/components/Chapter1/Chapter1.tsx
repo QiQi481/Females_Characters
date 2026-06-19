@@ -156,7 +156,6 @@ interface Chapter1Props {
   openDictionary: () => void
   closeDictionary: () => void
   unlockEntry: (entryId: string) => void
-  lockEntry: (entryId: string) => void
   placedSlots: Record<string, string>
   onLeave: (progress: ProgressStage) => void
   onProgressChange: (progress: ProgressStage) => void
@@ -175,7 +174,6 @@ function Chapter1({
   openDictionary,
   closeDictionary,
   unlockEntry,
-  lockEntry,
   placedSlots,
   onLeave,
   onProgressChange,
@@ -527,10 +525,8 @@ function Chapter1({
     prevDictOpenRef.current = isDictionaryOpen
   }, [isDictionaryOpen, quizQ1Done, postQ1DialogueStep, placedSlots, guideDictDone])
 
-  useEffect(() => {
-    if (!quizQ1Done || guideDictDone || postQ1DialogueStep >= 0) return
-    lockEntry('jun-2')
-  }, [guideDictDone, lockEntry, postQ1DialogueStep, quizQ1Done])
+
+
 
   useEffect(() => {
     if (!resumeSceneSwitcherUnlocked) return
@@ -1096,6 +1092,7 @@ function Chapter1({
       // 解锁对应词条
       if (quizQuestion === 1) {
         unlockEntry('jun')
+        unlockEntry('jun-2')
         showGlyphToast('君')
       } else {
         unlockEntry('wang')

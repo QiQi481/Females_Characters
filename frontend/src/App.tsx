@@ -315,7 +315,6 @@ function App() {
           openDictionary={dictionary.openDictionary}
           closeDictionary={dictionary.closeDictionary}
           unlockEntry={dictionary.unlockEntry}
-          lockEntry={dictionary.lockEntry}
           placedSlots={dictionary.placedSlots as Record<string, string>}
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
