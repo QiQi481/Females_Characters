@@ -660,6 +660,16 @@
   padding: 2px;
 }
 
+/* 酒坛对话中的女书字形内嵌图片：透明背景 + 黑字转金黄色 */
+.chapter1-dialog-inline-img-spring {
+  display: inline;
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 0.15em;
+  filter: brightness(0) invert(1) sepia(1) saturate(300%) hue-rotate(-10deg);
+}
+
 @keyframes chapter1DialogTextIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1321,14 +1331,15 @@
   display: flex;
   gap: 1.5em;
   justify-content: center;
-  align-items: flex-start;
-  max-width: min(600px, 80vw);
+  align-items: center;
+  max-width: min(800px, 90vw);
+  margin-top: -6vh;
   animation: slideUp 0.35s ease;
 }
 
 .quiz-image-card {
   flex: 1;
-  max-width: 280px;
+  max-width: 350px;
   padding: 0.8em;
   background: rgba(40, 30, 20, 0.7);
   border: 1px solid rgba(180, 150, 110, 0.35);
@@ -1342,7 +1353,9 @@
   object-fit: contain;
   border-radius: 3px;
   border: 1px solid rgba(201, 168, 124, 0.3);
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  /* 黑字转白色 */
+  filter: brightness(0) invert(1);
 }
 
 .quiz-grid-img {
@@ -1352,7 +1365,9 @@
   object-fit: contain;
   border: 1px solid rgba(201, 168, 124, 0.4);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  /* 黑字转白色 */
+  filter: brightness(0) invert(1);
 }
 
 .quiz-click-hint {
