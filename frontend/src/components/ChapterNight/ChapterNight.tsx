@@ -526,7 +526,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         event.preventDefault()
         if (isDictionaryOpen) {
           closeDictionary()
-        } else if (titleDone && !isEnding) {
+        } else if (titleDone && (!isEnding || endingPhase === 'fillPuzzle')) {
           openDictionary()
         }
         return
