@@ -1,5 +1,6 @@
 ﻿import { useCallback, useState, useRef, useEffect } from 'react'
 import './Chapter1.css'
+import ExplorationHud from '../ExplorationHud/ExplorationHud'
 import { ProgressStage } from '../../utils/gameSave'
 import {
   dictionaryPoemLines,
@@ -48,6 +49,11 @@ const NARRATION_LINES = [
 interface DialogLine {
   speaker: string
   text: string
+}
+
+type GlyphToastState = {
+  label: string
+  nushuImages: readonly string[]
 }
 
 /** 阿禾对话 — 旁白结束后自动触发 */
@@ -266,7 +272,7 @@ function Chapter1({
   const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
   const [matchQ3Transition, setMatchQ3Transition] = useState(false) // Q3 全部正确 → 过渡对话"去女红房"
   // 获得新字形提示
-  const [glyphToast, setGlyphToast] = useState<string | null>(null)
+  const [glyphToast, setGlyphToast] = useState<GlyphToastState | null>(null)
   const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const introLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
@@ -535,15 +541,17 @@ function Chapter1({
     setGuideDictDismissed(true)
     setSceneSwitcherGuideActive(false)
     setSceneSwitcherUnlocked(true)
+    unlockEntry('jun-2')
     placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
-  }, [placePlayerAt, resumeSceneSwitcherUnlocked])
+  }, [placePlayerAt, resumeSceneSwitcherUnlocked, unlockEntry])
 
   const finishSceneSwitcherGuide = useCallback(() => {
     setSceneSwitcherGuideActive(false)
     setSceneSwitcherUnlocked(true)
+    unlockEntry('jun-2')
     placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
     onSceneSwitcherUnlocked()
-  }, [onSceneSwitcherUnlocked, placePlayerAt])
+  }, [onSceneSwitcherUnlocked, placePlayerAt, unlockEntry])
 
   const finishGuideDictSummary = useCallback(() => {
     setGuideDictDismissed(true)
@@ -598,6 +606,26 @@ function Chapter1({
 
       // ========== Q/ESC — 关闭当前弹窗/对话 ==========
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
+        const hasClosableOverlay =
+          quizFeedback !== null ||
+          matchQ3Transition ||
+          matchFinalFeedback !== null ||
+          matchAllWrong ||
+          matchCommentary !== null ||
+          matchCatCommentary !== null ||
+          matchActive ||
+          showBoundaryInfo ||
+          showLetterPopup ||
+          showSwallowInfo ||
+          showSnowInfo ||
+          showWinejarInfo ||
+          showBookPopup ||
+          showLabelInfo ||
+          postQ1DialogueStep >= 0 ||
+          (guideDictDone && !guideDictDismissed) ||
+          sceneSwitcherGuideActive
+
+        if (!hasClosableOverlay) return
         event.preventDefault()
         if (isGuideStage) return
 
@@ -1069,10 +1097,21 @@ function Chapter1({
     setQuizImageStep(initialStep)
   }
 
+  const getDictionaryEntries = (entryIds: readonly string[]) =>
+    entryIds
+      .map((entryId) => entries.find((entry) => entry.id === entryId))
+      .filter((entry): entry is (typeof entries)[number] => Boolean(entry))
+
   // 显示"获得新字形"提示
-  const showGlyphToast = (word: string) => {
+  const showGlyphToast = (entryIds: readonly string[]) => {
+    const unlockedEntries = getDictionaryEntries(entryIds)
+    if (unlockedEntries.length === 0) return
+
     if (glyphToastTimerRef.current) clearTimeout(glyphToastTimerRef.current)
-    setGlyphToast(word)
+    setGlyphToast({
+      label: unlockedEntries.map((entry) => entry.label).join('·'),
+      nushuImages: unlockedEntries.flatMap((entry) => [...entry.nushuImages]),
+    })
     glyphToastTimerRef.current = setTimeout(() => setGlyphToast(null), 2500)
   }
 
@@ -1092,12 +1131,11 @@ function Chapter1({
       // 解锁对应词条
       if (quizQuestion === 1) {
         unlockEntry('jun')
-        unlockEntry('jun-2')
-        showGlyphToast('君')
+        showGlyphToast(['jun'])
       } else {
         unlockEntry('wang')
         unlockEntry('ji')
-        showGlyphToast('忘记·记得')
+        showGlyphToast(['wang', 'ji'])
       }
     } else {
       setQuizFeedback('wrong')
@@ -1334,7 +1372,7 @@ function Chapter1({
     if (label === QUIZ_Q4_CORRECT) {
       setMatchFinalFeedback('correct')
       unlockEntry('chunfeng')
-      showGlyphToast('春风')
+      showGlyphToast(['chunfeng'])
     } else {
       setMatchFinalFeedback('wrong')
     }
@@ -1627,11 +1665,11 @@ function Chapter1({
        !showLabelInfo &&
        !showBookPopup &&
        !isQuizBusy && (
-        <div className="chapter1-hint">
-          {isGuideStage
-            ? `WASD 移动 | E 交互${quizQ1Done ? ' | Tab 词典' : ''}`
-            : `WASD 移动 | E 交互${quizQ1Done ? ' | Tab 词典' : ''} | Q / ESC 返回`}
-        </div>
+        <ExplorationHud
+          bottomText={`WASD 移动 | E 交互${quizQ1Done ? ' | Tab 词典' : ''}`}
+          onReturnToMenu={() => onLeave(getSaveProgress())}
+          showBottom
+        />
       )}
 
       {/* 线索交互提示 — 仅在纯自由探索时显示 */}
@@ -1655,22 +1693,27 @@ function Chapter1({
       )}
 
       {/* HUD — 教程结束后进入自由探索才显示，词典按钮在 Q1 完成后才出现 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && !sceneSwitcherGuideActive && (
+      {!isDictionaryOpen &&
+       narration2Done &&
+       tutorialPhase === 'done' &&
+       postQ1DialogueStep < 0 &&
+       !(guideDictDone && !guideDictDismissed) &&
+       !sceneSwitcherGuideActive &&
+       !showBoundaryInfo &&
+       !showLetterPopup &&
+       !showSwallowInfo &&
+       !showSnowInfo &&
+       !showWinejarInfo &&
+       !showLabelInfo &&
+       !showBookPopup &&
+       !isQuizBusy && (
         <>
-          {quizQ1Done && (
-            <button
-              className="chapter1-dictionary-btn"
-              type="button"
-              aria-label="打开词典"
-              onClick={openDictionary}
-            >
-              <img src="/assets/ui/open_book_icon.png" alt="" />
-              <span>词典</span>
-            </button>
-          )}
-          <div className="chapter1-clue-progress">
-            线索 {clueFoundCount}/7
-          </div>
+          <ExplorationHud
+            clueProgress={{ found: clueFoundCount, total: 7 }}
+            onOpenDictionary={openDictionary}
+            showClueProgress
+            showDictionary={quizQ1Done}
+          />
           <div
             className="chapter1-player-marker"
             aria-hidden="true"
@@ -1850,15 +1893,23 @@ function Chapter1({
       {showBoundaryInfo && (
         <div className="chapter1-object-preview-overlay" onClick={() => setShowBoundaryInfo(false)}>
           <div className="chapter1-object-preview-stage">
-            <div className="chapter1-object-preview-card">
-              <img
-                src="/assets/FirstLevel/location.png"
-                alt="江永县"
-                className="chapter1-object-preview-location"
-              />
-              <p className="chapter1-object-preview-text">
-                江永县位于湖南省南部，隶属永州市，地处湘桂交界一带，拥有"女书文化"、"中国香柚之乡"的称号，古称永明，秦时立县，历史悠久。
-              </p>
+            <div className="chapter1-boundary-showcase">
+              <div className="chapter1-boundary-showcase-image-panel">
+                <img
+                  src="/assets/FirstLevel/location.png"
+                  alt="江永县"
+                  className="chapter1-boundary-showcase-image"
+                />
+              </div>
+              <div className="chapter1-boundary-showcase-copy">
+                <span className="chapter1-boundary-showcase-kicker">
+                  三朝书 · SAN CHAO SHU
+                </span>
+                <h2 className="chapter1-boundary-showcase-title">江永村</h2>
+                <p className="chapter1-boundary-showcase-text">
+                  江永县位于湖南省南部，隶属永州市，地处湘桂交界一带，拥有"女书文化"、"中国香柚之乡"的称号，古称永明，秦时立县，历史悠久。
+                </p>
+              </div>
             </div>
           </div>
           <div className="chapter1-object-preview-hint">
@@ -1931,26 +1982,31 @@ function Chapter1({
 
       {/* Quiz 图片弹窗 — Q2 四图 + 选项同屏显示 */}
       {quizImageOpen && quizImageStep === 1 && quizQuestion === 2 && (
-        <div className="quiz-image-overlay">
-          <div className="quiz-image-popup quiz-q2-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="quiz-image-close" onClick={closeQuizImage}>关闭</button>
-            <div className="quiz-image-grid">
-              <img src="/assets/FirstLevel/forget1.png" alt="忘记·字1" className="quiz-grid-img" />
-              <img src="/assets/FirstLevel/forget2.png" alt="忘记·字2" className="quiz-grid-img" />
-              <img src="/assets/FirstLevel/remember1.png" alt="记得·字1" className="quiz-grid-img" />
-              <img src="/assets/FirstLevel/remember2.png" alt="记得·字2" className="quiz-grid-img" />
+        <div className="quiz-context-overlay">
+          <div className="quiz-context-stage quiz-q2-context-stage">
+            <div className="quiz-q2-glyph-panel" aria-label="忘记与记得的女书字形">
+              <div className="quiz-q2-glyph-column">
+                <img src="/assets/FirstLevel/forget1.png" alt="忘记·字1" className="quiz-q2-glyph" />
+                <img src="/assets/FirstLevel/forget2.png" alt="忘记·字2" className="quiz-q2-glyph" />
+                <img src="/assets/FirstLevel/remember1.png" alt="记得·字1" className="quiz-q2-glyph" />
+                <img src="/assets/FirstLevel/remember2.png" alt="记得·字2" className="quiz-q2-glyph" />
+              </div>
             </div>
-            <p className="quiz-choices-title">请选择正确的含义：</p>
-            <div className="quiz-choices-grid">
-              {QUIZ_Q2_CHOICES.map((label, i) => {
-                const key = String.fromCharCode(65 + i)
-                return (
-                  <button key={key} className="quiz-choice-btn" onClick={() => handleQuizChoice(key)}>
-                    <span className="quiz-choice-key">{key}</span>
-                    <span className="quiz-choice-label">{label}</span>
-                  </button>
-                )
-              })}
+            <div className="quiz-context-panel quiz-q2-context-panel">
+              <p className="quiz-context-title quiz-q2-context-title">
+                这四个字分别是什么意思？
+              </p>
+              <div className="quiz-context-choices quiz-q2-context-choices">
+                {QUIZ_Q2_CHOICES.map((label, i) => {
+                  const key = String.fromCharCode(65 + i)
+                  return (
+                    <button key={key} className="quiz-choice-btn" onClick={() => handleQuizChoice(key)}>
+                      <span className="quiz-choice-key">{key}</span>
+                      <span className="quiz-choice-label">{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -2246,21 +2302,28 @@ function Chapter1({
 
       {/* 获得新字形提示 */}
       {glyphToast && (
-        <div className="glyph-toast" key={glyphToast}>
-          <span className="glyph-toast-icon">&#10022;</span>
-          <span className="glyph-toast-text">获得新字形：{glyphToast} 已加入词典</span>
+        <div className="glyph-toast" key={glyphToast.label}>
+          <span className="glyph-toast-text">获得新字形：</span>
+          <span
+            className={`glyph-toast-images${
+              glyphToast.nushuImages.length > 1 ? ' is-compound' : ''
+            }`}
+            aria-label={glyphToast.label}
+          >
+            {glyphToast.nushuImages.map((image, index) => (
+              <span
+                className="glyph-toast-image"
+                style={{
+                  WebkitMaskImage: `url("${image}")`,
+                  maskImage: `url("${image}")`,
+                }}
+                aria-hidden="true"
+                key={`${glyphToast.label}-${index}`}
+              />
+            ))}
+          </span>
+          <span className="glyph-toast-text">已加入词典</span>
         </div>
-      )}
-
-      {/* 返回主菜单按钮 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !isGuideStage && (
-        <button
-          className="chapter1-return-btn"
-          type="button"
-          onClick={() => onLeave(getSaveProgress())}
-        >
-          返回主菜单
-        </button>
       )}
 
     </div>

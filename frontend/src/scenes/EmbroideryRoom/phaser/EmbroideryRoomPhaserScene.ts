@@ -29,7 +29,7 @@ const DIALOGUE_NPC_KEY = 'embroidery_dialogue_npc'
 const DICTIONARY_ICON_KEY = 'open_book_icon'
 const NUSHU_TOKEN = '{{nushu}}'
 const EXPLORATION_CONTROLS_LABEL =
-  'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回'
+  'WASD 移动 | E 交互 | Tab 词典'
 const DIALOGUE_CONTROLS_LABEL = 'E / 点击继续 | Q / ESC 返回'
 const DIALOGUE_TEXT_X = -390
 const DIALOGUE_TEXT_Y = -59
@@ -93,6 +93,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private saveSystem!: SaveSystem
   private dictionaryBridge!: EmbroideryDictionaryBridge
   private isGlobalDictionaryOpen = false
+  private lastFreeExplorationActive?: boolean
   private bgmVolumeHandler: (() => void) | null = null
 
   private player!: Phaser.Physics.Arcade.Sprite
@@ -262,6 +263,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
   update(): void {
     this.refreshFinalYanUnlock()
+    this.syncFreeExplorationState()
 
     // Tab 键切换词典开关（必须在 isGlobalDictionaryOpen 守卫之前处理）
     if (Phaser.Input.Keyboard.JustDown(this.keyTab)) {
@@ -329,6 +331,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       Phaser.Input.Keyboard.JustDown(this.keyE)
     ) {
       this.openPreview(this.nearestInteraction)
+      this.syncFreeExplorationState()
     }
   }
 
@@ -541,6 +544,8 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setDepth(60)
       .setScrollFactor(0)
+      .setVisible(false)
+    this.updateClueProgress()
 
     this.controlsText = this.add.text(
       width / 2,
@@ -862,7 +867,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.controlsText
       .setText(EXPLORATION_CONTROLS_LABEL)
       .setDepth(60)
-      .setVisible(true)
+      .setVisible(false)
   }
 
   private updateNearestInteraction(): void {
@@ -1325,8 +1330,8 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       this.npcDialogueMode = 'none'
       this.dialogueContainer.setVisible(false)
       this.setIntroInteractionVisibility(true)
-      this.dictionaryButton.setVisible(true)
-      this.dictionaryButtonLabel.setVisible(true)
+      this.dictionaryButton.setVisible(false)
+      this.dictionaryButtonLabel.setVisible(false)
       this.showExplorationControls()
       return
     }
@@ -1340,6 +1345,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.previewContainer.setVisible(false)
     this.setCulturePreviewTextVisible(false)
     this.showExplorationControls()
+    this.syncFreeExplorationState()
   }
 
   private startIntroDialogue(): void {
@@ -1357,6 +1363,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
     this.renderNpcDialogueLine()
+    this.syncFreeExplorationState()
   }
 
   private finishIntroDialogue(): void {
@@ -1369,9 +1376,10 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.dialogueContainer.setVisible(false)
     this.restoreNpcAfterDialogue()
     this.setIntroInteractionVisibility(true)
-    this.dictionaryButton.setVisible(true)
-    this.dictionaryButtonLabel.setVisible(true)
+    this.dictionaryButton.setVisible(false)
+    this.dictionaryButtonLabel.setVisible(false)
     this.showExplorationControls()
+    this.syncFreeExplorationState()
   }
 
   private openFinalYanDialogue(): void {
@@ -1387,6 +1395,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
     this.renderNpcDialogueLine()
+    this.syncFreeExplorationState()
   }
 
   private closeDialogue(): void {
@@ -1402,10 +1411,12 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     if (closedMode === 'interaction') {
       this.activePreview = null
       this.showExplorationControls()
+      this.syncFreeExplorationState()
       return
     }
     this.showExplorationControls()
     if (closedMode === 'summary') this.completeEmbroideryRoom()
+    this.syncFreeExplorationState()
   }
 
   private getDialogueNpcTextureKey(): string {
@@ -1739,11 +1750,24 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.focusNpcForDialogue()
     this.dialogueContainer.setVisible(true)
     this.renderNpcDialogueLine()
+    this.syncFreeExplorationState()
   }
 
   setGlobalDictionaryOpen(isOpen: boolean): void {
     this.isGlobalDictionaryOpen = isOpen
     if (isOpen) this.player?.setVelocity(0, 0)
+    this.syncFreeExplorationState()
+  }
+
+  private syncFreeExplorationState(): void {
+    const active =
+      !this.isGlobalDictionaryOpen &&
+      !this.dialogueOpen &&
+      this.activePreview === null
+
+    if (active === this.lastFreeExplorationActive) return
+    this.lastFreeExplorationActive = active
+    this.dictionaryBridge?.setFreeExplorationActive?.(active)
   }
 
   private getClueProgressLabel(): string {
@@ -1755,6 +1779,13 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
   private updateClueProgress(): void {
     this.clueProgressText.setText(this.getClueProgressLabel())
+    const foundCount = MAIN_CLUE_IDS.filter((clueId) =>
+      this.saveSystem?.isClueDiscovered(clueId),
+    ).length
+    this.dictionaryBridge?.setClueProgress?.({
+      found: foundCount,
+      total: MAIN_CLUE_IDS.length,
+    })
   }
 
   private arePreFinalCluesDiscovered(): boolean {
@@ -1999,6 +2030,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   }
 
   private shutdown(): void {
+    this.dictionaryBridge?.setFreeExplorationActive?.(false)
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this)
     if (this.bgmVolumeHandler) {
       window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler)

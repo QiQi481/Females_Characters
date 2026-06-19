@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Phaser from 'phaser'
 import type {
   DictionaryEntry,
   DictionaryPuzzle,
 } from '../../systems/dictionary'
+import ExplorationHud from '../../components/ExplorationHud/ExplorationHud'
 import type { GlobalDictionaryBridge } from '../../game/GlobalDictionaryBridge'
 import { createSingingHallGameConfig } from './config'
 import { Scene5 } from './scenes/Scene5'
@@ -32,6 +33,8 @@ function SingingHall({
   const closeDictionaryRef = useRef(closeDictionary)
   const unlockEntryRef = useRef(unlockEntry)
   const returnToMenuRef = useRef(onReturnToMenu)
+  const [clueProgress, setClueProgress] = useState({ found: 0, total: 7 })
+  const [freeExplorationActive, setFreeExplorationActive] = useState(false)
 
   useEffect(() => {
     openDictionaryRef.current = openDictionary
@@ -49,6 +52,8 @@ function SingingHall({
       closeDictionary: () => closeDictionaryRef.current(),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
       returnToMenu: () => returnToMenuRef.current(),
+      setClueProgress,
+      setFreeExplorationActive,
     }
     const game = new Phaser.Game(
       createSingingHallGameConfig(container, dictionaryBridge),
@@ -67,22 +72,30 @@ function SingingHall({
   }, [])
 
   useEffect(() => {
-    const scene = gameRef.current?.scene.getScene(SceneKeys.SCENE5)
-    if (scene instanceof Scene5) {
-      scene.setGlobalDictionaryOpen(isDictionaryOpen)
+    const scene5 = gameRef.current?.scene.getScene(SceneKeys.SCENE5)
+    if (scene5 instanceof Scene5) {
+      scene5.setGlobalDictionaryOpen(isDictionaryOpen)
+    }
+
+    const mainScene = gameRef.current?.scene.getScene(SceneKeys.MAIN)
+    if (mainScene instanceof MainScene) {
+      mainScene.setGlobalDictionaryOpen(isDictionaryOpen)
     }
   }, [isDictionaryOpen])
 
   return (
     <section className="singing-hall" aria-label="坐歌堂 / 歌扇空间">
       <div className="singing-hall__game" ref={containerRef} />
-      <button
-        className="singing-hall-return-btn"
-        type="button"
-        onClick={onReturnToMenu}
-      >
-        返回主菜单
-      </button>
+      {freeExplorationActive && !isDictionaryOpen && (
+        <ExplorationHud
+          clueProgress={clueProgress}
+          onOpenDictionary={() => openDictionary()}
+          onReturnToMenu={onReturnToMenu}
+          showBottom
+          showClueProgress
+          showDictionary
+        />
+      )}
     </section>
   )
 }

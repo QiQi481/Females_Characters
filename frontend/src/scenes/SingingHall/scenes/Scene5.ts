@@ -93,7 +93,7 @@ const DIALOGUE_LINE_HEIGHT = 48;
 const DIALOGUE_GLYPH_HEIGHT = 75;
 const DIALOGUE_GLYPH_GAP = 3;
 
-const EXPLORATION_CONTROLS_LABEL = 'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回';
+const EXPLORATION_CONTROLS_LABEL = 'WASD 移动 | E 交互 | Tab 词典';
 const DIALOGUE_CONTROLS_LABEL = 'E / 点击继续 | Q / ESC 返回';
 
 type DialogueState = 'pending' | 'playing' | 'complete';
@@ -132,6 +132,7 @@ export class Scene5 extends Phaser.Scene {
   private dictSystem!: DictionarySystem;
   private dictionaryBridge!: GlobalDictionaryBridge;
   private isGlobalDictionaryOpen = false;
+  private lastFreeExplorationActive?: boolean;
   private bgmVolumeHandler: (() => void) | null = null;
   private pendingDictionaryPuzzle: SingingDictionaryPuzzleConfig | null = null;
   private pendingGlyphToastTargets = new Set<string>();
@@ -367,12 +368,14 @@ export class Scene5 extends Phaser.Scene {
 
     // ========== HUD：固定在屏幕上的UI（使用 setScrollFactor(0)）==========
     this.createHUD();
+    this.syncFreeExplorationState();
 
     // ========== 唱扇女介绍对话（对齐 Scene 2）==========
     this.initializeGirlIntroDialogue();
   }
 
   update(): void {
+    this.syncFreeExplorationState();
     if (this.completionMode || this.popupOpen || this.guessOpen || this.isGlobalDictionaryOpen || this.dialogueOpen) {
       this.player.setVelocity(0, 0);
       return;
@@ -389,6 +392,7 @@ export class Scene5 extends Phaser.Scene {
 
     // 检测附近可交互对象
     this.checkProximity();
+    this.syncFreeExplorationState();
   }
 
   private handleViewportResize(gameSize: Phaser.Structs.Size): void {
@@ -552,6 +556,7 @@ export class Scene5 extends Phaser.Scene {
       .setDisplaySize(110, 85)
       .setDepth(52)
       .setScrollFactor(0)
+      .setVisible(false)
       .setInteractive({ useHandCursor: true });
     this.dictionaryButton = dictBtn;
 
@@ -565,7 +570,7 @@ export class Scene5 extends Phaser.Scene {
       backgroundColor: 'rgba(244, 226, 191, 0.82)',
       padding: { x: 9, y: 3 },
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
-    }).setOrigin(0.5, 0).setDepth(53).setScrollFactor(0);
+    }).setOrigin(0.5, 0).setDepth(53).setScrollFactor(0).setVisible(false);
 
     this.clueProgressText = this.add.text(VIEW_WIDTH - 24, 24, `线索 ${this.clueFoundCount}/${this.clueTotalCount}`, {
       fontSize: '24px',
@@ -573,12 +578,13 @@ export class Scene5 extends Phaser.Scene {
       backgroundColor: 'rgba(244, 226, 191, 0.9)',
       padding: { x: 16, y: 9 },
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
-    }).setOrigin(1, 0).setDepth(60).setScrollFactor(0);
+    }).setOrigin(1, 0).setDepth(60).setScrollFactor(0).setVisible(false);
+    this.syncClueProgress();
 
     this.controlsHint = this.add.text(
       VIEW_WIDTH / 2,
       VIEW_HEIGHT - 24,
-      'WASD 移动 | E 交互 | Tab 词典 | Q / ESC 返回',
+      EXPLORATION_CONTROLS_LABEL,
       {
         fontSize: '22px',
         color: '#4d3b34',
@@ -586,7 +592,7 @@ export class Scene5 extends Phaser.Scene {
         padding: { x: 14, y: 7 },
         fontFamily: '"SimSun", "Microsoft YaHei", serif',
       },
-    ).setOrigin(0.5, 1).setDepth(60).setScrollFactor(0);
+    ).setOrigin(0.5, 1).setDepth(60).setScrollFactor(0).setVisible(false);
   }
 
   private createInteractionLabel(
@@ -1056,6 +1062,7 @@ export class Scene5 extends Phaser.Scene {
       this.dictSystem.discoverClue(target);
       this.clueFoundCount++;
       this.clueProgressText.setText(`线索 ${this.clueFoundCount}/${this.clueTotalCount}`);
+      this.syncClueProgress();
 
       const dictionaryPuzzle = GLOBAL_DICTIONARY_PUZZLES[target];
       if (dictionaryPuzzle) {
@@ -1153,6 +1160,7 @@ export class Scene5 extends Phaser.Scene {
     this.popupOpen = true;
     this._pendingEntryIds = entryIds;
     this.popupContainer.setVisible(true);
+    this.syncFreeExplorationState();
     this.scene.pause();
   }
 
@@ -1160,6 +1168,7 @@ export class Scene5 extends Phaser.Scene {
     this.popupOpen = false;
     this.popupContainer.setVisible(false);
     this.scene.resume();
+    this.syncFreeExplorationState();
     if (this._pendingEntryIds.length > 0) {
       this._pendingEntryIds.forEach((id) => {
         const entry = SONG_ENTRIES.find((e) => e.id === id);
@@ -1182,7 +1191,7 @@ export class Scene5 extends Phaser.Scene {
     this.controlsHint
       .setText(EXPLORATION_CONTROLS_LABEL)
       .setDepth(60)
-      .setVisible(true);
+      .setVisible(false);
   }
 
   private createDialogueBox(): void {
@@ -1623,6 +1632,7 @@ export class Scene5 extends Phaser.Scene {
     this.refreshGuessButtons();
     this.guessOpen = true;
     this.guessContainer.setVisible(true);
+    this.syncFreeExplorationState();
     this.scene.pause();
   }
 
@@ -1668,6 +1678,7 @@ export class Scene5 extends Phaser.Scene {
     this.guessOpen = false;
     this.guessContainer.setVisible(false);
     this.scene.resume();
+    this.syncFreeExplorationState();
   }
 
   // ==================== 统一对话系统（严格对齐 Scene 2）====================
@@ -1675,6 +1686,7 @@ export class Scene5 extends Phaser.Scene {
   /** 开始对话（严格对齐 Scene 2 startIntroDialogue） */
   private startDialogue(name: string, lines: string[], onComplete?: () => void): void {
     this.dialogueOpen = true;
+    this.syncFreeExplorationState();
     this.dialogueLines = lines;
     this.dialogueLineIndex = 0;
     this.dialogueSpeaker = name;
@@ -1731,6 +1743,7 @@ export class Scene5 extends Phaser.Scene {
     } else {
       this.showExplorationControls();
     }
+    this.syncFreeExplorationState();
   }
 
   /** 完成对话（所有行已显示完毕，触发 onComplete 回调）（对齐 Scene 2） */
@@ -1749,6 +1762,7 @@ export class Scene5 extends Phaser.Scene {
     if (this.girlIntroDialogueState === 'playing') {
       this.finishGirlIntroDialogue();
     }
+    this.syncFreeExplorationState();
   }
 
   // ==================== 唱扇女介绍对话（对齐 Scene 2）====================
@@ -1849,6 +1863,7 @@ export class Scene5 extends Phaser.Scene {
   private enterCompletionScene(): void {
     // 进入完成场景模式
     this.completionMode = true;
+    this.syncFreeExplorationState();
     this.savedPlayerPos = { x: this.player.x, y: this.player.y };
 
     // ========== 隐藏所有线索、NPC、玩家、HUD ==========
@@ -1912,6 +1927,7 @@ export class Scene5 extends Phaser.Scene {
   /** 退出完成场景，恢复主游戏 */
   private exitCompletionMode(): void {
     this.completionMode = false;
+    this.syncFreeExplorationState();
 
     // 清除完成场景的图层
     ['completion_mid', 'completion_top', 'completion_esc_hint'].forEach((name) => {
@@ -2076,6 +2092,7 @@ export class Scene5 extends Phaser.Scene {
   // ==================== 清理 ====================
 
   shutdown(): void {
+    this.dictionaryBridge?.setFreeExplorationActive?.(false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this);
     if (this.bgmVolumeHandler) {
       window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, this.bgmVolumeHandler);
@@ -2087,5 +2104,26 @@ export class Scene5 extends Phaser.Scene {
   setGlobalDictionaryOpen(isOpen: boolean): void {
     this.isGlobalDictionaryOpen = isOpen;
     if (isOpen) this.player?.setVelocity(0, 0);
+    this.syncFreeExplorationState();
+  }
+
+  private syncClueProgress(): void {
+    this.dictionaryBridge?.setClueProgress?.({
+      found: this.clueFoundCount,
+      total: this.clueTotalCount,
+    });
+  }
+
+  private syncFreeExplorationState(): void {
+    const active =
+      !this.isGlobalDictionaryOpen &&
+      !this.completionMode &&
+      !this.popupOpen &&
+      !this.dialogueOpen &&
+      !this.guessOpen;
+
+    if (active === this.lastFreeExplorationActive) return;
+    this.lastFreeExplorationActive = active;
+    this.dictionaryBridge?.setFreeExplorationActive?.(active);
   }
 }

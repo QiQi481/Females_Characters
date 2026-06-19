@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import TitleCard from '../TitleCard/TitleCard'
 import RainPhaserOverlay from './RainPhaserOverlay'
+import ExplorationHud from '../ExplorationHud/ExplorationHud'
 import type { DictionaryPuzzle } from '../../systems/dictionary/dictionaryData'
 import { dictionaryPoemLines, entries } from '../../systems/dictionary/dictionaryData'
 import type { DictionaryPoemSegment } from '../../systems/dictionary/dictionaryData'
@@ -545,9 +546,8 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         return
       }
 
-      // Q / ESC — 暂无弹窗可关闭，预留
+      // Q / ESC — 自由探索阶段不响应，临时界面另行处理
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
-        event.preventDefault()
         return
       }
 
@@ -690,34 +690,21 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
       <RainPhaserOverlay active={showRain} volume={rainVolume} zIndex={endingPhase === 'aHeFinalDialogue' ? 99 : 4} />
 
       {/* 词典按钮 — 结尾演出时隐藏 */}
-      {titleDone && !isEnding && (
-        <button
-          className="chapter-night-dictionary-btn"
-          type="button"
-          aria-label="打开词典"
-          onClick={openDictionary}
-        >
-          <img src="/assets/ui/open_book_icon.png" alt="" />
-          <span>词典</span>
-        </button>
+      {titleDone && !isEnding && !isNightDialogueActive && !isDictionaryOpen && (
+        <ExplorationHud
+          onOpenDictionary={() => openDictionary()}
+          showDictionary
+          theme="night"
+        />
       )}
 
       {/* 操作提示 — 自由探索时显示，对话/结尾演出时隐藏 */}
-      {titleDone && !isEnding && !isNightDialogueActive && (
-        <div className="chapter-night-hint">
-          WASD 移动 | E 交互 | Q/ESC 关闭 | Tab 词典
-        </div>
-      )}
-
-      {/* 返回主菜单按钮 — 结尾演出时隐藏 */}
-      {titleDone && !isEnding && (
-        <button
-          className="chapter-night-return-btn"
-          type="button"
-          onClick={onReturnToMenu}
-        >
-          返回主菜单
-        </button>
+      {titleDone && !isEnding && !isNightDialogueActive && !isDictionaryOpen && (
+        <ExplorationHud
+          onReturnToMenu={onReturnToMenu}
+          showBottom
+          theme="night"
+        />
       )}
 
       {/* 玩家标记点 — 结尾演出时隐藏 */}

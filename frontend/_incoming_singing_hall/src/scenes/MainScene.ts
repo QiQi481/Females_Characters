@@ -1794,7 +1794,7 @@ export class MainScene extends Phaser.Scene {
     if (hint) hint.destroy();
 
     this.girlLines = [
-      '歌堂是古代当地女性传习的场所，',
+      '这里的字，不只用眼睛读。',
       '女书的创制是妇女维护自身利益的迫切需要。',
       '女书作品内容主要是诉苦，用于女性内部的情感交流。',
     ];

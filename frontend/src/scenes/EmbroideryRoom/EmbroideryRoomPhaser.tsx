@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Phaser from 'phaser'
 import { createEmbroideryRoomGameConfig } from '../SingingHall/config'
 import type {
   DictionaryEntry,
   DictionaryPuzzle,
 } from '../../systems/dictionary'
+import ExplorationHud from '../../components/ExplorationHud/ExplorationHud'
 import type { EmbroideryDictionaryBridge } from './phaser/EmbroideryDictionaryBridge'
 import {
   EmbroideryRoomPhaserScene,
@@ -33,6 +34,8 @@ function EmbroideryRoomPhaser({
   const closeDictionaryRef = useRef(closeDictionary)
   const unlockEntryRef = useRef(unlockEntry)
   const returnToMenuRef = useRef(onReturnToMenu)
+  const [clueProgress, setClueProgress] = useState({ found: 0, total: 7 })
+  const [freeExplorationActive, setFreeExplorationActive] = useState(false)
 
   useEffect(() => {
     openDictionaryRef.current = openDictionary
@@ -50,6 +53,8 @@ function EmbroideryRoomPhaser({
       closeDictionary: () => closeDictionaryRef.current(),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
       returnToMenu: () => returnToMenuRef.current(),
+      setClueProgress,
+      setFreeExplorationActive,
     }
     const game = new Phaser.Game(
       createEmbroideryRoomGameConfig(container, dictionaryBridge),
@@ -79,13 +84,16 @@ function EmbroideryRoomPhaser({
   return (
     <section className="singing-hall" aria-label="女红房 Phaser 场景">
       <div className="singing-hall__game" ref={containerRef} />
-      <button
-        className="embroidery-room-return-btn"
-        type="button"
-        onClick={onReturnToMenu}
-      >
-        返回主菜单
-      </button>
+      {freeExplorationActive && !isDictionaryOpen && (
+        <ExplorationHud
+          clueProgress={clueProgress}
+          onOpenDictionary={() => openDictionary()}
+          onReturnToMenu={onReturnToMenu}
+          showBottom
+          showClueProgress
+          showDictionary
+        />
+      )}
     </section>
   )
 }

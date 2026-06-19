@@ -305,11 +305,22 @@
 }
 
 /* ========== 操作提示 ========== */
-.chapter-night-hint {
+.chapter-night-bottom-hud {
   position: fixed;
   left: 50%;
   bottom: 24px;
   z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  max-width: 92vw;
+  flex-wrap: wrap;
+  transform: translateX(-50%);
+}
+
+.chapter-night-hint {
   padding: 7px 14px;
   color: #d0d8e8;
   background-color: rgba(20, 30, 55, 0.82);
@@ -318,26 +329,25 @@
   line-height: normal;
   text-align: center;
   pointer-events: none;
-  transform: translateX(-50%);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* ========== 返回主菜单按钮 ========== */
 .chapter-night-return-btn {
-  position: fixed;
-  bottom: 4vh;
-  right: 4vw;
-  z-index: 10;
-  padding: 8px 20px;
+  flex: 0 0 auto;
+  padding: 7px 18px;
   background: rgba(10, 20, 40, 0.7);
   border: 1px solid rgba(100, 140, 180, 0.4);
   border-radius: 4px;
   color: #b0c8df;
-  font-family: 'STKaiti', 'KaiTi', serif;
-  font-size: 0.9rem;
+  font-family: 'SimSun', 'Microsoft YaHei', serif;
+  font-size: 22px;
+  line-height: normal;
   cursor: pointer;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   transition: all 0.2s;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .chapter-night-return-btn:hover {
