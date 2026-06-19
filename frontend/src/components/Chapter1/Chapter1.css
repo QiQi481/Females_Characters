@@ -660,6 +660,16 @@
   padding: 2px;
 }
 
+/* 酒坛对话中的女书字形内嵌图片：透明背景 + 黑字转金黄色 */
+.chapter1-dialog-inline-img-spring {
+  display: inline;
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 0.15em;
+  filter: brightness(0) invert(1) sepia(1) saturate(300%) hue-rotate(-10deg);
+}
+
 @keyframes chapter1DialogTextIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }

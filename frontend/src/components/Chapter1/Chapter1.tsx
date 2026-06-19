@@ -1674,8 +1674,19 @@ function Chapter1({
       {/* 酒坛信息弹窗 */}
       {showWinejarInfo && renderCharacterDialogue({
         speaker: '阿禾',
-        text: '这是一坛纯酒，上面似乎还有一些字，料峭X风吹酒醒，看起来像是一首诗。',
         onClick: () => setShowWinejarInfo(false),
+        children: (
+          <>
+            这是一坛纯酒，上面似乎还有一些字，料峭
+            <img
+              src="/assets/FirstLevel/spring1.png"
+              alt="春"
+              className="chapter1-dialog-inline-img-spring"
+              draggable={false}
+            />
+            风吹酒醒，看起来像是一首诗。
+          </>
+        ),
       })}
 
       {/* 标签多段对话 — 最后一段触发 Q2 */}
@@ -1696,9 +1707,9 @@ function Chapter1({
           <>
             写下来，挂在这里，就是想让人
             <img
-              src="/assets/FirstLevel/remember1.png"
+              src="/assets/FirstLevel/remember3.png"
               alt="记"
-              className="chapter1-dialog-inline-img"
+              className="chapter1-dialog-inline-img-spring"
               draggable={false}
             />
             得。
