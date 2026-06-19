@@ -4,11 +4,13 @@ import RainPhaserOverlay from './RainPhaserOverlay'
 import type { DictionaryPuzzle } from '../../systems/dictionary/dictionaryData'
 import { dictionaryPoemLines, entries } from '../../systems/dictionary/dictionaryData'
 import type { DictionaryPoemSegment } from '../../systems/dictionary/dictionaryData'
+import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from '../../utils/audioSettings'
 import './ChapterNight.css'
 
 const MOVE_SPEED = 500
 const SCENE_SCALE = 1.8
 const SCENE_IMG = '/assets/FirstLevel/mainscene.png'
+const CHAPTER_NIGHT_BGM = '/audio/Rainy Hunan Pages.mp3'
 
 interface ChapterNightProps {
   onReturnToMenu: () => void
@@ -31,6 +33,56 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
   const keysRef = useRef<Set<string>>(new Set())
   const animRef = useRef<number>(0)
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
+
+  // ========== 场景 4 BGM：雨巷书页 ==========
+  const bgmRef = useRef<HTMLAudioElement | null>(null)
+
+  // 创建 Audio 实例，监听音量变更
+  useEffect(() => {
+    const audio = new Audio(CHAPTER_NIGHT_BGM)
+    audio.loop = true
+    const initialVol = getBgmVolume()
+    audio.volume = initialVol
+    audio.muted = initialVol === 0
+    bgmRef.current = audio
+
+    const onBgmVolumeChange = () => {
+      const vol = getBgmVolume()
+      audio.volume = vol
+      audio.muted = vol === 0
+    }
+    window.addEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
+
+    // 尝试播放（浏览器自动播放策略可能阻止）
+    audio.play().catch(() => {})
+
+    // 用户首次交互时重试播放
+    const tryPlay = () => {
+      if (audio.paused) {
+        audio.play().catch(() => {})
+      }
+    }
+    const events = ['click', 'touchstart', 'keydown']
+    events.forEach((e) => document.addEventListener(e, tryPlay, { once: true }))
+
+    return () => {
+      window.removeEventListener(BGM_VOLUME_CHANGE_EVENT, onBgmVolumeChange)
+      events.forEach((e) => document.removeEventListener(e, tryPlay))
+    }
+  }, [])
+
+  // 组件卸载时释放 BGM 资源
+  useEffect(() => {
+    return () => {
+      const a = bgmRef.current
+      if (a) {
+        a.pause()
+        a.src = ''
+        a.load()
+        bgmRef.current = null
+      }
+    }
+  }, [])
 
   // 深夜阿禾对话
   const [nightDialogueStep, setNightDialogueStep] = useState(-1) // -1=不活跃, 0..n=对话步数
