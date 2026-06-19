@@ -814,13 +814,38 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         </div>
       )}
 
-      {/* 第三次报幕第一段：千言写尽犹余半，留与XX作XX — 3s 自动进入填词 */} 
+      {/* 第三次报幕第一段：千言写尽犹余半，留与[midnight1][midnight2]作[rain1][rain2] — 3s 自动进入填词 */} 
       {endingPhase === 'poemHint' && (
         <div className="chapter-night-ending chapter-night-ending--locked">
           <div className="chapter-night-ending-bg" />
           <div className="chapter-night-ending-content">
             <h1 className="chapter-night-ending-title chapter-night-ending-title--poem">
-              千言写尽犹余半，留与XX作XX
+              千言写尽犹余半，留与
+              <img
+                src="/assets/FirstLevel/midnight1.png"
+                alt=""
+                className="chapter-night-ending-char"
+                draggable={false}
+              />
+              <img
+                src="/assets/FirstLevel/midnight2.png"
+                alt=""
+                className="chapter-night-ending-char"
+                draggable={false}
+              />
+              作
+              <img
+                src="/assets/FirstLevel/rain1.png"
+                alt=""
+                className="chapter-night-ending-char"
+                draggable={false}
+              />
+              <img
+                src="/assets/FirstLevel/rain2.png"
+                alt=""
+                className="chapter-night-ending-char"
+                draggable={false}
+              />
             </h1>
           </div>
         </div>
