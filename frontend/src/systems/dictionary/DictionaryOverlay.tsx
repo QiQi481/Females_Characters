@@ -407,7 +407,7 @@ export function DictionaryOverlay({
             className="dictionary-close-guide"
             role="status"
           >
-            Tab / 点击 合 关闭词典
+            Tab / 点击书签 合上词典
           </div>
         )}
 
