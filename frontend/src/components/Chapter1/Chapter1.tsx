@@ -144,6 +144,7 @@ interface Chapter1Props {
   resumeProgress: number
   isDictionaryOpen: boolean
   openDictionary: () => void
+  closeDictionary: () => void
   unlockEntry: (entryId: string) => void
   placedSlots: Record<string, string>
   onLeave: (progress: ProgressStage) => void
@@ -155,6 +156,7 @@ function Chapter1({
   resumeProgress,
   isDictionaryOpen,
   openDictionary,
+  closeDictionary,
   unlockEntry,
   placedSlots,
   onLeave,
@@ -517,6 +519,18 @@ function Chapter1({
 
   useEffect(() => {
     const handleHudKeyDown = (event: KeyboardEvent) => {
+      // Tab 键切换词典开关（必须在 isDictionaryOpen 守卫之前处理）
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        if (!narration2Done || tutorialPhase !== 'done' || !quizQ1Done) return
+        if (isDictionaryOpen) {
+          closeDictionary()
+        } else {
+          openDictionary()
+        }
+        return
+      }
+
       if (isDictionaryOpen) return
       if (introLoading) return
 
@@ -741,15 +755,6 @@ function Chapter1({
         return
       }
 
-      // ========== 探索阶段专属按键 ==========
-      // Tab 键：教程阶段和 Q1 结束前完全禁用
-      if (event.key === 'Tab') {
-        event.preventDefault() // 阻止浏览器默认焦点切换
-        if (!narration2Done || tutorialPhase !== 'done' || !quizQ1Done) return // 旁白提示"按 Tab"前禁止打开字典
-        openDictionary()
-        return
-      }
-
       if (!narration2Done || tutorialPhase !== 'done') return
 
       if (event.key === 'Escape' || event.key.toLowerCase() === 'q') {
@@ -779,6 +784,7 @@ function Chapter1({
     narration2Done,
     onLeave,
     openDictionary,
+    closeDictionary,
     showBoundaryInfo,
     showLetterPopup,
     showSwallowInfo,

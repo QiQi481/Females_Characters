@@ -645,7 +645,7 @@
 }
 
 .chapter1-dialog-text-line + .chapter1-dialog-text-line {
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 /* 对话中内嵌图片（如 [记] → remember2.png） */
@@ -909,7 +909,7 @@
   flex-direction: row-reverse;
   align-items: flex-start;
   justify-content: center;
-  gap: clamp(21px, 1.7vw, 30px);
+  gap: clamp(14px, 1.1vw, 22px);
   margin: 0;
   padding: 0;
 }

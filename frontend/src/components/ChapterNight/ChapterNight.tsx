@@ -14,12 +14,13 @@ interface ChapterNightProps {
   onReturnToMenu: () => void
   isDictionaryOpen: boolean
   openDictionary: (puzzle?: DictionaryPuzzle) => void
+  closeDictionary: () => void
   unlockEntry: (entryId: string) => void
   unlockedEntryCount: number
   placedSlots: Record<string, string>
 }
 
-function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlockEntry, unlockedEntryCount, placedSlots }: ChapterNightProps) {
+function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeDictionary, unlockEntry, unlockedEntryCount, placedSlots }: ChapterNightProps) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const playerWorldRef = useRef({ x: 0, y: 0 })
   const cameraRef = useRef({ x: 0, y: 0 })
@@ -341,6 +342,18 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
   // HUD 按键（Tab 词典 / E 交互 / Q 关闭）
   useEffect(() => {
     const handleHudKeyDown = (event: KeyboardEvent) => {
+      // Tab 键切换词典开关（任何状态下均可操作）
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        if (isDictionaryOpen) {
+          closeDictionary()
+        } else if (titleDone && !isEnding) {
+          openDictionary()
+        }
+        return
+      }
+
+      // 词典打开 / 未完成标题 / 落幕期间，忽略其他按键
       if (isDictionaryOpen || !titleDone || isEnding) return
 
       // 深夜对话中：E 推进对话（忽略 key-repeat）
@@ -350,13 +363,6 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
           event.preventDefault()
           advanceNightDialogue()
         }
-        return
-      }
-
-      // Tab — 打开词典
-      if (event.key === 'Tab') {
-        event.preventDefault()
-        openDictionary()
         return
       }
 
@@ -375,7 +381,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, unlock
 
     window.addEventListener('keydown', handleHudKeyDown)
     return () => window.removeEventListener('keydown', handleHudKeyDown)
-  }, [isDictionaryOpen, titleDone, openDictionary, isNightDialogueActive, isEnding])
+  }, [isDictionaryOpen, titleDone, openDictionary, closeDictionary, isNightDialogueActive, isEnding])
 
   // 窗口 resize
   useEffect(() => {

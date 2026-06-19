@@ -35,7 +35,7 @@ const DIALOGUE_TEXT_X = -390
 const DIALOGUE_TEXT_Y = -59
 const DIALOGUE_TEXT_WIDTH = 790
 const DIALOGUE_LINE_HEIGHT = 48
-const DIALOGUE_GLYPH_HEIGHT = 75
+const DIALOGUE_GLYPH_HEIGHT = 36
 const DIALOGUE_GLYPH_GAP = 3
 const TOAST_GLYPH_HEIGHT = 65
 const TOAST_GLYPH_GAP = 3
@@ -263,13 +263,18 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   update(): void {
     this.refreshFinalYanUnlock()
 
-    if (this.isGlobalDictionaryOpen) {
-      this.player.setVelocity(0, 0)
+    // Tab 键切换词典开关（必须在 isGlobalDictionaryOpen 守卫之前处理）
+    if (Phaser.Input.Keyboard.JustDown(this.keyTab)) {
+      if (this.isGlobalDictionaryOpen) {
+        this.dictionaryBridge.closeDictionary()
+      } else if (!this.dialogueOpen) {
+        this.openGlobalDictionary()
+      }
       return
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.keyTab)) {
-      if (!this.dialogueOpen) this.openGlobalDictionary()
+    if (this.isGlobalDictionaryOpen) {
+      this.player.setVelocity(0, 0)
       return
     }
 
@@ -1526,7 +1531,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.dialogueLinesContainer.removeAll(true)
 
     let currentY = DIALOGUE_TEXT_Y
-    const lineGap = 6
+    const lineGap = 2
 
     lines.forEach((line) => {
       const lineContainer = this.add.container(DIALOGUE_TEXT_X, currentY)
@@ -1586,6 +1591,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       color: '#f1f1ee',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
       wordWrap: wrap ? { width: DIALOGUE_TEXT_WIDTH } : undefined,
+      lineSpacing: wrap ? 2 : 0,
     })
   }
 

@@ -236,6 +236,7 @@ function App() {
           resumeProgress={resumeProgress}
           isDictionaryOpen={dictionary.isDictionaryOpen}
           openDictionary={dictionary.openDictionary}
+          closeDictionary={dictionary.closeDictionary}
           unlockEntry={dictionary.unlockEntry}
           placedSlots={dictionary.placedSlots as Record<string, string>}
           onLeave={handleLeaveGame}
@@ -254,6 +255,7 @@ function App() {
             key={`embroidery-${gameSessionKey}`}
             isDictionaryOpen={dictionary.isDictionaryOpen}
             openDictionary={dictionary.openDictionary}
+            closeDictionary={dictionary.closeDictionary}
             unlockEntry={dictionary.unlockEntry}
             onReturnToMenu={returnToMainMenu}
           />
@@ -264,6 +266,7 @@ function App() {
             key={`singing-${gameSessionKey}`}
             isDictionaryOpen={dictionary.isDictionaryOpen}
             openDictionary={dictionary.openDictionary}
+            closeDictionary={dictionary.closeDictionary}
             unlockEntry={dictionary.unlockEntry}
             onReturnToMenu={returnToMainMenu}
           />
@@ -276,6 +279,7 @@ function App() {
             onReturnToMenu={returnToMainMenu}
             isDictionaryOpen={dictionary.isDictionaryOpen}
             openDictionary={dictionary.openDictionary}
+            closeDictionary={dictionary.closeDictionary}
             unlockEntry={dictionary.unlockEntry}
             unlockedEntryCount={dictionary.unlockedEntryIds.length}
             placedSlots={dictionary.placedSlots as Record<string, string>}

@@ -300,7 +300,11 @@ export class MainScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
       event.preventDefault();
-      if (!this.isGlobalDictionaryOpen) this.openGlobalDictionary();
+      if (this.isGlobalDictionaryOpen) {
+        this.dictionaryBridge.closeDictionary();
+      } else {
+        this.openGlobalDictionary();
+      }
     });
 
     this.input.keyboard?.on('keydown-ESC', () => {

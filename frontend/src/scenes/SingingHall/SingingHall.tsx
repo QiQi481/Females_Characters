@@ -14,6 +14,7 @@ import './SingingHall.css'
 type SingingHallProps = {
   isDictionaryOpen: boolean
   openDictionary: (puzzle?: DictionaryPuzzle) => void
+  closeDictionary: () => void
   unlockEntry: (entryId: DictionaryEntry['id']) => void
   onReturnToMenu: () => void
 }
@@ -21,20 +22,23 @@ type SingingHallProps = {
 function SingingHall({
   isDictionaryOpen,
   openDictionary,
+  closeDictionary,
   unlockEntry,
   onReturnToMenu,
 }: SingingHallProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const openDictionaryRef = useRef(openDictionary)
+  const closeDictionaryRef = useRef(closeDictionary)
   const unlockEntryRef = useRef(unlockEntry)
   const returnToMenuRef = useRef(onReturnToMenu)
 
   useEffect(() => {
     openDictionaryRef.current = openDictionary
+    closeDictionaryRef.current = closeDictionary
     unlockEntryRef.current = unlockEntry
     returnToMenuRef.current = onReturnToMenu
-  }, [onReturnToMenu, openDictionary, unlockEntry])
+  }, [onReturnToMenu, openDictionary, closeDictionary, unlockEntry])
 
   useEffect(() => {
     const container = containerRef.current
@@ -42,6 +46,7 @@ function SingingHall({
 
     const dictionaryBridge: GlobalDictionaryBridge = {
       openDictionary: (puzzle) => openDictionaryRef.current(puzzle),
+      closeDictionary: () => closeDictionaryRef.current(),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
       returnToMenu: () => returnToMenuRef.current(),
     }
