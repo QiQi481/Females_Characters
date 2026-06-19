@@ -112,13 +112,17 @@ function App() {
   )
   const [resumeClueIds, setResumeClueIds] = useState<string[]>([])
   const [resumeTutorialDone, setResumeTutorialDone] = useState(false)
+  const [resumeSceneSwitcherUnlocked, setResumeSceneSwitcherUnlocked] =
+    useState(false)
   const [villageProgress, setVillageProgress] = useState<ProgressStage>(
     ProgressStage.NOT_STARTED,
   )
+  const [sceneSwitcherUnlocked, setSceneSwitcherUnlocked] = useState(false)
   /** Chapter1 组件实时回调的线索 ID，供存档操作使用 */
   const latestClueIdsRef = useRef<string[]>([])
   /** Chapter1 组件实时回调的教程完成状态，供存档操作使用 */
   const latestTutorialDoneRef = useRef(false)
+  const latestSceneSwitcherUnlockedRef = useRef(false)
 
   const handleClueIdsChange = (ids: string[]) => {
     latestClueIdsRef.current = ids
@@ -128,9 +132,14 @@ function App() {
     latestTutorialDoneRef.current = true
   }
 
+  const handleSceneSwitcherUnlocked = () => {
+    latestSceneSwitcherUnlockedRef.current = true
+    setSceneSwitcherUnlocked(true)
+  }
+
   const shouldShowSceneSwitcher =
     currentScene !== JIANGYONG_VILLAGE_SCENE_ID ||
-    (phase === 'chapter1' && villageProgress >= ProgressStage.QUIZ)
+    (phase === 'chapter1' && sceneSwitcherUnlocked)
 
   const restoreVillageProgress = () => {
     const save = loadGame()
@@ -139,6 +148,15 @@ function App() {
     setResumeProgress(save.progress)
     setResumeClueIds(save.clueFoundIds || [])
     setResumeTutorialDone(save.tutorialDone || false)
+    const restoredSceneSwitcherUnlocked = Boolean(
+      save.sceneSwitcherUnlocked ||
+        save.progress >= ProgressStage.MATCH_Q3 ||
+        (save.currentScene &&
+          save.currentScene !== JIANGYONG_VILLAGE_SCENE_ID),
+    )
+    setResumeSceneSwitcherUnlocked(restoredSceneSwitcherUnlocked)
+    setSceneSwitcherUnlocked(restoredSceneSwitcherUnlocked)
+    latestSceneSwitcherUnlockedRef.current = restoredSceneSwitcherUnlocked
     setVillageProgress(save.progress)
     setPhase(save.phase === 'chapter1' ? 'chapter1' : (save.phase as GamePhase))
   }
@@ -159,6 +177,7 @@ function App() {
         currentScene: sceneId,
         clueFoundIds: [...latestClueIdsRef.current],
         tutorialDone: latestTutorialDoneRef.current,
+        sceneSwitcherUnlocked: latestSceneSwitcherUnlockedRef.current,
       })
     }
 
@@ -178,9 +197,12 @@ function App() {
     setResumeProgress(ProgressStage.NOT_STARTED)
     setResumeClueIds([])
     setResumeTutorialDone(false)
+    setResumeSceneSwitcherUnlocked(false)
     setVillageProgress(ProgressStage.NOT_STARTED)
+    setSceneSwitcherUnlocked(false)
     latestClueIdsRef.current = []
     latestTutorialDoneRef.current = false
+    latestSceneSwitcherUnlockedRef.current = false
     setGameSessionKey((current) => current + 1)
   }
 
@@ -198,6 +220,7 @@ function App() {
       currentScene: currentScene,
       clueFoundIds: [...latestClueIdsRef.current],
       tutorialDone: latestTutorialDoneRef.current,
+      sceneSwitcherUnlocked: latestSceneSwitcherUnlockedRef.current,
     })
     setCurrentScene(JIANGYONG_VILLAGE_SCENE_ID)
     setPhase('menu')
@@ -223,6 +246,14 @@ function App() {
     setResumeProgress(save.progress)
     setResumeClueIds(save.clueFoundIds || [])
     setResumeTutorialDone(save.tutorialDone || false)
+    const restoredSceneSwitcherUnlocked = Boolean(
+      save.sceneSwitcherUnlocked ||
+        save.progress >= ProgressStage.MATCH_Q3 ||
+        targetScene !== JIANGYONG_VILLAGE_SCENE_ID,
+    )
+    setResumeSceneSwitcherUnlocked(restoredSceneSwitcherUnlocked)
+    setSceneSwitcherUnlocked(restoredSceneSwitcherUnlocked)
+    latestSceneSwitcherUnlockedRef.current = restoredSceneSwitcherUnlocked
     setVillageProgress(save.progress)
 
     if (targetScene === JIANGYONG_VILLAGE_SCENE_ID) {
@@ -245,6 +276,7 @@ function App() {
       currentScene: JIANGYONG_VILLAGE_SCENE_ID,
       clueFoundIds: [...latestClueIdsRef.current],
       tutorialDone: latestTutorialDoneRef.current,
+      sceneSwitcherUnlocked: latestSceneSwitcherUnlockedRef.current,
     })
     setVillageProgress(progress)
     setPhase('menu')
@@ -278,15 +310,18 @@ function App() {
           resumeProgress={resumeProgress}
           resumeClueIds={resumeClueIds}
           resumeTutorialDone={resumeTutorialDone}
+          resumeSceneSwitcherUnlocked={resumeSceneSwitcherUnlocked}
           isDictionaryOpen={dictionary.isDictionaryOpen}
           openDictionary={dictionary.openDictionary}
           closeDictionary={dictionary.closeDictionary}
           unlockEntry={dictionary.unlockEntry}
+          lockEntry={dictionary.lockEntry}
           placedSlots={dictionary.placedSlots as Record<string, string>}
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
           onClueIdsChange={handleClueIdsChange}
           onTutorialDone={handleTutorialDone}
+          onSceneSwitcherUnlocked={handleSceneSwitcherUnlocked}
           onComplete={() => deleteSave()}
         />
       )}

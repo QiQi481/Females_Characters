@@ -17,6 +17,8 @@ const AHE_DIALOGUE_IMG = '/assets/FirstLevel/ahe-dialogue.png'
 const DANIANG_DIALOGUE_IMG = '/assets/FirstLevel/daniang.png'
 const CHAPTER1_INTERACT_DISTANCE = 150
 const INTRO_LOADING_DELAY_MS = 500
+const CHAPTER1_TUTORIAL_SPAWN = { x: 400, y: 700 }
+const CHAPTER1_FREE_EXPLORE_SPAWN = { x: 400, y: 400 }
 
 type Chapter1InteractionId =
   | 'boundary'
@@ -63,7 +65,12 @@ const DIALOG_LINES: DialogLine[] = [
 
 /** 第二段旁白 — 对话结束后触发 */
 const NARRATION2_LINES = [
-  '请在村落、女红房与歌堂中寻找线索，辨认字形，补全这段被尘封的女书故事。',
+  '先在村里走一走吧。第一个字的线索，或许就藏在村中的旧物与信笺里。',
+]
+
+const SCENE_SWITCHER_GUIDE_LINES = [
+  '一字归位，残卷仍未读完。',
+  '左上角的场景书签已经展开，你可以在江永村、女红房与坐歌堂之间往返，继续寻找字形与线索。',
 ]
 
 /** Quiz 题目数据 */
@@ -144,15 +151,18 @@ interface Chapter1Props {
   resumeProgress: number
   resumeClueIds: string[]
   resumeTutorialDone: boolean
+  resumeSceneSwitcherUnlocked: boolean
   isDictionaryOpen: boolean
   openDictionary: () => void
   closeDictionary: () => void
   unlockEntry: (entryId: string) => void
+  lockEntry: (entryId: string) => void
   placedSlots: Record<string, string>
   onLeave: (progress: ProgressStage) => void
   onProgressChange: (progress: ProgressStage) => void
   onClueIdsChange: (ids: string[]) => void
   onTutorialDone: () => void
+  onSceneSwitcherUnlocked: () => void
   onComplete: () => void
 }
 
@@ -160,15 +170,18 @@ function Chapter1({
   resumeProgress,
   resumeClueIds,
   resumeTutorialDone,
+  resumeSceneSwitcherUnlocked,
   isDictionaryOpen,
   openDictionary,
   closeDictionary,
   unlockEntry,
+  lockEntry,
   placedSlots,
   onLeave,
   onProgressChange,
   onClueIdsChange,
   onTutorialDone,
+  onSceneSwitcherUnlocked,
   onComplete,
 }: Chapter1Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -234,6 +247,11 @@ function Chapter1({
   const [postQ1DialogueStep, setPostQ1DialogueStep] = useState(-1) // Q1正确后额外对话：-1=未激活, 0/1=阿禾, 2=旁白
   const [guideDictDone, setGuideDictDone] = useState(false) // 新手引导字典匹配已完成
   const [guideDictDismissed, setGuideDictDismissed] = useState(false) // 台词是否已关闭
+  const [sceneSwitcherGuideActive, setSceneSwitcherGuideActive] =
+    useState(false)
+  const [sceneSwitcherUnlocked, setSceneSwitcherUnlocked] = useState(
+    resumeSceneSwitcherUnlocked,
+  )
   const placedSlotCountAtStartRef = useRef(Object.keys(placedSlots).length) // 进入引导时已放置的槽位数
   // Q3 匹配游戏
   const [matchActive, setMatchActive] = useState(false)
@@ -260,10 +278,12 @@ function Chapter1({
   const vpRef = useRef({ w: window.innerWidth, h: window.innerHeight })
   const isGuideStage =
     (narration2Active && !narration2Done) ||
-    (narration2Done && !guideDictDismissed)
+    (narration2Done && !guideDictDismissed) ||
+    sceneSwitcherGuideActive
 
   const getNearestInteractionId = useCallback((playerX: number, playerY: number): Chapter1InteractionId | null => {
-    const fullExplorationUnlocked = guideDictDone && guideDictDismissed
+    const fullExplorationUnlocked =
+      guideDictDone && guideDictDismissed && sceneSwitcherUnlocked
     const interactions: Array<{
       id: Chapter1InteractionId
       el: HTMLElement | null
@@ -294,7 +314,7 @@ function Chapter1({
     })
 
     return nearestId
-  }, [letterDropped, guideDictDone, guideDictDismissed])
+  }, [letterDropped, guideDictDone, guideDictDismissed, sceneSwitcherUnlocked])
 
   // 预加载图片
   useEffect(() => {
@@ -315,6 +335,28 @@ function Chapter1({
   // 最大可平移范围
   const maxX = Math.max(0, sceneW - vpRef.current.w)
   const maxY = Math.max(0, sceneH - vpRef.current.h)
+
+  const placePlayerAt = useCallback(
+    (position: { x: number; y: number }) => {
+      if (!imgReady) return
+
+      const halfW = vpRef.current.w / 2
+      const halfH = vpRef.current.h / 2
+      const clamp = (v: number, min: number, max: number) =>
+        Math.max(min, Math.min(max, v))
+      const camX = clamp(position.x, halfW, sceneW - halfW)
+      const camY = clamp(position.y, halfH, sceneH - halfH)
+
+      cameraRef.current = { x: camX, y: camY }
+      playerWorldRef.current = { x: position.x, y: position.y }
+      setOffset({ x: camX - halfW, y: camY - halfH })
+      setPlayerScreenDelta({
+        dx: position.x - camX,
+        dy: position.y - camY,
+      })
+    },
+    [imgReady, sceneW, sceneH],
+  )
 
   // 键盘监听
   useEffect(() => {
@@ -363,7 +405,7 @@ function Chapter1({
 
   // 动画帧 — WASD 平移（旁白/对话/弹窗期间暂停）
   useEffect(() => {
-    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showWinejarInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done) || tutorialPhase !== 'done' || postQ1DialogueStep >= 0 || (guideDictDone && !guideDictDismissed)) return
+    if (!imgReady || isDictionaryOpen || showBoundaryInfo || showLetterPopup || showSwallowInfo || showSnowInfo || showWinejarInfo || showBookPopup || isQuizBusy || !narrationDone || (dialogActive && !dialogFinished) || (narration2Active && !narration2Done) || tutorialPhase !== 'done' || postQ1DialogueStep >= 0 || (guideDictDone && !guideDictDismissed) || sceneSwitcherGuideActive) return
 
     let lastTime = performance.now()
     const clamp = (v: number, min: number, max: number) =>
@@ -433,25 +475,12 @@ function Chapter1({
 
     animRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(animRef.current)
-  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showLabelInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, tutorialPhase, postQ1DialogueStep, guideDictDone, guideDictDismissed, sceneW, sceneH, getNearestInteractionId])
+  }, [imgReady, maxX, maxY, isDictionaryOpen, showBoundaryInfo, showLetterPopup, showSwallowInfo, showSnowInfo, showWinejarInfo, showLabelInfo, showBookPopup, isQuizBusy, narrationDone, dialogActive, dialogFinished, narration2Active, narration2Done, tutorialPhase, postQ1DialogueStep, guideDictDone, guideDictDismissed, sceneSwitcherGuideActive, sceneW, sceneH, getNearestInteractionId])
 
   // 图片加载后把初始位置对齐 Phaser 场景的出生点
   useEffect(() => {
-    if (!imgReady) return
-    const hw = vpRef.current.w / 2
-    const hh = vpRef.current.h / 2
-    const startX = 400
-    const startY = 750
-    const clamp = (v: number, min: number, max: number) =>
-      Math.max(min, Math.min(max, v))
-    const camX = clamp(startX, hw, sceneW - hw)
-    const camY = clamp(startY, hh, sceneH - hh)
-
-    cameraRef.current = { x: camX, y: camY }
-    playerWorldRef.current = { x: startX, y: startY }
-    setOffset({ x: camX - hw, y: camY - hh })
-    setPlayerScreenDelta({ dx: startX - camX, dy: startY - camY })
-  }, [imgReady, sceneW, sceneH])
+    placePlayerAt(CHAPTER1_TUTORIAL_SPAWN)
+  }, [placePlayerAt])
 
   // 计算当前进度（存档用）
   const getSaveProgress = useCallback((): ProgressStage => {
@@ -497,6 +526,35 @@ function Chapter1({
     }
     prevDictOpenRef.current = isDictionaryOpen
   }, [isDictionaryOpen, quizQ1Done, postQ1DialogueStep, placedSlots, guideDictDone])
+
+  useEffect(() => {
+    if (!quizQ1Done || guideDictDone || postQ1DialogueStep >= 0) return
+    lockEntry('jun-2')
+  }, [guideDictDone, lockEntry, postQ1DialogueStep, quizQ1Done])
+
+  useEffect(() => {
+    if (!resumeSceneSwitcherUnlocked) return
+    setQuizQ1Done(true)
+    setGuideDictDone(true)
+    setGuideDictDismissed(true)
+    setSceneSwitcherGuideActive(false)
+    setSceneSwitcherUnlocked(true)
+    placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
+  }, [placePlayerAt, resumeSceneSwitcherUnlocked])
+
+  const finishSceneSwitcherGuide = useCallback(() => {
+    setSceneSwitcherGuideActive(false)
+    setSceneSwitcherUnlocked(true)
+    placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
+    onSceneSwitcherUnlocked()
+  }, [onSceneSwitcherUnlocked, placePlayerAt])
+
+  const finishGuideDictSummary = useCallback(() => {
+    setGuideDictDismissed(true)
+    if (!sceneSwitcherUnlocked) {
+      setSceneSwitcherGuideActive(true)
+    }
+  }, [sceneSwitcherUnlocked])
 
   const finishIntroDialog = useCallback(() => {
     setDialogFinished(true)
@@ -563,7 +621,8 @@ function Chapter1({
         if (showBookPopup) { handleBookPopupClose(); return }
         if (showLabelInfo) { setShowLabelInfo(false); setLabelStep(0); return }
         if (postQ1DialogueStep >= 0) { setPostQ1DialogueStep(-1); setQuizQ1Done(true); return }
-        if (guideDictDone && !guideDictDismissed) { setGuideDictDismissed(true); return }
+        if (guideDictDone && !guideDictDismissed) { finishGuideDictSummary(); return }
+        if (sceneSwitcherGuideActive) { finishSceneSwitcherGuide(); return }
 
         return
       }
@@ -671,7 +730,12 @@ function Chapter1({
         }
         if (guideDictDone && !guideDictDismissed) {
           event.preventDefault()
-          setGuideDictDismissed(true)
+          finishGuideDictSummary()
+          return
+        }
+        if (sceneSwitcherGuideActive) {
+          event.preventDefault()
+          finishSceneSwitcherGuide()
           return
         }
         if (isQuizBusy) return
@@ -828,9 +892,12 @@ function Chapter1({
     postQ1DialogueStep,
     guideDictDone,
     guideDictDismissed,
+    sceneSwitcherGuideActive,
     isGuideStage,
     introLoading,
     finishIntroDialog,
+    finishGuideDictSummary,
+    finishSceneSwitcherGuide,
     tutorialPhase,
     quizQ1Done,
   ])
@@ -1029,7 +1096,6 @@ function Chapter1({
       // 解锁对应词条
       if (quizQuestion === 1) {
         unlockEntry('jun')
-        unlockEntry('jun-2')
         showGlyphToast('君')
       } else {
         unlockEntry('wang')
@@ -1555,6 +1621,7 @@ function Chapter1({
        tutorialPhase === 'done' &&
        postQ1DialogueStep < 0 &&
        !(guideDictDone && !guideDictDismissed) &&
+       !sceneSwitcherGuideActive &&
        !showBoundaryInfo &&
        !showLetterPopup &&
        !showSwallowInfo &&
@@ -1575,6 +1642,7 @@ function Chapter1({
        tutorialPhase === 'done' &&
        postQ1DialogueStep < 0 &&
        !(guideDictDone && !guideDictDismissed) &&
+       !sceneSwitcherGuideActive &&
        !showBoundaryInfo &&
        !showLetterPopup &&
        !showSwallowInfo &&
@@ -1590,7 +1658,7 @@ function Chapter1({
       )}
 
       {/* HUD — 教程结束后进入自由探索才显示，词典按钮在 Q1 完成后才出现 */}
-      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && (
+      {narration2Done && tutorialPhase === 'done' && postQ1DialogueStep < 0 && !(guideDictDone && !guideDictDismissed) && !sceneSwitcherGuideActive && (
         <>
           {quizQ1Done && (
             <button
@@ -1975,9 +2043,22 @@ function Chapter1({
       {guideDictDone && !guideDictDismissed && renderCharacterDialogue({
         speaker: '阿禾',
         text: '接下来我和您继续寻找其他线索',
-        onClick: () => setGuideDictDismissed(true),
+        onClick: finishGuideDictSummary,
         controlsText: 'E / 点击继续',
       })}
+
+      {sceneSwitcherGuideActive && (
+        <div className="narration-overlay" onClick={finishSceneSwitcherGuide}>
+          <div className="narration-box">
+            {SCENE_SWITCHER_GUIDE_LINES.map((line) => (
+              <p className="narration-line" key={line}>
+                {line}
+              </p>
+            ))}
+            <span className="narration-click-hint">E / 点击继续</span>
+          </div>
+        </div>
+      )}
 
       {/* Q3 阿禾提示 — 引导玩家去探索场景（匹配题之前） */}
       {matchActive && matchStep === 1 && renderCharacterDialogue({

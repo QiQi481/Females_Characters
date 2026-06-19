@@ -101,6 +101,13 @@ export function DictionaryOverlay({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [draggingEntryId, setDraggingEntryId] =
     useState<DictionaryEntry['id'] | null>(null)
+  const draggingEntry = useMemo(
+    () =>
+      draggingEntryId
+        ? entries.find((entry) => entry.id === draggingEntryId) ?? null
+        : null,
+    [draggingEntryId],
+  )
   const unlockedIds = useMemo(
     () => new Set(unlockedEntryIds),
     [unlockedEntryIds],
@@ -203,6 +210,9 @@ export function DictionaryOverlay({
                     const isCurrentSlot =
                       activePuzzle?.activeEntryId === requiredEntryId
                     const isFailed = failedSlotId === segment.slotId
+                    const isDropTarget =
+                      draggingEntry?.targetSlots.includes(segment.slotId) ??
+                      false
 
                     return (
                       <button
@@ -211,13 +221,17 @@ export function DictionaryOverlay({
                         }${isCurrentSlot ? ' is-current' : ''}${
                           isFailed ? ' is-error' : ''
                         }${
-                          draggingEntryId && !isPlaced
+                          draggingEntryId && !isPlaced && isDropTarget
                             ? ' is-drop-ready'
                             : ''
                         }`}
                         type="button"
                         onDragOver={(event) => {
                           if (isResolvingPuzzle) return
+                          if (draggingEntryId && !isDropTarget) {
+                            event.dataTransfer.dropEffect = 'none'
+                            return
+                          }
                           event.preventDefault()
                           event.dataTransfer.dropEffect = 'copy'
                         }}

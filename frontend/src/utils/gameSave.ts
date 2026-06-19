@@ -30,6 +30,7 @@ export interface GameSave {
   clueFoundIds?: string[]
   /** 第一章教程是否已完成（防止边缘情况下重放教程） */
   tutorialDone?: boolean
+  sceneSwitcherUnlocked?: boolean
 }
 
 const SAVE_KEY = 'sanchao-shu-save'

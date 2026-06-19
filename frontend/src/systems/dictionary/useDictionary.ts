@@ -201,6 +201,16 @@ export function useDictionary() {
     setActiveEntryId(entryId)
   }, [])
 
+  const lockEntry = useCallback((entryId: DictionaryEntryId) => {
+    setUnlockedEntryIds((current) =>
+      current.includes(entryId)
+        ? current.filter((unlockedEntryId) => unlockedEntryId !== entryId)
+        : current,
+    )
+    setActiveEntryId((current) => (current === entryId ? null : current))
+    setActiveClueEntryId((current) => (current === entryId ? null : current))
+  }, [])
+
   const openClue = useCallback(
     (entryId: DictionaryEntryId) => {
       const entry = entries.find((candidate) => candidate.id === entryId)
@@ -258,6 +268,16 @@ export function useDictionary() {
       }
 
       const entry = entries.find((candidate) => candidate.id === entryId)
+      if (!entry || entryId !== requiredEntryId || !entry.targetSlots.includes(slotId)) {
+        setFailedSlotId(slotId)
+        setFeedback({
+          type: 'error',
+          message: '这个字放在这里好像不对。',
+          slotId,
+        })
+        return false
+      }
+
       const requiredEntryDef = entries.find(
         (candidate) => candidate.id === requiredEntryId,
       )
@@ -361,6 +381,7 @@ export function useDictionary() {
     openDictionary,
     closeDictionary,
     unlockEntry,
+    lockEntry,
     resetDictionary,
     activeEntryId,
     setActiveEntryId,
