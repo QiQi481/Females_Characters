@@ -142,6 +142,8 @@ const getQuizWrongFeedback = (question: number, choice: string): string => {
 
 interface Chapter1Props {
   resumeProgress: number
+  resumeClueIds: string[]
+  resumeTutorialDone: boolean
   isDictionaryOpen: boolean
   openDictionary: () => void
   closeDictionary: () => void
@@ -149,11 +151,15 @@ interface Chapter1Props {
   placedSlots: Record<string, string>
   onLeave: (progress: ProgressStage) => void
   onProgressChange: (progress: ProgressStage) => void
+  onClueIdsChange: (ids: string[]) => void
+  onTutorialDone: () => void
   onComplete: () => void
 }
 
 function Chapter1({
   resumeProgress,
+  resumeClueIds,
+  resumeTutorialDone,
   isDictionaryOpen,
   openDictionary,
   closeDictionary,
@@ -161,6 +167,8 @@ function Chapter1({
   placedSlots,
   onLeave,
   onProgressChange,
+  onClueIdsChange,
+  onTutorialDone,
   onComplete,
 }: Chapter1Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -835,6 +843,34 @@ function Chapter1({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 从存档恢复已发现的线索
+  useEffect(() => {
+    if (resumeClueIds.length > 0) {
+      setClueFoundIds(new Set(resumeClueIds))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 仅在挂载时执行一次
+
+  // 从存档恢复教程完成状态（防御性保护，覆盖进度推断不到的边缘情况）
+  useEffect(() => {
+    if (resumeTutorialDone) {
+      setTutorialPhase('done')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 仅在挂载时执行一次
+
+  // 同步线索状态到 App 层（供存档时写入）
+  useEffect(() => {
+    onClueIdsChange([...clueFoundIds])
+  }, [clueFoundIds, onClueIdsChange])
+
+  // 同步教程完成状态到 App 层（供存档时写入）
+  useEffect(() => {
+    if (tutorialPhase === 'done') {
+      onTutorialDone()
+    }
+  }, [tutorialPhase, onTutorialDone])
 
   // 恢复存档进度：快进到对应阶段
   useEffect(() => {

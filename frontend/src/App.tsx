@@ -110,29 +110,35 @@ function App() {
   const [resumeProgress, setResumeProgress] = useState<ProgressStage>(
     ProgressStage.NOT_STARTED,
   )
+  const [resumeClueIds, setResumeClueIds] = useState<string[]>([])
+  const [resumeTutorialDone, setResumeTutorialDone] = useState(false)
   const [villageProgress, setVillageProgress] = useState<ProgressStage>(
     ProgressStage.NOT_STARTED,
   )
+  /** Chapter1 组件实时回调的线索 ID，供存档操作使用 */
+  const latestClueIdsRef = useRef<string[]>([])
+  /** Chapter1 组件实时回调的教程完成状态，供存档操作使用 */
+  const latestTutorialDoneRef = useRef(false)
+
+  const handleClueIdsChange = (ids: string[]) => {
+    latestClueIdsRef.current = ids
+  }
+
+  const handleTutorialDone = () => {
+    latestTutorialDoneRef.current = true
+  }
 
   const shouldShowSceneSwitcher =
     currentScene !== JIANGYONG_VILLAGE_SCENE_ID ||
     (phase === 'chapter1' && villageProgress >= ProgressStage.QUIZ)
-
-  const saveVillageProgress = () => {
-    if (phase !== 'chapter1') return
-
-    saveGame({
-      phase: 'chapter1',
-      progress: villageProgress,
-      savedAt: Date.now(),
-    })
-  }
 
   const restoreVillageProgress = () => {
     const save = loadGame()
     if (!save) return
 
     setResumeProgress(save.progress)
+    setResumeClueIds(save.clueFoundIds || [])
+    setResumeTutorialDone(save.tutorialDone || false)
     setVillageProgress(save.progress)
     setPhase(save.phase === 'chapter1' ? 'chapter1' : (save.phase as GamePhase))
   }
@@ -145,7 +151,15 @@ function App() {
       currentScene === JIANGYONG_VILLAGE_SCENE_ID &&
       sceneId !== JIANGYONG_VILLAGE_SCENE_ID
     ) {
-      saveVillageProgress()
+      // 离开江永村前往其他场景时，同时记录目标场景、线索进度和教程状态
+      saveGame({
+        phase: 'chapter1',
+        progress: villageProgress,
+        savedAt: Date.now(),
+        currentScene: sceneId,
+        clueFoundIds: [...latestClueIdsRef.current],
+        tutorialDone: latestTutorialDoneRef.current,
+      })
     }
 
     if (sceneId === JIANGYONG_VILLAGE_SCENE_ID) {
@@ -162,7 +176,11 @@ function App() {
     setCurrentScene(JIANGYONG_VILLAGE_SCENE_ID)
     setPhase('menu')
     setResumeProgress(ProgressStage.NOT_STARTED)
+    setResumeClueIds([])
+    setResumeTutorialDone(false)
     setVillageProgress(ProgressStage.NOT_STARTED)
+    latestClueIdsRef.current = []
+    latestTutorialDoneRef.current = false
     setGameSessionKey((current) => current + 1)
   }
 
@@ -172,9 +190,15 @@ function App() {
 
   const returnToMainMenu = () => {
     dictionary.closeDictionary()
-    if (currentScene === JIANGYONG_VILLAGE_SCENE_ID && phase === 'chapter1') {
-      saveVillageProgress()
-    }
+    // 从任意场景返回主菜单时都保存进度（包括当前所在场景、线索和教程状态）
+    saveGame({
+      phase: 'chapter1',
+      progress: villageProgress,
+      savedAt: Date.now(),
+      currentScene: currentScene,
+      clueFoundIds: [...latestClueIdsRef.current],
+      tutorialDone: latestTutorialDoneRef.current,
+    })
     setCurrentScene(JIANGYONG_VILLAGE_SCENE_ID)
     setPhase('menu')
   }
@@ -187,23 +211,41 @@ function App() {
     setPhase('prologue')
   }
 
-  /** 继续游戏：读取存档并跳转 */
+  /** 继续游戏：读取存档并恢复到对应场景 */
   const handleContinueGame = () => {
     const save = loadGame()
     if (!save) return
-    setCurrentScene(JIANGYONG_VILLAGE_SCENE_ID)
+
+    // 读取存档中记录的场景，兼容旧存档（无 currentScene 则默认江永村）
+    const targetScene = (save.currentScene || JIANGYONG_VILLAGE_SCENE_ID) as SceneId
+
+    setCurrentScene(targetScene)
     setResumeProgress(save.progress)
+    setResumeClueIds(save.clueFoundIds || [])
+    setResumeTutorialDone(save.tutorialDone || false)
     setVillageProgress(save.progress)
-    if (save.phase === 'chapter1') {
-      setPhase('chapter1')
+
+    if (targetScene === JIANGYONG_VILLAGE_SCENE_ID) {
+      // 江永村主线：需要恢复 phase 以进入对应剧情阶段
+      setPhase(save.phase === 'chapter1' ? 'chapter1' : (save.phase as GamePhase))
     } else {
-      setPhase(save.phase as GamePhase)
+      // 其他场景（女红房/坐歌堂/深宵）：phase 设为 chapter1，
+      // 以便后续通过场景切换器回到江永村时能正确加载 Chapter1 组件
+      setPhase('chapter1')
+      // 其他场景通过 SaveSystem（女红房/坐歌堂）或自身 React 状态（ChapterNight）管理进度
     }
   }
 
   /** 从游戏中离开 → 存档并返回主菜单 */
   const handleLeaveGame = (progress: ProgressStage) => {
-    saveGame({ phase: 'chapter1', progress, savedAt: Date.now() })
+    saveGame({
+      phase: 'chapter1',
+      progress,
+      savedAt: Date.now(),
+      currentScene: JIANGYONG_VILLAGE_SCENE_ID,
+      clueFoundIds: [...latestClueIdsRef.current],
+      tutorialDone: latestTutorialDoneRef.current,
+    })
     setVillageProgress(progress)
     setPhase('menu')
   }
@@ -234,6 +276,8 @@ function App() {
       {phase === 'chapter1' && (
         <Chapter1
           resumeProgress={resumeProgress}
+          resumeClueIds={resumeClueIds}
+          resumeTutorialDone={resumeTutorialDone}
           isDictionaryOpen={dictionary.isDictionaryOpen}
           openDictionary={dictionary.openDictionary}
           closeDictionary={dictionary.closeDictionary}
@@ -241,6 +285,8 @@ function App() {
           placedSlots={dictionary.placedSlots as Record<string, string>}
           onLeave={handleLeaveGame}
           onProgressChange={setVillageProgress}
+          onClueIdsChange={handleClueIdsChange}
+          onTutorialDone={handleTutorialDone}
           onComplete={() => deleteSave()}
         />
       )}

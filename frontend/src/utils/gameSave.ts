@@ -24,6 +24,12 @@ export interface GameSave {
   phase: string // 'chapter1' 等
   progress: ProgressStage
   savedAt: number
+  /** 玩家所在的场景 ID，用于继续游戏时恢复到正确场景 */
+  currentScene?: string
+  /** 第一章发现的线索 ID 列表，用于继续游戏时恢复右上角线索进度 */
+  clueFoundIds?: string[]
+  /** 第一章教程是否已完成（防止边缘情况下重放教程） */
+  tutorialDone?: boolean
 }
 
 const SAVE_KEY = 'sanchao-shu-save'
