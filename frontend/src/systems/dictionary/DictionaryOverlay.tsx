@@ -388,6 +388,15 @@ export function DictionaryOverlay({
           </div>
         )}
 
+        {guideState !== 'drag' && (
+          <div
+            className="dictionary-close-guide"
+            role="status"
+          >
+            Tab / 点击 合 关闭词典
+          </div>
+        )}
+
         {activeClueEntry && (
           <div
             className="dictionary-clue-backdrop"

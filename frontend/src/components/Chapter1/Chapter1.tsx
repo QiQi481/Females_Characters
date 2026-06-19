@@ -1544,8 +1544,9 @@ function Chapter1({
 
 
 
-      {/* 底部操作指南 — 仅在纯自由探索时显示（无对话/弹窗/Quiz） */}
-      {narration2Done &&
+      {/* 底部操作指南 — 仅在纯自由探索时显示（无对话/弹窗/Quiz，词典关闭时） */}
+      {!isDictionaryOpen &&
+       narration2Done &&
        tutorialPhase === 'done' &&
        postQ1DialogueStep < 0 &&
        !(guideDictDone && !guideDictDismissed) &&
