@@ -101,6 +101,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
   const [zuoshantangTextShown, setZuoshantangTextShown] = useState(false)
   const [aHeFinalStep, setAHeFinalStep] = useState(0) // 0=第一行, 1=第二行
   const [aHeFinalTextRevealed, setAHeFinalTextRevealed] = useState(0) // 当前行已显示字符数
+  const aHeFinalTextRevealedRef = useRef(0)
   const [rainVolume, setRainVolume] = useState(0.55)
   const endingTriggeredRef = useRef(false)
   const rainDelayRef = useRef(false)
@@ -316,11 +317,16 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
     setEndingPhase('aHeFinalDialogue')
   }
 
+  // 保持 aHeFinalTextRevealed 在 ref 中最新，避免键盘 handler 闭包过期
+  useEffect(() => {
+    aHeFinalTextRevealedRef.current = aHeFinalTextRevealed
+  }, [aHeFinalTextRevealed])
+
   const advanceAHeFinalDialogue = () => {
     if (endingPhase !== 'aHeFinalDialogue') return
     const fullText = AHE_FINAL_LINES[aHeFinalStep]
-    // 如果文字还没打完，直接显示全部
-    if (aHeFinalTextRevealed < fullText.length) {
+    // 如果文字还没打完，直接显示全部（通过 ref 读取最新值避免闭包过期）
+    if (aHeFinalTextRevealedRef.current < fullText.length) {
       setAHeFinalTextRevealed(fullText.length)
       return
     }
@@ -696,8 +702,8 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
         </button>
       )}
 
-      {/* 操作提示 — 结尾演出时隐藏 */}
-      {titleDone && !isEnding && (
+      {/* 操作提示 — 自由探索时显示，对话/结尾演出时隐藏 */}
+      {titleDone && !isEnding && !isNightDialogueActive && (
         <div className="chapter-night-hint">
           WASD 移动 | E 交互 | Q/ESC 关闭 | Tab 词典
         </div>
