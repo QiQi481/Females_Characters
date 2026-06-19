@@ -1331,14 +1331,15 @@
   display: flex;
   gap: 1.5em;
   justify-content: center;
-  align-items: flex-start;
-  max-width: min(600px, 80vw);
+  align-items: center;
+  max-width: min(800px, 90vw);
+  margin-top: -6vh;
   animation: slideUp 0.35s ease;
 }
 
 .quiz-image-card {
   flex: 1;
-  max-width: 280px;
+  max-width: 350px;
   padding: 0.8em;
   background: rgba(40, 30, 20, 0.7);
   border: 1px solid rgba(180, 150, 110, 0.35);
@@ -1352,7 +1353,9 @@
   object-fit: contain;
   border-radius: 3px;
   border: 1px solid rgba(201, 168, 124, 0.3);
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  /* 黑字转白色 */
+  filter: brightness(0) invert(1);
 }
 
 .quiz-grid-img {
@@ -1362,7 +1365,9 @@
   object-fit: contain;
   border: 1px solid rgba(201, 168, 124, 0.4);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  /* 黑字转白色 */
+  filter: brightness(0) invert(1);
 }
 
 .quiz-click-hint {
