@@ -315,7 +315,7 @@ export class Scene5 extends Phaser.Scene {
 
     // ========== 玩家 ==========
     this.player = this.physics.add.sprite(400, 400, 'player');
-    this.player.setTint(0x7a3020);
+    this.player.setDisplaySize(56, 56);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
     this.player.body!.setSize(28, 28);

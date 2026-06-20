@@ -148,8 +148,8 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('singing_bgm', '/audio/singing_bgm.mp3');
 
     // ========== 用图形生成简单贴图（不需要外部资源） ==========
-    // 玩家 - 蓝色圆形
-    this.createCircleTexture('player', 16, 0x4a90d9);
+    // 玩家 - 使用女书字 she.png（透明背景黑字）
+    this.load.image('player', '/assets/nushu/she.png');
 
     // 线索标记 - 金色菱形
     this.createDiamondTexture('clue_marker', 12, 0xffd700);

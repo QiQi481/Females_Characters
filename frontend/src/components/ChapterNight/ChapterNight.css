@@ -356,16 +356,14 @@
   color: #d0e0f0;
 }
 
-/* ========== 玩家标记点（红点） ========== */
+/* ========== 玩家标记点（女书字） ========== */
 .chapter-night-player-marker {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #7a3020;
-  box-shadow: 0 0 10px rgba(255, 80, 80, 0.5);
+  height: 56px;
+  width: auto;
+  filter: brightness(0);
   z-index: 20;
   pointer-events: none;
 }

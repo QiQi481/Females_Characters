@@ -1703,9 +1703,12 @@ function Chapter1({
             showClueProgress
             showDictionary={quizQ1Done}
           />
-          <div
+          <img
+            src="/assets/FirstLevel/she.png"
+            alt=""
             className="chapter1-player-marker"
             aria-hidden="true"
+            draggable={false}
             style={{
               transform: `translate(calc(-50% + ${playerScreenDelta.dx}px), calc(-50% + ${playerScreenDelta.dy}px))`,
             }}
@@ -1778,7 +1781,7 @@ function Chapter1({
         <div className="narration-overlay" onClick={handleTutorialNarrationClick}>
           <div className="narration-box">
             <p className="narration-line">
-              请使用 WSAD 控制小红球瞄准信箱，然后按 E 进行交互。
+              请使用 WSAD 控制光标瞄准信箱，然后按 E 进行交互。
             </p>
             <span className="narration-click-hint">E / 点击继续</span>
           </div>

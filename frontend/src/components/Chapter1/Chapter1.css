@@ -403,10 +403,9 @@
   left: 50%;
   top: 50%;
   z-index: 20;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #7a3020;
+  height: 56px;
+  width: auto;
+  filter: brightness(0);
   pointer-events: none;
 }
 

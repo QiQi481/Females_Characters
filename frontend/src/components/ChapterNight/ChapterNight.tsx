@@ -709,9 +709,12 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
 
       {/* 玩家标记点 — 结尾演出时隐藏 */}
       {titleDone && !isEnding && (
-        <div
+        <img
+          src="/assets/FirstLevel/she.png"
+          alt=""
           className="chapter-night-player-marker"
           aria-hidden="true"
+          draggable={false}
           style={{
             transform: `translate(calc(-50% + ${playerScreenDelta.dx}px), calc(-50% + ${playerScreenDelta.dy}px))`,
           }}
