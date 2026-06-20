@@ -1141,6 +1141,9 @@ export class Scene5 extends Phaser.Scene {
             this.unlockEntriesForClue('clue_pipa');
             this.showPendingNewGlyphToast('clue_pipa');
           });
+        } else if (clue.id === 'clue_stand') {
+          // 唱扇女区域标记 → 直接触发唱扇女对话，防止误入静态弹窗卡死
+          this.startGirlIntroDialogue();
         } else {
           this.showCluePopup(clue.name, clue.displayText, clue.isFake ? [] : clue.entryIds);
         }

@@ -1004,6 +1004,9 @@ export class MainScene extends Phaser.Scene {
           this.openBimoPreview();
         } else if (clue.id === 'clue_pipa') {
           this.openPipaPreview();
+        } else if (clue.id === 'clue_stand') {
+          // 唱扇女区域标记 → 直接触发唱扇女预览，防止误入静态弹窗卡死
+          this.openGirlPreview();
         } else {
           this.showCluePopup(clue.name, clue.displayText, clue.isFake ? [] : clue.entryIds);
         }
