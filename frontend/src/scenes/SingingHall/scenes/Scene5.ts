@@ -200,6 +200,12 @@ export class Scene5 extends Phaser.Scene {
   private completionMode = false;
   private savedPlayerPos: { x: number; y: number } | null = null;
 
+  // ========== MainScene-style preview flow for selected clues ==========
+  private paperPreviewOpen = false;
+  private _paperKeyHandler: ((event: KeyboardEvent) => void) | null = null;
+  private fanPreviewOpen = false;
+  private _fanKeyHandler: ((event: KeyboardEvent) => void) | null = null;
+
   // ========== 统一对话框（严格对齐 Scene 2 createDialogueBox）==========
   private dialogueContainer!: Phaser.GameObjects.Container;
   private dialogueNpc!: Phaser.GameObjects.Image;
@@ -321,6 +327,7 @@ export class Scene5 extends Phaser.Scene {
     this.keyD = this.input.keyboard!.addKey('D');
 
     this.input.keyboard?.on('keydown-E', () => {
+      if (this.paperPreviewOpen || this.fanPreviewOpen) return;
       if (this.dialogueOpen) { this.advanceDialogueLine(); return; }
       if (this.popupOpen || this.guessOpen) return;
       if (this.isGlobalDictionaryOpen) return;
@@ -328,6 +335,7 @@ export class Scene5 extends Phaser.Scene {
     });
 
     this.input.keyboard?.on('keydown-Q', () => {
+      if (this.paperPreviewOpen || this.fanPreviewOpen) return;
       if (this.dialogueOpen) { this.closeDialogue(); return; }
       if (this.isGlobalDictionaryOpen) return;
       if (this.popupOpen) { this.closePopup(); return; }
@@ -348,6 +356,7 @@ export class Scene5 extends Phaser.Scene {
         this.exitCompletionMode();
         return;
       }
+      if (this.paperPreviewOpen || this.fanPreviewOpen) return;
       if (this.dialogueOpen) { this.closeDialogue(); return; }
       if (this.isGlobalDictionaryOpen) return;
       if (this.popupOpen) { this.closePopup(); return; }
@@ -380,7 +389,7 @@ export class Scene5 extends Phaser.Scene {
 
   update(): void {
     this.syncFreeExplorationState();
-    if (this.completionMode || this.popupOpen || this.guessOpen || this.isGlobalDictionaryOpen || this.dialogueOpen) {
+    if (this.completionMode || this.popupOpen || this.guessOpen || this.isGlobalDictionaryOpen || this.dialogueOpen || this.paperPreviewOpen || this.fanPreviewOpen) {
       this.player.setVelocity(0, 0);
       return;
     }
@@ -408,6 +417,7 @@ export class Scene5 extends Phaser.Scene {
     const centerShiftY = (VIEW_HEIGHT - previousHeight) / 2;
 
     this.layoutPersistentUi(centerShiftX, centerShiftY);
+    this.layoutNamedPreviewObjects(centerShiftX, centerShiftY);
   }
 
   private layoutPersistentUi(centerShiftX = 0, centerShiftY = 0): void {
@@ -444,14 +454,6 @@ export class Scene5 extends Phaser.Scene {
       this.guessContainer.y += centerShiftY;
       this.guessOverlay.setSize(VIEW_WIDTH, VIEW_HEIGHT);
     }
-  }
-
-  /** 旧的全屏预览辅助方法——已废弃（Scene 5 不使用快照覆层） */
-  private layoutNamedPreviewObjects(
-    _centerShiftX: number,
-    _centerShiftY: number,
-  ): void {
-    // Scene 5 不使用全屏图片预览，保留空方法以避免编译错误
   }
 
   private layoutNamedPreviewObjects(
@@ -1118,19 +1120,9 @@ export class Scene5 extends Phaser.Scene {
       const clue = SONG_CLUES[this.currentClueIndex];
       if (clue) {
         if (clue.id === 'clue_paper') {
-          this.startDialogue(SINGER_NPC_NAME, [...PAPER_DIALOGUE_LINES], () => {
-            this.unlockEntriesForClue('clue_paper');
-            this.showPendingNewGlyphToast('clue_paper');
-            this.dictionaryBridge.unlockEntry('zhi');
-            this.pendingDictionaryPuzzle = null;
-          });
+          this.openPaperPreview();
         } else if (clue.id === 'clue_fan') {
-          this.startDialogue(SINGER_NPC_NAME, [...FAN_DIALOGUE_LINES], () => {
-            this.unlockEntriesForClue('clue_fan');
-            this.showPendingNewGlyphToast('clue_fan');
-            this.dictionaryBridge.unlockEntry('geshan');
-            this.pendingDictionaryPuzzle = null;
-          });
+          this.openFanPreview();
         } else if (clue.id === 'clue_basket') {
           this.startDialogue(SINGER_NPC_NAME, [...BIMO_DIALOGUE_LINES], () => {
             this.unlockEntriesForClue('clue_basket');
@@ -1150,6 +1142,144 @@ export class Scene5 extends Phaser.Scene {
     } else if (this.currentTarget === 'npc_girl') {
       this.startGirlIntroDialogue();
     }
+  }
+
+  private startPaperDialogueAfterPreview(): void {
+    this.startDialogue(SINGER_NPC_NAME, [...PAPER_DIALOGUE_LINES], () => {
+      this.unlockEntriesForClue('clue_paper');
+      this.showPendingNewGlyphToast('clue_paper');
+      this.dictionaryBridge.unlockEntry('zhi');
+      this.pendingDictionaryPuzzle = null;
+    });
+  }
+
+  private startFanDialogueAfterPreview(): void {
+    this.startDialogue(SINGER_NPC_NAME, [...FAN_DIALOGUE_LINES], () => {
+      this.unlockEntriesForClue('clue_fan');
+      this.showPendingNewGlyphToast('clue_fan');
+      this.dictionaryBridge.unlockEntry('geshan');
+      this.pendingDictionaryPuzzle = null;
+    });
+  }
+
+  private openPaperPreview(): void {
+    this.paperPreviewOpen = true;
+    this.syncFreeExplorationState();
+    this.scene.pause();
+
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    const overlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.8)
+      .setDepth(95)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true })
+      .setName('paper_overlay');
+
+    this.add.image(cx, cy, 'paper_img')
+      .setScale(0.8)
+      .setDepth(96)
+      .setScrollFactor(0)
+      .setName('paper_big_img');
+
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 进入对话 | Q / ESC 返回', {
+      fontSize: '22px', color: '#a89984', fontFamily: 'serif',
+      backgroundColor: '#00000088', padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('paper_phase1_hint');
+
+    overlay.on('pointerdown', () => this.closePaperPreview(true));
+
+    const keyHandler = (event: KeyboardEvent) => {
+      if (!this.paperPreviewOpen) return;
+      if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
+        this.closePaperPreview();
+      } else if (event.key === 'e' || event.key === 'E') {
+        this.closePaperPreview(true);
+      }
+    };
+    window.addEventListener('keydown', keyHandler);
+    this._paperKeyHandler = keyHandler;
+  }
+
+  private closePaperPreview(completed = false): void {
+    if (!this.paperPreviewOpen) return;
+    this.paperPreviewOpen = false;
+    this.syncFreeExplorationState();
+
+    if (this._paperKeyHandler) {
+      window.removeEventListener('keydown', this._paperKeyHandler);
+      this._paperKeyHandler = null;
+    }
+
+    [
+      'paper_overlay',
+      'paper_big_img',
+      'paper_close_hint',
+      'paper_phase1_hint',
+    ].forEach((name) => this.children.getByName(name)?.destroy());
+
+    this.scene.resume();
+    if (completed) this.startPaperDialogueAfterPreview();
+  }
+
+  private openFanPreview(): void {
+    this.fanPreviewOpen = true;
+    this.syncFreeExplorationState();
+    this.scene.pause();
+
+    const cx = VIEW_WIDTH / 2;
+    const cy = VIEW_HEIGHT / 2;
+
+    const overlay = this.add.rectangle(cx, cy, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0.8)
+      .setDepth(95)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true })
+      .setName('fan_overlay');
+
+    this.add.image(cx, cy, 'fan_open_img')
+      .setScale(1.2)
+      .setDepth(96)
+      .setScrollFactor(0)
+      .setName('fan_big_img');
+
+    this.add.text(cx, VIEW_HEIGHT - 50, '按 E 或 点击 进入对话 | Q / ESC 返回', {
+      fontSize: '22px', color: '#a89984', fontFamily: 'serif',
+      backgroundColor: '#00000088', padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setDepth(97).setScrollFactor(0).setName('fan_phase1_hint');
+
+    overlay.on('pointerdown', () => this.closeFanPreview(true));
+
+    const keyHandler = (event: KeyboardEvent) => {
+      if (!this.fanPreviewOpen) return;
+      if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
+        this.closeFanPreview();
+      } else if (event.key === 'e' || event.key === 'E') {
+        this.closeFanPreview(true);
+      }
+    };
+    window.addEventListener('keydown', keyHandler);
+    this._fanKeyHandler = keyHandler;
+  }
+
+  private closeFanPreview(completed = false): void {
+    if (!this.fanPreviewOpen) return;
+    this.fanPreviewOpen = false;
+    this.syncFreeExplorationState();
+
+    if (this._fanKeyHandler) {
+      window.removeEventListener('keydown', this._fanKeyHandler);
+      this._fanKeyHandler = null;
+    }
+
+    [
+      'fan_overlay',
+      'fan_big_img',
+      'fan_close_hint',
+      'fan_phase1_hint',
+    ].forEach((name) => this.children.getByName(name)?.destroy());
+
+    this.scene.resume();
+    if (completed) this.startFanDialogueAfterPreview();
   }
 
   /** 标记线索已找到，更新进度 */
@@ -2235,7 +2365,9 @@ export class Scene5 extends Phaser.Scene {
       !this.completionMode &&
       !this.popupOpen &&
       !this.dialogueOpen &&
-      !this.guessOpen;
+      !this.guessOpen &&
+      !this.paperPreviewOpen &&
+      !this.fanPreviewOpen;
 
     if (active === this.lastFreeExplorationActive) return;
     this.lastFreeExplorationActive = active;
