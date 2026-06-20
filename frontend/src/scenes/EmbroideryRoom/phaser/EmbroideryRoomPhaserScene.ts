@@ -32,15 +32,13 @@ const EXPLORATION_CONTROLS_LABEL =
   'WASD 移动 | E 交互 | Tab 词典'
 const DIALOGUE_CONTROLS_LABEL = 'E / 点击继续 | Q / ESC 返回'
 const DIALOGUE_TEXT_X = -390
-const DIALOGUE_TEXT_Y = -59
+const DIALOGUE_TEXT_Y = -68
 const DIALOGUE_TEXT_WIDTH = 790
+const DIALOGUE_FONT_SIZE = 29
 const DIALOGUE_LINE_HEIGHT = 48
-const DIALOGUE_GLYPH_HEIGHT = 36
+const DIALOGUE_GLYPH_HEIGHT = 40
 const DIALOGUE_GLYPH_GAP = 3
-const TOAST_GLYPH_HEIGHT = 65
-const TOAST_GLYPH_GAP = 3
-const TOAST_PADDING_X = 20
-const TOAST_HEIGHT = 66
+const DIALOGUE_GLYPH_TEXTURE_PADDING = 6
 const CULTURE_PREVIEW_TEXT_WIDTH = 620
 const CULTURE_PREVIEW_GAP = 48
 const CULTURE_PREVIEW_IMAGE_LAYOUT_WIDTH_RATIO = 0.56
@@ -124,9 +122,6 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   private dictionaryButton!: Phaser.GameObjects.Image
   private dictionaryButtonLabel!: Phaser.GameObjects.Text
   private toastText!: Phaser.GameObjects.Text
-  private toastGlyphContainer!: Phaser.GameObjects.Container
-  private toastGlyphBackground!: Phaser.GameObjects.Rectangle
-  private toastGlyphContent!: Phaser.GameObjects.Container
   private toastHideEvent?: Phaser.Time.TimerEvent
 
   private previewContainer!: Phaser.GameObjects.Container
@@ -603,23 +598,6 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setVisible(false)
 
-    this.toastGlyphBackground = this.add.rectangle(
-      0,
-      0,
-      520,
-      TOAST_HEIGHT,
-      0x5d2722,
-      0.94,
-    )
-    this.toastGlyphContent = this.add.container(0, 0)
-    this.toastGlyphContainer = this.add.container(width / 2, 100, [
-      this.toastGlyphBackground,
-      this.toastGlyphContent,
-    ])
-    this.toastGlyphContainer
-      .setDepth(80)
-      .setScrollFactor(0)
-      .setVisible(false)
   }
 
   private createPreviewPanel(): void {
@@ -1090,7 +1068,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       if (entry) {
         this.saveSystem.unlockEntry(entry)
         this.dictionaryBridge.unlockEntry(entry.id)
-        this.showNewGlyphToast(interaction.unlock.nushuTextureKeys)
+        this.showNewGlyphToast(interaction.unlock.nushuImages)
       }
     }
 
@@ -1542,7 +1520,6 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.dialogueLinesContainer.removeAll(true)
 
     let currentY = DIALOGUE_TEXT_Y
-    const lineGap = 2
 
     lines.forEach((line) => {
       const lineContainer = this.add.container(DIALOGUE_TEXT_X, currentY)
@@ -1550,12 +1527,19 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
 
       if (suffix === undefined) {
         const text = this.createDialogueLineText(line, 0, 0, true)
+        const wrappedLineCount = Math.max(
+          1,
+          Math.ceil(text.height / DIALOGUE_LINE_HEIGHT),
+        )
+        const lineBoxHeight = wrappedLineCount * DIALOGUE_LINE_HEIGHT
+        text.setY(Math.max(0, (lineBoxHeight - text.height) / 2))
         lineContainer.add(text)
-        currentY += text.height + lineGap
+        currentY += lineBoxHeight
       } else {
         const prefixText = this.createDialogueLineText(prefix, 0, 0)
+        prefixText.setY(Math.max(0, (DIALOGUE_LINE_HEIGHT - prefixText.height) / 2))
         lineContainer.add(prefixText)
-        const glyphCenterY = prefixText.height / 2
+        const glyphCenterY = DIALOGUE_LINE_HEIGHT / 2
         const glyphWidth = this.addDialogueGlyphsToContainer(
           lineContainer,
           this.getDialogueGlyphTextureKeys(),
@@ -1567,13 +1551,9 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
           prefixText.width + glyphWidth + 22,
           0,
         )
+        suffixText.setY(Math.max(0, (DIALOGUE_LINE_HEIGHT - suffixText.height) / 2))
         lineContainer.add(suffixText)
-        const lineHeight = Math.max(
-          prefixText.height,
-          suffixText.height,
-          DIALOGUE_GLYPH_HEIGHT,
-        )
-        currentY += lineHeight + lineGap
+        currentY += DIALOGUE_LINE_HEIGHT
       }
 
       this.dialogueLinesContainer.add(lineContainer)
@@ -1598,11 +1578,11 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     wrap = false,
   ): Phaser.GameObjects.Text {
     return this.add.text(x, y, text, {
-      fontSize: '29px',
+      fontSize: `${DIALOGUE_FONT_SIZE}px`,
       color: '#f1f1ee',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
       wordWrap: wrap ? { width: DIALOGUE_TEXT_WIDTH } : undefined,
-      lineSpacing: wrap ? 2 : 0,
+      lineSpacing: wrap ? DIALOGUE_LINE_HEIGHT - DIALOGUE_FONT_SIZE : 0,
     })
   }
 
@@ -1706,7 +1686,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     if (entry && !this.saveSystem.isEntryUnlocked(entry.id)) {
       this.saveSystem.unlockEntry(entry)
       this.dictionaryBridge.unlockEntry(entry.id)
-      this.showNewGlyphToast(EMBROIDERY_FINAL_YAN_UNLOCK.nushuTextureKeys)
+      this.showNewGlyphToast(EMBROIDERY_FINAL_YAN_UNLOCK.nushuImages)
     }
 
     this.closeDialogue()
@@ -1822,102 +1802,23 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
   }
 
   private showToast(message: string): void {
-    this.toastGlyphContainer.setVisible(false)
     this.toastText.setText(message).setVisible(true)
     this.scheduleToastHide()
   }
 
   private showFinalYanPrompt(): void {
-    if (this.toastGlyphContainer.visible) {
-      this.finalYanPromptQueued = true
-      return
-    }
-
     this.finalYanPromptQueued = false
     this.showToast(`${npcConfig.name}似乎还有话想对你说。`)
   }
 
-  private showNewGlyphToast(nushuTextureKeys: readonly string[]): void {
-    this.toastText.setVisible(false)
-    this.toastGlyphContent.removeAll(true)
-
-    const prefixText = this.createToastText('获得新字形：')
-    this.toastGlyphContent.add(prefixText)
-
-    const glyphWidth = this.addToastGlyphsToContainer(
-      this.toastGlyphContent,
-      nushuTextureKeys,
-      prefixText.width + 8,
-      0,
-    )
-    const suffixText = this.createToastText(
-      '已加入词典',
-      prefixText.width + glyphWidth + 22,
-    )
-    this.toastGlyphContent.add(suffixText)
-
-    const contentWidth = suffixText.x + suffixText.width
-    this.toastGlyphContent.setPosition(-contentWidth / 2, 0)
-    this.toastGlyphBackground.setSize(
-      contentWidth + TOAST_PADDING_X * 2,
-      TOAST_HEIGHT,
-    )
-    this.toastGlyphContainer.setVisible(true)
-    this.scheduleToastHide()
-  }
-
-  private createToastText(
-    text: string,
-    x = 0,
-  ): Phaser.GameObjects.Text {
-    return this.add
-      .text(x, 0, text, {
-        fontSize: '26px',
-        color: '#f7e8ca',
-        fontFamily: '"SimSun", "Microsoft YaHei", serif',
-      })
-      .setOrigin(0, 0.5)
-  }
-
-  private addToastGlyphsToContainer(
-    container: Phaser.GameObjects.Container,
-    sourceTextureKeys: readonly string[],
-    x: number,
-    centerY: number,
-  ): number {
-    let glyphX = 0
-    sourceTextureKeys.forEach((sourceTextureKey) => {
-      const textureKey = this.getDialogueGlyphTextureKey(sourceTextureKey)
-      const renderTextureKey = this.textures.exists(textureKey)
-        ? textureKey
-        : sourceTextureKey
-      const glyph = this.add.image(x + glyphX, centerY, renderTextureKey)
-      const sourceImage = this.textures.get(renderTextureKey).source[0]?.image
-      const sourceWidth =
-        sourceImage && 'width' in sourceImage ? Number(sourceImage.width) : 52
-      const sourceHeight =
-        sourceImage && 'height' in sourceImage
-          ? Number(sourceImage.height)
-          : 82
-      const glyphWidth = TOAST_GLYPH_HEIGHT * (sourceWidth / sourceHeight)
-
-      glyph
-        .setDisplaySize(glyphWidth, TOAST_GLYPH_HEIGHT)
-        .setOrigin(0, 0.5)
-      container.add(glyph)
-      glyphX += glyphWidth + TOAST_GLYPH_GAP
-    })
-
-    return Math.max(glyphX - TOAST_GLYPH_GAP, 1)
+  private showNewGlyphToast(nushuImages: readonly string[]): void {
+    this.dictionaryBridge.showGlyphToast?.({ nushuImages })
   }
 
   private scheduleToastHide(): void {
     this.toastHideEvent?.remove(false)
     this.toastHideEvent = this.time.delayedCall(2200, () => {
       if (this.toastText.active) this.toastText.setVisible(false)
-      if (this.toastGlyphContainer.active) {
-        this.toastGlyphContainer.setVisible(false)
-      }
       this.toastHideEvent = undefined
       if (this.finalYanPromptQueued && this.canTriggerFinalYanDialogue()) {
         this.showFinalYanPrompt()
@@ -1947,7 +1848,6 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     this.controlsText.setPosition(width / 2, height - 24)
     this.interactHint.setPosition(width / 2, height - 105)
     this.toastText.setPosition(width / 2, 100)
-    this.toastGlyphContainer.setPosition(width / 2, 100)
     this.previewContainer.setPosition(width / 2, height / 2)
     this.previewOverlay.setSize(width, height)
     this.previewHint.setPosition(0, height / 2 - 55)
@@ -2010,15 +1910,27 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       canvas.width,
       canvas.height,
     )
+    let minX = canvas.width
+    let minY = canvas.height
+    let maxX = -1
+    let maxY = -1
 
     for (let index = 0; index < imageData.data.length; index += 4) {
       const red = imageData.data[index]
       const green = imageData.data[index + 1]
       const blue = imageData.data[index + 2]
+      const alpha = imageData.data[index + 3]
+      const pixelIndex = index / 4
+      const x = pixelIndex % canvas.width
+      const y = Math.floor(pixelIndex / canvas.width)
 
-      if (red > 225 && green > 225 && blue > 225) {
+      if (alpha <= 10 || (red > 225 && green > 225 && blue > 225)) {
         imageData.data[index + 3] = 0
       } else {
+        minX = Math.min(minX, x)
+        minY = Math.min(minY, y)
+        maxX = Math.max(maxX, x)
+        maxY = Math.max(maxY, y)
         imageData.data[index] = 244
         imageData.data[index + 1] = 221
         imageData.data[index + 2] = 191
@@ -2026,7 +1938,33 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
     }
 
     context.putImageData(imageData, 0, 0)
-    this.textures.addCanvas(targetKey, canvas)
+
+    if (maxX < minX || maxY < minY) {
+      this.textures.addCanvas(targetKey, canvas)
+      return
+    }
+
+    const croppedCanvas = document.createElement('canvas')
+    croppedCanvas.width = maxX - minX + 1 + DIALOGUE_GLYPH_TEXTURE_PADDING * 2
+    croppedCanvas.height = maxY - minY + 1 + DIALOGUE_GLYPH_TEXTURE_PADDING * 2
+    const croppedContext = croppedCanvas.getContext('2d')
+    if (!croppedContext) {
+      this.textures.addCanvas(targetKey, canvas)
+      return
+    }
+
+    croppedContext.drawImage(
+      canvas,
+      minX,
+      minY,
+      maxX - minX + 1,
+      maxY - minY + 1,
+      DIALOGUE_GLYPH_TEXTURE_PADDING,
+      DIALOGUE_GLYPH_TEXTURE_PADDING,
+      maxX - minX + 1,
+      maxY - minY + 1,
+    )
+    this.textures.addCanvas(targetKey, croppedCanvas)
   }
 
   private shutdown(): void {

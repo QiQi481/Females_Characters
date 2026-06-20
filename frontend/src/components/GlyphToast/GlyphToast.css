@@ -1,0 +1,78 @@
+.glyph-toast {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  height: 66px;
+  min-width: 220px;
+  padding: 0 18px;
+  background: rgba(93, 39, 34, 0.94);
+  border-radius: 0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation:
+    glyphToastIn 0.4s ease,
+    glyphToastOut 0.4s ease 1.8s forwards;
+}
+
+.glyph-toast-text {
+  color: #f7e8ca;
+  font-family: "SimSun", "Microsoft YaHei", serif;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  line-height: 66px;
+  white-space: nowrap;
+}
+
+.glyph-toast-images {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 65px;
+}
+
+.glyph-toast-image {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 39px;
+  height: 65px;
+  background: #f7e8ca;
+  opacity: 0.96;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.glyph-toast-images.is-compound {
+  gap: 3px;
+}
+
+@keyframes glyphToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes glyphToastOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

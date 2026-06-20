@@ -19,6 +19,7 @@ export type DictionaryFeedback =
   | null
 
 const SUCCESS_CLOSE_DELAY = 1100
+const FEEDBACK_DISMISS_DELAY = 2000
 const DICTIONARY_STORAGE_KEY = 'san-chaoshu-global-dictionary'
 const DICTIONARY_STORAGE_VERSION = 2
 const EMBROIDERY_ENTRY_IDS = new Set([
@@ -104,6 +105,7 @@ function loadDictionaryState(
 
 export function useDictionary() {
   const successTimerRef = useRef<number | null>(null)
+  const feedbackTimerRef = useRef<number | null>(null)
   const initiallyUnlocked = useMemo(
     () =>
       entries
@@ -143,7 +145,19 @@ export function useDictionary() {
     successTimerRef.current = null
   }, [])
 
-  useEffect(() => clearSuccessTimer, [clearSuccessTimer])
+  const clearFeedbackTimer = useCallback(() => {
+    if (feedbackTimerRef.current === null) return
+    window.clearTimeout(feedbackTimerRef.current)
+    feedbackTimerRef.current = null
+  }, [])
+
+  useEffect(
+    () => () => {
+      clearSuccessTimer()
+      clearFeedbackTimer()
+    },
+    [clearFeedbackTimer, clearSuccessTimer],
+  )
 
   useEffect(() => {
     try {
@@ -167,6 +181,7 @@ export function useDictionary() {
 
   const openDictionary = useCallback((puzzle?: DictionaryPuzzle) => {
     clearSuccessTimer()
+    clearFeedbackTimer()
     if (puzzle) {
       setUnlockedEntryIds((current) =>
         current.includes(puzzle.activeEntryId)
@@ -181,18 +196,19 @@ export function useDictionary() {
     setFailedSlotId(null)
     setIsResolvingPuzzle(false)
     setIsDictionaryOpen(true)
-  }, [clearSuccessTimer])
+  }, [clearFeedbackTimer, clearSuccessTimer])
 
   const closeDictionary = useCallback(() => {
     if (isResolvingPuzzle) return
     clearSuccessTimer()
+    clearFeedbackTimer()
     setIsDictionaryOpen(false)
     setActivePuzzle(null)
     setActiveClueEntryId(null)
     setFeedback(null)
     setFailedSlotId(null)
     setIsResolvingPuzzle(false)
-  }, [clearSuccessTimer, isResolvingPuzzle])
+  }, [clearFeedbackTimer, clearSuccessTimer, isResolvingPuzzle])
 
   const unlockEntry = useCallback((entryId: DictionaryEntryId) => {
     setUnlockedEntryIds((current) =>
@@ -213,6 +229,7 @@ export function useDictionary() {
 
   const openClue = useCallback(
     (entryId: DictionaryEntryId) => {
+      clearFeedbackTimer()
       const entry = entries.find((candidate) => candidate.id === entryId)
       if (!entry) {
         setFeedback({
@@ -235,7 +252,7 @@ export function useDictionary() {
       setFeedback(null)
       setFailedSlotId(null)
     },
-    [unlockedEntryIds],
+    [clearFeedbackTimer, unlockedEntryIds],
   )
 
   const closeClue = useCallback(() => {
@@ -245,6 +262,7 @@ export function useDictionary() {
   const placeEntryToSlot = useCallback(
     (entryId: DictionaryEntryId, slotId: DictionarySlotId) => {
       if (isResolvingPuzzle) return false
+      clearFeedbackTimer()
 
       const requiredEntryId = slotRequiredEntryIds.get(slotId)
       if (!requiredEntryId) {
@@ -310,14 +328,23 @@ export function useDictionary() {
         message: `已补全：${entry.label}`,
         slotId,
       })
+      feedbackTimerRef.current = window.setTimeout(() => {
+        setFeedback((current) =>
+          current?.type === 'success' && current.slotId === slotId
+            ? null
+            : current,
+        )
+        feedbackTimerRef.current = null
+      }, FEEDBACK_DISMISS_DELAY)
 
       return true
     },
-    [isResolvingPuzzle, unlockedEntryIds],
+    [clearFeedbackTimer, isResolvingPuzzle, unlockedEntryIds],
   )
 
   const resetDictionary = useCallback(() => {
     clearSuccessTimer()
+    clearFeedbackTimer()
     setIsDictionaryOpen(false)
     setActiveEntryId(null)
     setActivePuzzle(null)
@@ -328,11 +355,12 @@ export function useDictionary() {
     setUnlockedEntryIds(initiallyUnlocked)
     setPlacedSlots({})
     setHasSeenGuide(false)
-  }, [clearSuccessTimer, initiallyUnlocked])
+  }, [clearFeedbackTimer, clearSuccessTimer, initiallyUnlocked])
 
   const selectEntry = useCallback(
     (entryId: DictionaryEntryId) => {
       if (!activePuzzle) {
+        clearFeedbackTimer()
         setActiveEntryId(entryId)
         setFeedback(null)
         return
@@ -373,7 +401,7 @@ export function useDictionary() {
         activePuzzle.onSuccess()
       }, SUCCESS_CLOSE_DELAY)
     },
-    [activePuzzle, isResolvingPuzzle, unlockEntry],
+    [activePuzzle, clearFeedbackTimer, isResolvingPuzzle, unlockEntry],
   )
 
   return {

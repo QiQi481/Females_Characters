@@ -1,13 +1,17 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import MainMenu from './components/MainMenu/MainMenu'
 import Prologue from './components/Prologue/Prologue'
 import TitleCard from './components/TitleCard/TitleCard'
 import Chapter1 from './components/Chapter1/Chapter1'
 import ChapterNight from './components/ChapterNight/ChapterNight'
+import GlyphToast, {
+  type GlyphToastState,
+} from './components/GlyphToast/GlyphToast'
 import SceneSwitcher from './components/SceneSwitcher'
+import type { GlobalGlyphToastPayload } from './game/GlobalDictionaryBridge'
 import { SaveSystem } from './game/systems'
 import { loadGame, deleteSave, hasSave, saveGame, ProgressStage } from './utils/gameSave'
-import { DictionaryOverlay, useDictionary } from './systems/dictionary'
+import { DictionaryOverlay, entries, useDictionary } from './systems/dictionary'
 import EmbroideryRoomPhaser from './scenes/EmbroideryRoom/EmbroideryRoomPhaser'
 import SingingHall from './scenes/SingingHall/SingingHall'
 import { getBgmVolume, BGM_VOLUME_CHANGE_EVENT } from './utils/audioSettings'
@@ -31,6 +35,8 @@ type SceneId = (typeof SCENE_OPTIONS)[number]['id']
 
 function App() {
   const dictionary = useDictionary()
+  const [glyphToast, setGlyphToast] = useState<GlyphToastState | null>(null)
+  const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [gameSessionKey, setGameSessionKey] = useState(0)
   const [currentScene, setCurrentScene] = useState<SceneId>(
@@ -40,6 +46,44 @@ function App() {
   // ========== 全局背景音乐：女书长卷 ==========
   // 江永村流程（MainMenu/Prologue/TitleCard/Chapter1）播放，女红房/坐歌堂暂停
   const bgmRef = useRef<HTMLAudioElement | null>(null)
+
+  const showGlyphToast = useCallback((payload: GlobalGlyphToastPayload) => {
+    if (payload.nushuImages.length === 0) return
+
+    if (glyphToastTimerRef.current) {
+      clearTimeout(glyphToastTimerRef.current)
+    }
+    setGlyphToast({
+      label: payload.label ?? payload.nushuImages.join('·'),
+      nushuImages: payload.nushuImages,
+    })
+    glyphToastTimerRef.current = setTimeout(() => {
+      setGlyphToast(null)
+      glyphToastTimerRef.current = null
+    }, 2500)
+  }, [])
+
+  const showEntryGlyphToast = useCallback(
+    (entryIds: readonly string[]) => {
+      const unlockedEntries = entryIds
+        .map((entryId) => entries.find((entry) => entry.id === entryId))
+        .filter((entry): entry is (typeof entries)[number] => Boolean(entry))
+      if (unlockedEntries.length === 0) return
+
+      showGlyphToast({
+        label: unlockedEntries.map((entry) => entry.label).join('·'),
+        nushuImages: unlockedEntries.flatMap((entry) => [...entry.nushuImages]),
+      })
+    },
+    [showGlyphToast],
+  )
+
+  useEffect(
+    () => () => {
+      if (glyphToastTimerRef.current) clearTimeout(glyphToastTimerRef.current)
+    },
+    [],
+  )
 
   // 创建 Audio 实例 + 用户交互触发播放（绕过浏览器自动播放限制）
   useEffect(() => {
@@ -321,6 +365,7 @@ function App() {
           onClueIdsChange={handleClueIdsChange}
           onTutorialDone={handleTutorialDone}
           onSceneSwitcherUnlocked={handleSceneSwitcherUnlocked}
+          onShowGlyphToast={showEntryGlyphToast}
           onComplete={() => deleteSave()}
         />
       )}
@@ -337,6 +382,7 @@ function App() {
             openDictionary={dictionary.openDictionary}
             closeDictionary={dictionary.closeDictionary}
             unlockEntry={dictionary.unlockEntry}
+            showGlyphToast={showGlyphToast}
             onReturnToMenu={returnToMainMenu}
           />
         )
@@ -348,6 +394,7 @@ function App() {
             openDictionary={dictionary.openDictionary}
             closeDictionary={dictionary.closeDictionary}
             unlockEntry={dictionary.unlockEntry}
+            showGlyphToast={showGlyphToast}
             onReturnToMenu={returnToMainMenu}
           />
         )
@@ -392,6 +439,9 @@ function App() {
         placedSlots={dictionary.placedSlots}
         unlockedEntryIds={dictionary.unlockedEntryIds}
         hasSeenGuide={dictionary.hasSeenGuide}
+        highlightAllEmptySlots={
+          currentScene !== JIANGYONG_VILLAGE_SCENE_ID || sceneSwitcherUnlocked
+        }
         onClose={dictionary.closeDictionary}
         onCloseClue={dictionary.closeClue}
         onDismissGuide={dictionary.dismissGuide}
@@ -399,6 +449,7 @@ function App() {
         onSelectEntry={dictionary.selectEntry}
         onPlaceEntryToSlot={dictionary.placeEntryToSlot}
       />
+      <GlyphToast toast={glyphToast} />
     </div>
   )
 }

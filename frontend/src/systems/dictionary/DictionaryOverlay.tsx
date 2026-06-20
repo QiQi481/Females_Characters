@@ -25,6 +25,7 @@ type DictionaryOverlayProps = {
   placedSlots: Record<string, DictionaryEntry['id']>
   unlockedEntryIds: readonly DictionaryEntry['id'][]
   hasSeenGuide: boolean
+  highlightAllEmptySlots: boolean
   onClose: () => void
   onCloseClue: () => void
   onDismissGuide: () => void
@@ -91,6 +92,7 @@ export function DictionaryOverlay({
   placedSlots,
   unlockedEntryIds,
   hasSeenGuide,
+  highlightAllEmptySlots,
   onClose,
   onCloseClue,
   onDismissGuide,
@@ -213,6 +215,10 @@ export function DictionaryOverlay({
                     const isDropTarget =
                       draggingEntry?.targetSlots.includes(segment.slotId) ??
                       false
+                    const isDropReady =
+                      draggingEntryId &&
+                      !isPlaced &&
+                      (highlightAllEmptySlots || isDropTarget)
 
                     return (
                       <button
@@ -221,9 +227,7 @@ export function DictionaryOverlay({
                         }${isCurrentSlot ? ' is-current' : ''}${
                           isFailed ? ' is-error' : ''
                         }${
-                          draggingEntryId && !isPlaced && isDropTarget
-                            ? ' is-drop-ready'
-                            : ''
+                          isDropReady ? ' is-drop-ready' : ''
                         }`}
                         type="button"
                         onDragOver={(event) => {
@@ -379,15 +383,16 @@ export function DictionaryOverlay({
             })}
           </div>
 
-          {feedback && (
-            <p
-              className={`dictionary-feedback-toast is-${feedback.type}`}
-              role="status"
-            >
-              {feedback.message}
-            </p>
-          )}
         </aside>
+
+        {feedback && (
+          <p
+            className={`dictionary-feedback-toast is-${feedback.type}`}
+            role="status"
+          >
+            {feedback.message}
+          </p>
+        )}
 
         {guideState !== 'drag' && (
           <div

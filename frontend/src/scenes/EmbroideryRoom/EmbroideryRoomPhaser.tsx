@@ -5,6 +5,7 @@ import type {
   DictionaryEntry,
   DictionaryPuzzle,
 } from '../../systems/dictionary'
+import type { GlobalGlyphToastPayload } from '../../game/GlobalDictionaryBridge'
 import ExplorationHud from '../../components/ExplorationHud/ExplorationHud'
 import type { EmbroideryDictionaryBridge } from './phaser/EmbroideryDictionaryBridge'
 import {
@@ -18,6 +19,7 @@ type EmbroideryRoomPhaserProps = {
   openDictionary: (puzzle?: DictionaryPuzzle) => void
   closeDictionary: () => void
   unlockEntry: (entryId: DictionaryEntry['id']) => void
+  showGlyphToast: (payload: GlobalGlyphToastPayload) => void
   onReturnToMenu: () => void
 }
 
@@ -26,6 +28,7 @@ function EmbroideryRoomPhaser({
   openDictionary,
   closeDictionary,
   unlockEntry,
+  showGlyphToast,
   onReturnToMenu,
 }: EmbroideryRoomPhaserProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -33,6 +36,7 @@ function EmbroideryRoomPhaser({
   const openDictionaryRef = useRef(openDictionary)
   const closeDictionaryRef = useRef(closeDictionary)
   const unlockEntryRef = useRef(unlockEntry)
+  const showGlyphToastRef = useRef(showGlyphToast)
   const returnToMenuRef = useRef(onReturnToMenu)
   const [clueProgress, setClueProgress] = useState({ found: 0, total: 7 })
   const [freeExplorationActive, setFreeExplorationActive] = useState(false)
@@ -41,8 +45,9 @@ function EmbroideryRoomPhaser({
     openDictionaryRef.current = openDictionary
     closeDictionaryRef.current = closeDictionary
     unlockEntryRef.current = unlockEntry
+    showGlyphToastRef.current = showGlyphToast
     returnToMenuRef.current = onReturnToMenu
-  }, [onReturnToMenu, openDictionary, closeDictionary, unlockEntry])
+  }, [onReturnToMenu, openDictionary, closeDictionary, unlockEntry, showGlyphToast])
 
   useEffect(() => {
     const container = containerRef.current
@@ -52,6 +57,7 @@ function EmbroideryRoomPhaser({
       openDictionary: (puzzle) => openDictionaryRef.current(puzzle),
       closeDictionary: () => closeDictionaryRef.current(),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
+      showGlyphToast: (payload) => showGlyphToastRef.current(payload),
       returnToMenu: () => returnToMenuRef.current(),
       setClueProgress,
       setFreeExplorationActive,

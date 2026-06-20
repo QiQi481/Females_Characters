@@ -51,11 +51,6 @@ interface DialogLine {
   text: string
 }
 
-type GlyphToastState = {
-  label: string
-  nushuImages: readonly string[]
-}
-
 /** 阿禾对话 — 旁白结束后自动触发 */
 const DIALOG_LINES: DialogLine[] = [
   { speaker: '阿禾', text: '您就是来江永研究女书的学生吧？' },
@@ -168,6 +163,7 @@ interface Chapter1Props {
   onClueIdsChange: (ids: string[]) => void
   onTutorialDone: () => void
   onSceneSwitcherUnlocked: () => void
+  onShowGlyphToast: (entryIds: readonly string[]) => void
   onComplete: () => void
 }
 
@@ -186,6 +182,7 @@ function Chapter1({
   onClueIdsChange,
   onTutorialDone,
   onSceneSwitcherUnlocked,
+  onShowGlyphToast,
   onComplete,
 }: Chapter1Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -271,9 +268,6 @@ function Chapter1({
   const [matchFinalFeedback, setMatchFinalFeedback] = useState<string | null>(null) // Q4 反馈
   const [matchEverStarted, setMatchEverStarted] = useState(false) // Q3 是否已启动过
   const [matchQ3Transition, setMatchQ3Transition] = useState(false) // Q3 全部正确 → 过渡对话"去女红房"
-  // 获得新字形提示
-  const [glyphToast, setGlyphToast] = useState<GlyphToastState | null>(null)
-  const glyphToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const introLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Quiz 相关弹窗是否开启（用于暂停 WASD）
   const isQuizBusy = showGuideBookPreview || matchQ3Transition || matchFinalStage > 0 || matchAllWrong || matchCatCommentary !== null || matchCommentary !== null || matchActive || quizImageOpen || quizChoicesOpen || quizFeedback !== null || quizActive
@@ -527,6 +521,7 @@ function Chapter1({
     // 字典从打开→关闭 且 有新的放置
     if (prevDictOpenRef.current && !isDictionaryOpen && placedCount > placedSlotCountAtStartRef.current) {
       setGuideDictDone(true)
+      setSceneSwitcherGuideActive(true)
     }
     prevDictOpenRef.current = isDictionaryOpen
   }, [isDictionaryOpen, quizQ1Done, postQ1DialogueStep, placedSlots, guideDictDone])
@@ -547,11 +542,14 @@ function Chapter1({
 
   const finishSceneSwitcherGuide = useCallback(() => {
     setSceneSwitcherGuideActive(false)
-    setSceneSwitcherUnlocked(true)
-    unlockEntry('jun-2')
-    placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
-    onSceneSwitcherUnlocked()
-  }, [onSceneSwitcherUnlocked, placePlayerAt, unlockEntry])
+    setGuideDictDismissed(true)
+    if (!sceneSwitcherUnlocked) {
+      setSceneSwitcherUnlocked(true)
+      unlockEntry('jun-2')
+      placePlayerAt(CHAPTER1_FREE_EXPLORE_SPAWN)
+      onSceneSwitcherUnlocked()
+    }
+  }, [onSceneSwitcherUnlocked, placePlayerAt, sceneSwitcherUnlocked, unlockEntry])
 
   const finishGuideDictSummary = useCallback(() => {
     setGuideDictDismissed(true)
@@ -645,8 +643,8 @@ function Chapter1({
         if (showBookPopup) { handleBookPopupClose(); return }
         if (showLabelInfo) { setShowLabelInfo(false); setLabelStep(0); return }
         if (postQ1DialogueStep >= 0) { setPostQ1DialogueStep(-1); setQuizQ1Done(true); return }
-        if (guideDictDone && !guideDictDismissed) { finishGuideDictSummary(); return }
         if (sceneSwitcherGuideActive) { finishSceneSwitcherGuide(); return }
+        if (guideDictDone && !guideDictDismissed) { finishGuideDictSummary(); return }
 
         return
       }
@@ -752,14 +750,14 @@ function Chapter1({
           advancePostQ1Dialogue()
           return
         }
-        if (guideDictDone && !guideDictDismissed) {
-          event.preventDefault()
-          finishGuideDictSummary()
-          return
-        }
         if (sceneSwitcherGuideActive) {
           event.preventDefault()
           finishSceneSwitcherGuide()
+          return
+        }
+        if (guideDictDone && !guideDictDismissed) {
+          event.preventDefault()
+          finishGuideDictSummary()
           return
         }
         if (isQuizBusy) return
@@ -1097,22 +1095,9 @@ function Chapter1({
     setQuizImageStep(initialStep)
   }
 
-  const getDictionaryEntries = (entryIds: readonly string[]) =>
-    entryIds
-      .map((entryId) => entries.find((entry) => entry.id === entryId))
-      .filter((entry): entry is (typeof entries)[number] => Boolean(entry))
-
   // 显示"获得新字形"提示
   const showGlyphToast = (entryIds: readonly string[]) => {
-    const unlockedEntries = getDictionaryEntries(entryIds)
-    if (unlockedEntries.length === 0) return
-
-    if (glyphToastTimerRef.current) clearTimeout(glyphToastTimerRef.current)
-    setGlyphToast({
-      label: unlockedEntries.map((entry) => entry.label).join('·'),
-      nushuImages: unlockedEntries.flatMap((entry) => [...entry.nushuImages]),
-    })
-    glyphToastTimerRef.current = setTimeout(() => setGlyphToast(null), 2500)
+    onShowGlyphToast(entryIds)
   }
 
   // 获取当前题目的正确选项
@@ -2092,14 +2077,6 @@ function Chapter1({
         </div>
       )}
 
-      {/* 新手引导：字典匹配完成后，阿禾总结 */}
-      {guideDictDone && !guideDictDismissed && renderCharacterDialogue({
-        speaker: '阿禾',
-        text: '接下来我和您继续寻找其他线索',
-        onClick: finishGuideDictSummary,
-        controlsText: 'E / 点击继续',
-      })}
-
       {sceneSwitcherGuideActive && (
         <div className="narration-overlay" onClick={finishSceneSwitcherGuide}>
           <div className="narration-box">
@@ -2299,32 +2276,6 @@ function Chapter1({
         onClick: closeQ3Transition,
         zIndex: 108,
       })}
-
-      {/* 获得新字形提示 */}
-      {glyphToast && (
-        <div className="glyph-toast" key={glyphToast.label}>
-          <span className="glyph-toast-text">获得新字形：</span>
-          <span
-            className={`glyph-toast-images${
-              glyphToast.nushuImages.length > 1 ? ' is-compound' : ''
-            }`}
-            aria-label={glyphToast.label}
-          >
-            {glyphToast.nushuImages.map((image, index) => (
-              <span
-                className="glyph-toast-image"
-                style={{
-                  WebkitMaskImage: `url("${image}")`,
-                  maskImage: `url("${image}")`,
-                }}
-                aria-hidden="true"
-                key={`${glyphToast.label}-${index}`}
-              />
-            ))}
-          </span>
-          <span className="glyph-toast-text">已加入词典</span>
-        </div>
-      )}
 
     </div>
   )

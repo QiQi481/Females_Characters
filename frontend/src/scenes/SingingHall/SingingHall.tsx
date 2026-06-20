@@ -5,7 +5,10 @@ import type {
   DictionaryPuzzle,
 } from '../../systems/dictionary'
 import ExplorationHud from '../../components/ExplorationHud/ExplorationHud'
-import type { GlobalDictionaryBridge } from '../../game/GlobalDictionaryBridge'
+import type {
+  GlobalDictionaryBridge,
+  GlobalGlyphToastPayload,
+} from '../../game/GlobalDictionaryBridge'
 import { createSingingHallGameConfig } from './config'
 import { Scene5 } from './scenes/Scene5'
 import { MainScene } from './scenes/MainScene'
@@ -17,6 +20,7 @@ type SingingHallProps = {
   openDictionary: (puzzle?: DictionaryPuzzle) => void
   closeDictionary: () => void
   unlockEntry: (entryId: DictionaryEntry['id']) => void
+  showGlyphToast: (payload: GlobalGlyphToastPayload) => void
   onReturnToMenu: () => void
 }
 
@@ -25,6 +29,7 @@ function SingingHall({
   openDictionary,
   closeDictionary,
   unlockEntry,
+  showGlyphToast,
   onReturnToMenu,
 }: SingingHallProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -32,6 +37,7 @@ function SingingHall({
   const openDictionaryRef = useRef(openDictionary)
   const closeDictionaryRef = useRef(closeDictionary)
   const unlockEntryRef = useRef(unlockEntry)
+  const showGlyphToastRef = useRef(showGlyphToast)
   const returnToMenuRef = useRef(onReturnToMenu)
   const [clueProgress, setClueProgress] = useState({ found: 0, total: 7 })
   const [freeExplorationActive, setFreeExplorationActive] = useState(false)
@@ -40,8 +46,9 @@ function SingingHall({
     openDictionaryRef.current = openDictionary
     closeDictionaryRef.current = closeDictionary
     unlockEntryRef.current = unlockEntry
+    showGlyphToastRef.current = showGlyphToast
     returnToMenuRef.current = onReturnToMenu
-  }, [onReturnToMenu, openDictionary, closeDictionary, unlockEntry])
+  }, [onReturnToMenu, openDictionary, closeDictionary, unlockEntry, showGlyphToast])
 
   useEffect(() => {
     const container = containerRef.current
@@ -51,6 +58,7 @@ function SingingHall({
       openDictionary: (puzzle) => openDictionaryRef.current(puzzle),
       closeDictionary: () => closeDictionaryRef.current(),
       unlockEntry: (entryId) => unlockEntryRef.current(entryId),
+      showGlyphToast: (payload) => showGlyphToastRef.current(payload),
       returnToMenu: () => returnToMenuRef.current(),
       setClueProgress,
       setFreeExplorationActive,
