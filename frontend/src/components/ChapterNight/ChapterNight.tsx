@@ -211,13 +211,27 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
     }
   }
 
-  // 监听填词进度
+  // 监听填词进度 —— 检测字典中所有需要填写的字词是否全部正确填写完毕
   useEffect(() => {
     if (endingPhase !== 'fillPuzzle' || fillPuzzleStep !== 'waitingForFill') return
-    const slotsMatch =
-      placedSlots['line-4-deep-night'] === 'shenxiao' &&
-      placedSlots['line-4-rain-sound'] === 'yusheng'
-    if (slotsMatch) {
+
+    // 收集所有诗句中需要填写的槽位
+    const allRequiredSlots: { slotId: string; requiredEntryId: string }[] = []
+    for (const line of dictionaryPoemLines) {
+      for (const seg of line.segments) {
+        if (seg.type === 'slot' && seg.requiredEntryId) {
+          allRequiredSlots.push({ slotId: seg.slotId, requiredEntryId: seg.requiredEntryId })
+        }
+      }
+    }
+
+    const allSlotsMatch =
+      allRequiredSlots.length > 0 &&
+      allRequiredSlots.every(
+        ({ slotId, requiredEntryId }) => placedSlots[slotId] === requiredEntryId,
+      )
+
+    if (allSlotsMatch) {
       setFillPuzzleStep('dialogue2')
     }
   }, [endingPhase, fillPuzzleStep, placedSlots])
@@ -868,7 +882,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
           {/* 等待填词 — 提示文字 */}
           {fillPuzzleStep === 'waitingForFill' && (
             <div className="chapter-night-fill-puzzle-waiting">
-              将词典中的「深宵」与「雨声」拖放到诗句对应位置
+              将词典中的字词拖放到诗句对应位置
             </div>
           )}
 
