@@ -1,3 +1,15 @@
+/**
+ * 游戏存档工具 — 江永村主线进度持久化
+ *
+ * 集成 HaSAnonymizer 安全管线:
+ *   saveGame: GameSave → sanitize → filter → sign → store
+ *   loadGame: store → verify → extract → GameSave
+ *   兼容旧版未签名存档，自动迁移。
+ */
+
+import { anonymizer } from '../security'
+import type { SecurePayload } from '../security'
+
 /** 游戏进度阶段（数字越大进度越后） */
 export const ProgressStage = {
   NOT_STARTED: 0,
@@ -34,12 +46,23 @@ export interface GameSave {
 }
 
 const SAVE_KEY = 'sanchao-shu-save'
-
 const storage = window.sessionStorage
+
+/** 判断存储的 JSON 是否为 SecurePayload */
+function isSecurePayload(raw: unknown): raw is SecurePayload {
+  return (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'data' in raw &&
+    'hash' in raw &&
+    'version' in raw
+  )
+}
 
 export function saveGame(save: GameSave): void {
   try {
-    storage.setItem(SAVE_KEY, JSON.stringify(save))
+    const secured = anonymizer.secure(save)
+    storage.setItem(SAVE_KEY, JSON.stringify(secured))
   } catch {
     console.warn('游戏存档失败')
   }
@@ -49,7 +72,28 @@ export function loadGame(): GameSave | null {
   try {
     const raw = storage.getItem(SAVE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as GameSave
+
+    const parsed = JSON.parse(raw)
+
+    // 检测是否为安全管线签名后的数据
+    if (isSecurePayload(parsed)) {
+      const { trusted, data } = anonymizer.unseal<GameSave>(
+        parsed as SecurePayload<GameSave>,
+      )
+      if (!trusted) {
+        console.warn('[游戏存档] 完整性校验失败，但仍尝试恢复数据')
+      }
+      return data
+    }
+
+    // 兼容旧版未签名存档：直接返回并自动迁移为签名版本
+    const legacy = parsed as GameSave
+    if (typeof legacy.phase === 'string' && typeof legacy.progress === 'number') {
+      // 静默迁移：下次 saveGame 时会自动签名
+      return legacy
+    }
+
+    return null
   } catch {
     return null
   }
