@@ -55,6 +55,8 @@ const LOCAL_ENTRY_NUSHU_TEXTURE_KEYS: Record<string, readonly string[]> = {
   song_sheng: ['singing_nushu_sheng'],
 };
 
+const INTERACTION_HINT_NUSHU_TARGETS = new Set(['clue_fan', 'clue_paper']);
+
 const GLOBAL_DICTIONARY_PUZZLES: Record<
   string,
   SingingDictionaryPuzzleConfig
@@ -148,6 +150,7 @@ export class Scene5 extends Phaser.Scene {
   // ========== UI ==========
   private interactHint!: Phaser.GameObjects.Container;
   private _hintText!: Phaser.GameObjects.Text;
+  private interactHintGlyphContent!: Phaser.GameObjects.Container;
   private dictionaryButton!: Phaser.GameObjects.Image;
   private dictionaryButtonLabel!: Phaser.GameObjects.Text;
   private controlsHint!: Phaser.GameObjects.Text;
@@ -822,7 +825,10 @@ export class Scene5 extends Phaser.Scene {
       color: '#f7e8ca',
       fontFamily: '"SimSun", "Microsoft YaHei", serif',
     }).setOrigin(0.5);
+    this.interactHintGlyphContent = this.add.container(0, 0);
+    this.interactHintGlyphContent.setVisible(false);
     container.add(this._hintText);
+    container.add(this.interactHintGlyphContent);
   }
 
   // ==================== 距离检测 ====================
@@ -868,16 +874,7 @@ export class Scene5 extends Phaser.Scene {
       this.canInteract = true;
       this.currentTarget = nearestTarget;
       this.currentClueIndex = nearestIndex;
-      // 显示交互提示
-      let hintName = '';
-      if (nearestTarget.startsWith('clue_') && nearestIndex >= 0) {
-        hintName = SONG_CLUES[nearestIndex].name;
-      } else if (nearestTarget === 'npc_sisters') {
-        hintName = SISTERS_NPC.name;
-      } else if (nearestTarget === 'npc_girl') {
-        hintName = '唱扇女';
-      }
-      this._hintText.setText(`E 交互 · ${hintName}`);
+      this.renderInteractionHint(nearestTarget, nearestIndex);
       this.interactHint.setVisible(true);
 
       // 线索标记缩放：最近的可交互线索放大到 1.4 倍
@@ -1008,6 +1005,105 @@ export class Scene5 extends Phaser.Scene {
         this._girlLabelText.setVisible(false);
       }
     }
+
+    this.hideInteractionLabels();
+  }
+
+  private hideInteractionLabels(): void {
+    [
+      this._sistersLabelText,
+      this._girlLabelText,
+      this._paperLabelText,
+      this._fanLabelText,
+      this._standLabelText,
+      this._bimoLabelText,
+      this._pipaLabelText,
+    ].forEach((label) => label?.setVisible(false));
+  }
+
+  private renderInteractionHint(target: string, clueIndex: number): void {
+    this.interactHintGlyphContent.removeAll(true);
+
+    const nushuTextureKeys = this.getInteractionHintNushuTextureKeys(target);
+
+    if (!nushuTextureKeys) {
+      this.interactHintGlyphContent.setVisible(false);
+      this._hintText
+        .setText(this.getInteractionHintText(target, clueIndex))
+        .setOrigin(0.5)
+        .setPosition(0, 0);
+      return;
+    }
+
+    this._hintText
+      .setText('E 交互 ·')
+      .setOrigin(0, 0.5);
+
+    const glyphGap = 2;
+    const glyphTextGap = 14;
+    const glyphHeight = 57.6;
+    let glyphX = 0;
+
+    nushuTextureKeys.forEach((sourceTextureKey) => {
+      const textureKey = this.getDialogueGlyphTextureKey(sourceTextureKey);
+      const renderTextureKey = this.textures.exists(textureKey)
+        ? textureKey
+        : sourceTextureKey;
+      const sourceImage = this.textures.get(renderTextureKey).source[0]?.image;
+      const sourceWidth =
+        sourceImage && 'width' in sourceImage ? Number(sourceImage.width) : 52;
+      const sourceHeight =
+        sourceImage && 'height' in sourceImage
+          ? Number(sourceImage.height)
+          : 82;
+      const glyphWidth = glyphHeight * (sourceWidth / sourceHeight);
+
+      const glyph = this.add.image(glyphX, 0, renderTextureKey);
+      glyph
+        .setDisplaySize(glyphWidth, glyphHeight)
+        .setOrigin(0, 0.5);
+      this.interactHintGlyphContent.add(glyph);
+      glyphX += glyphWidth + glyphGap;
+    });
+
+    const totalGlyphWidth = Math.max(glyphX - glyphGap, 1);
+    const totalWidth =
+      this._hintText.width + glyphTextGap + totalGlyphWidth;
+    const startX = -totalWidth / 2;
+
+    this._hintText.setPosition(startX, 0);
+    this.interactHintGlyphContent
+      .setPosition(startX + this._hintText.width + glyphTextGap, 0)
+      .setVisible(true);
+  }
+
+  private getInteractionHintNushuTextureKeys(
+    target: string,
+  ): readonly string[] | undefined {
+    if (!INTERACTION_HINT_NUSHU_TARGETS.has(target)) {
+      return undefined;
+    }
+
+    const dictionaryPuzzle = GLOBAL_DICTIONARY_PUZZLES[target];
+    return dictionaryPuzzle
+      ? GLOBAL_PUZZLE_NUSHU_TEXTURE_KEYS[dictionaryPuzzle.activeEntryId]
+      : undefined;
+  }
+
+  private getInteractionHintText(target: string, clueIndex: number): string {
+    if (target.startsWith('clue_') && clueIndex >= 0) {
+      return `E 交互 · ${SONG_CLUES[clueIndex].name}`;
+    }
+
+    if (target === 'npc_sisters') {
+      return 'E 交互 · 围坐姐妹';
+    }
+
+    if (target === 'npc_girl') {
+      return 'E 交互 · 唱扇女';
+    }
+
+    return 'E 交互';
   }
 
   // ==================== 交互处理 ====================
@@ -1081,6 +1177,7 @@ export class Scene5 extends Phaser.Scene {
         standClue.y,
       );
       this._standLabelText.setVisible(standDist < INTERACT_DISTANCE);
+      this.hideInteractionLabels();
     }
   }
 
