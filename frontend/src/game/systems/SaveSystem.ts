@@ -1,3 +1,12 @@
+/**
+ * 女书字典 & 歌堂存档系统
+ *
+ * 集成 HaSAnonymizer 安全管线:
+ *   save: SaveData → sanitize → filter → sign → localStorage
+ *   load: localStorage → verify → extract → SaveData
+ *   兼容旧版未签名存档，自动迁移。
+ */
+
 import type {
   DictionaryEntry,
   DictionaryEntryId,
@@ -5,6 +14,8 @@ import type {
   SaveData,
   SceneId,
 } from '../types'
+import { anonymizer } from '../../security'
+import type { SecurePayload } from '../../security'
 
 export const GLOBAL_SAVE_KEY = 'womenbook_singing_hall_save'
 const CURRENT_SAVE_VERSION = 3
@@ -35,6 +46,17 @@ const unique = <Value>(values: readonly Value[]): Value[] =>
 
 const normalizeSceneId = (sceneId: string): SceneId =>
   sceneId === 'song' ? 'singingHall' : sceneId
+
+/** 判断 JSON 解析结果是否为 SecurePayload（安全管线签名后的数据） */
+function isSecurePayload(raw: unknown): raw is SecurePayload {
+  return (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'data' in raw &&
+    'hash' in raw &&
+    'version' in raw
+  )
+}
 
 function createEmptySave(): SaveData {
   return {
@@ -167,9 +189,21 @@ export class SaveSystem {
       const raw = localStorage.getItem(this.storageKey)
       if (!raw) return createEmptySave()
 
-      const normalized = normalizeSave(JSON.parse(raw))
-      localStorage.setItem(this.storageKey, JSON.stringify(normalized))
-      return normalized
+      const parsed = JSON.parse(raw)
+
+      // 安全管线签名后的数据：验章 → 提取
+      if (isSecurePayload(parsed)) {
+        const { trusted, data } = anonymizer.unseal<SaveData>(
+          parsed as SecurePayload<SaveData>,
+        )
+        if (!trusted) {
+          console.warn('[女书字典存档] 完整性校验失败，但仍尝试恢复数据')
+        }
+        return normalizeSave(data)
+      }
+
+      // 兼容旧版未签名存档：直接规范化，下次 save() 时自动签名迁移
+      return normalizeSave(parsed)
     } catch (error) {
       console.warn('存档读取失败，使用新存档', error)
       return createEmptySave()
@@ -178,7 +212,8 @@ export class SaveSystem {
 
   save(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.data))
+      const secured = anonymizer.secure(this.data)
+      localStorage.setItem(this.storageKey, JSON.stringify(secured))
     } catch (error) {
       console.warn('存档保存失败', error)
     }
