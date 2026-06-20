@@ -815,8 +815,8 @@
 
 .chapter-night-embroidery-memory-image img {
   display: block;
-  max-width: min(72vw, 700px);
-  max-height: min(52vh, 420px);
+  max-width: min(80vw, 820px);
+  max-height: min(60vh, 500px);
   object-fit: contain;
   filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.45));
 }
@@ -882,8 +882,8 @@
 
 .chapter-night-zuoshantang-memory-image img {
   display: block;
-  max-width: min(72vw, 700px);
-  max-height: min(52vh, 420px);
+  max-width: min(80vw, 820px);
+  max-height: min(60vh, 500px);
   object-fit: contain;
   filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.45));
 }

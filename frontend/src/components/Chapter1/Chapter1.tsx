@@ -280,8 +280,7 @@ function Chapter1({
     sceneSwitcherGuideActive
 
   const getNearestInteractionId = useCallback((playerX: number, playerY: number): Chapter1InteractionId | null => {
-    const fullExplorationUnlocked =
-      guideDictDone && guideDictDismissed && sceneSwitcherUnlocked
+    const fullExplorationUnlocked = guideDictDone
     const interactions: Array<{
       id: Chapter1InteractionId
       el: HTMLElement | null
@@ -518,8 +517,13 @@ function Chapter1({
       return
     }
     const placedCount = Object.keys(placedSlots).length
-    // 字典从打开→关闭 且 有新的放置
-    if (prevDictOpenRef.current && !isDictionaryOpen && placedCount > placedSlotCountAtStartRef.current) {
+    if (placedCount <= placedSlotCountAtStartRef.current) {
+      prevDictOpenRef.current = isDictionaryOpen
+      return
+    }
+    // 情况1：字典从打开→关闭 且 有新的放置（正常流程）
+    // 情况2：字典已在旁白期间完成开→关→放置，postQ1 刚结束（修复"吞事件"bug）
+    if ((prevDictOpenRef.current && !isDictionaryOpen) || !isDictionaryOpen) {
       setGuideDictDone(true)
       setSceneSwitcherGuideActive(true)
     }

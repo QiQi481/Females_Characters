@@ -38,6 +38,7 @@ const singingNushuAssets = [
   ['singing_nushu_yuan', nushuAssetUrl('yuan')],
   ['singing_nushu_xing', nushuAssetUrl('xing')],
   ['singing_nushu_sheng', nushuAssetUrl('sheng')],
+  ['singing_nushu_jun', nushuAssetUrl('jun')],
 ] as const;
 
 export class BootScene extends Phaser.Scene {

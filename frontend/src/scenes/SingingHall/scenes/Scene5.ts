@@ -107,13 +107,13 @@ const SISTERS_DIALOGUE_LINES = [
 ] as const;
 
 const PAPER_DIALOGUE_LINES = [
-  '上只留两行字，心中却有万重山。',
-  '愿__远去，仍记旧时__ __声。',
+  '{{nushu}}上只留两行字，心中却有万重山。',
+  '愿君远去，仍记旧时姐妹声。',
   '请在字典中找到对应的女书字。',
 ] as const;
 
 const FAN_DIALOGUE_LINES = [
-  '"__ __轻合，从此各自__ __；愿我今日所唱，仍能陪你过千山万水。"',
+  '{{nushu}}{{nushu}}轻合，从此各自远行；愿我今日所唱，仍能陪你过千山万水。',
   '请在字典中找到对应的女书字。',
 ] as const;
 
@@ -223,6 +223,7 @@ export class Scene5 extends Phaser.Scene {
   private dialogueLineIndex = 0;
   private dialogueSpeaker = '';
   private dialogueOnComplete: (() => void) | null = null;
+  private dialogueGlyphKeysPerLine: Record<number, string[]> = {};
 
   // ========== NPC 聚焦/恢复（对齐 Scene 2）==========
   private focusedNpc?: Phaser.GameObjects.Image;
@@ -1145,6 +1146,9 @@ export class Scene5 extends Phaser.Scene {
   }
 
   private startPaperDialogueAfterPreview(): void {
+    this.dialogueGlyphKeysPerLine = {
+      0: ['singing_nushu_zhi'],
+    };
     this.startDialogue(SINGER_NPC_NAME, [...PAPER_DIALOGUE_LINES], () => {
       this.unlockEntriesForClue('clue_paper');
       this.showPendingNewGlyphToast('clue_paper');
@@ -1154,6 +1158,9 @@ export class Scene5 extends Phaser.Scene {
   }
 
   private startFanDialogueAfterPreview(): void {
+    this.dialogueGlyphKeysPerLine = {
+      0: ['singing_nushu_ge', 'singing_nushu_shan'],
+    };
     this.startDialogue(SINGER_NPC_NAME, [...FAN_DIALOGUE_LINES], () => {
       this.unlockEntriesForClue('clue_fan');
       this.showPendingNewGlyphToast('clue_fan');
@@ -1698,9 +1705,8 @@ export class Scene5 extends Phaser.Scene {
   }
 
   /** 获取对话字形纹理键列表（对齐 Scene 2 getDialogueGlyphTextureKeys） */
-  private getDialogueGlyphTextureKeys(): readonly string[] {
-    // Scene 5 不使用特定字形，返回空数组
-    return [];
+  private getDialogueGlyphTextureKeys(lineIndex: number = 0): readonly string[] {
+    return this.dialogueGlyphKeysPerLine[lineIndex] ?? [];
   }
 
   /** 获取对话字形纹理键（对齐 Scene 2 getDialogueGlyphTextureKey） */
@@ -1831,7 +1837,7 @@ export class Scene5 extends Phaser.Scene {
 
     let currentY = DIALOGUE_TEXT_Y;
 
-    lines.forEach((line) => {
+    lines.forEach((line, i) => {
       const lineContainer = this.add.container(DIALOGUE_TEXT_X, currentY);
       const [prefix, suffix] = line.split(NUSHU_TOKEN);
 
@@ -1846,23 +1852,31 @@ export class Scene5 extends Phaser.Scene {
         lineContainer.add(text);
         currentY += lineBoxHeight;
       } else {
-        const prefixText = this.createDialogueLineText(prefix, 0, 0);
-        prefixText.setY(Math.max(0, (DIALOGUE_LINE_HEIGHT - prefixText.height) / 2));
-        lineContainer.add(prefixText);
-        const glyphCenterY = DIALOGUE_LINE_HEIGHT / 2;
-        const glyphWidth = this.addDialogueGlyphsToContainer(
-          lineContainer,
-          this.getDialogueGlyphTextureKeys(),
-          prefixText.width + 10,
-          glyphCenterY,
-        );
-        const suffixText = this.createDialogueLineText(
-          suffix,
-          prefixText.width + glyphWidth + 22,
-          0,
-        );
-        suffixText.setY(Math.max(0, (DIALOGUE_LINE_HEIGHT - suffixText.height) / 2));
-        lineContainer.add(suffixText);
+        // 支持一行中多个 {{nushu}} 占位符，逐段插入文本和字形
+        const glyphKeys = this.getDialogueGlyphTextureKeys(i);
+        const segments = line.split(NUSHU_TOKEN);
+        let currentX = 0;
+
+        for (let idx = 0; idx < segments.length; idx++) {
+          const seg = segments[idx];
+          // 渲染文本段
+          if (seg) {
+            const segText = this.createDialogueLineText(seg, currentX, 0);
+            segText.setY(Math.max(0, (DIALOGUE_LINE_HEIGHT - segText.height) / 2));
+            lineContainer.add(segText);
+            currentX += segText.width + 12;
+          }
+          // 在文本段之间插入字形（非最后一段）
+          if (idx < segments.length - 1 && glyphKeys[idx]) {
+            const gWidth = this.addDialogueGlyphsToContainer(
+              lineContainer,
+              [glyphKeys[idx]],
+              currentX,
+              DIALOGUE_LINE_HEIGHT / 2,
+            );
+            currentX += gWidth + 12;
+          }
+        }
         currentY += DIALOGUE_LINE_HEIGHT;
       }
 
@@ -2058,6 +2072,7 @@ export class Scene5 extends Phaser.Scene {
     this.dialogueLineIndex = 0;
     this.dialogueSpeaker = '';
     this.dialogueOnComplete = null;
+    this.dialogueGlyphKeysPerLine = {};
     this.dialogueContainer.setVisible(false);
     this.restoreNpcAfterDialogue();
 
@@ -2077,6 +2092,7 @@ export class Scene5 extends Phaser.Scene {
     this.dialogueLineIndex = 0;
     this.dialogueSpeaker = '';
     this.dialogueOnComplete = null;
+    this.dialogueGlyphKeysPerLine = {};
     this.dialogueContainer.setVisible(false);
     this.restoreNpcAfterDialogue();
     this.showExplorationControls();
