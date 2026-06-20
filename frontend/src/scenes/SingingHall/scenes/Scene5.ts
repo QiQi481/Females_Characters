@@ -164,6 +164,9 @@ export class Scene5 extends Phaser.Scene {
   private _girlImgBaseScale = 1;
   private _girlTween?: Phaser.Tweens.Tween;
   private _sistersTween?: Phaser.Tweens.Tween;
+  private _clueTextImgs: Phaser.GameObjects.Image[] = [];
+  private _sistersTextImg!: Phaser.GameObjects.Image;
+  private _hiddenForIntro = false;
 
   // ========== 弹窗（仅用于 fake 线索简单展示）==========
   private popupContainer!: Phaser.GameObjects.Container;
@@ -632,9 +635,10 @@ export class Scene5 extends Phaser.Scene {
 
       // 传唱纸片上方女书文字图片
       if (clue.id === 'clue_paper') {
-        this.add.image(clue.x, clue.y - 200, 'paper_text_img')
-          .setScale(0.25)
-          .setDepth(6);
+        this._clueTextImgs.push(
+          this.add.image(clue.x, clue.y - 200, 'paper_text_img')
+            .setScale(0.25)
+            .setDepth(6));
         // 传唱纸片名称标签（米色纸签，接近时显示）
         const paperLabelX = clue.x;
         const paperLabelY = clue.y - 300;
@@ -647,9 +651,10 @@ export class Scene5 extends Phaser.Scene {
 
       // 笔墨左上角女书文字图片
       if (clue.id === 'clue_basket') {
-        this.add.image(clue.x - 120, clue.y - 130, 'bimo_text_img')
-          .setScale(0.25)
-          .setDepth(6);
+        this._clueTextImgs.push(
+          this.add.image(clue.x - 120, clue.y - 130, 'bimo_text_img')
+            .setScale(0.25)
+            .setDepth(6));
         // 笔墨名称标签（米色纸签，接近时显示）
         const bmoLabelX = clue.x - 120;
         const bmoLabelY = clue.y - 230;
@@ -662,9 +667,10 @@ export class Scene5 extends Phaser.Scene {
 
       // 琵琶上方女书文字图片
       if (clue.id === 'clue_pipa') {
-        this.add.image(clue.x, clue.y - 270, 'pipa_text_img')
-          .setScale(0.25)
-          .setDepth(6);
+        this._clueTextImgs.push(
+          this.add.image(clue.x, clue.y - 270, 'pipa_text_img')
+            .setScale(0.25)
+            .setDepth(6));
         // 琵琶名称标签（米色纸签，接近时显示）
         const pipaLabelX = clue.x;
         const pipaLabelY = clue.y - 320;
@@ -677,9 +683,10 @@ export class Scene5 extends Phaser.Scene {
 
         // 唱扇女展开图上方女书文字图片
       if (clue.id === 'clue_fan') {
-        this.add.image(clue.x, clue.y - 170, 'fan_text_img')
-          .setScale(0.28)
-          .setDepth(6);
+        this._clueTextImgs.push(
+          this.add.image(clue.x, clue.y - 170, 'fan_text_img')
+            .setScale(0.28)
+            .setDepth(6));
         // 歌扇展开图名称标签（米色纸签，接近时显示）
         const fanLabelX = clue.x;
         const fanLabelY = clue.y - 250;
@@ -751,7 +758,7 @@ export class Scene5 extends Phaser.Scene {
     }
 
     // 围坐姐妹右上角文字图片（身声，保留白底）
-    this.add.image(SISTERS_NPC.x + 280, SISTERS_NPC.y - 310, 'sisters_text_img')
+    this._sistersTextImg = this.add.image(SISTERS_NPC.x + 280, SISTERS_NPC.y - 310, 'sisters_text_img')
       .setScale(0.2)
       .setDepth(6);
 
@@ -2116,9 +2123,35 @@ export class Scene5 extends Phaser.Scene {
     this.startGirlIntroDialogue();
   }
 
+  /** 隐藏所有非必要对象（线索、NPC、玩家等），仅保留唱扇女和背景 */
+  private hideNonEssentialObjects(): void {
+    if (this._hiddenForIntro) return;
+    this._hiddenForIntro = true;
+    this.clueMarkers.forEach((m) => m.setVisible(false));
+    this._clueTextImgs.forEach((img) => img.setVisible(false));
+    this.npcSprites.forEach((n) => n.setVisible(false));
+    this._sistersTextImg?.setVisible(false);
+    this.hideInteractionLabels();
+    this.player?.setVisible(false);
+  }
+
+  /** 恢复所有被 intro 对话隐藏的对象 */
+  private showNonEssentialObjects(): void {
+    if (!this._hiddenForIntro) return;
+    this._hiddenForIntro = false;
+    this.clueMarkers.forEach((m) => m.setVisible(true));
+    this._clueTextImgs.forEach((img) => img.setVisible(true));
+    this.npcSprites.forEach((n) => n.setVisible(true));
+    this._sistersTextImg?.setVisible(true);
+    this.player?.setVisible(true);
+  }
+
   /** 开始唱扇女介绍对话（对齐原 MainScene openGirlPreview，每次点击均可触发） */
   private startGirlIntroDialogue(): void {
     if (this.girlIntroDialogueState === 'playing') return;
+    if (this.girlIntroDialogueState === 'pending') {
+      this.hideNonEssentialObjects();
+    }
     this.girlIntroDialogueState = 'playing';
     this.startDialogue(SINGER_NPC_NAME, [...SINGER_INTRO_DIALOGUE_LINES]);
   }
@@ -2134,6 +2167,7 @@ export class Scene5 extends Phaser.Scene {
     this.dictionaryBridge.unlockEntry('yuanxing');
     this.pendingDictionaryPuzzle = null;
     this.showExplorationControls();
+    this.showNonEssentialObjects();
   }
 
   /** 解锁"声"词条 */
