@@ -468,7 +468,7 @@ export class EmbroideryRoomPhaserScene extends Phaser.Scene {
       PLAYER_START_POSITION.y,
       'player',
     )
-    this.player.setDisplaySize(56, 56)
+    this.player.setDisplaySize(76, 76)
     this.player.setDepth(20)
     this.player.setCollideWorldBounds(true)
     this.player.body?.setSize(28, 28)
