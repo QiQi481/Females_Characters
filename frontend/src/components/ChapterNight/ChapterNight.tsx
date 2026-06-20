@@ -121,7 +121,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
   useEffect(() => {
     if (!titleDone) return
     const lines =
-      unlockedEntryCount < 5
+      unlockedEntryCount < 13
         ? ['夜已深了，还有一些词语没有破解，让我们继续加油吧', '其他地方的线索好像漏掉了一些']
         : [
             '已经到深夜了呢，今天真是辛苦您了，可惜我们还剩下两个字没有解开',
@@ -132,7 +132,7 @@ function ChapterNight({ onReturnToMenu, isDictionaryOpen, openDictionary, closeD
             '你有答案了吗？',
           ]
     nightDialogueLinesRef.current = lines
-    rainEnabledRef.current = unlockedEntryCount >= 5
+    rainEnabledRef.current = unlockedEntryCount >= 13
     setNightDialogueStep(0)
   }, [titleDone, unlockedEntryCount])
 
