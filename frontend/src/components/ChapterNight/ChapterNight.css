@@ -6,7 +6,7 @@
   height: 100vh;
   overflow: hidden;
   background-color: #050510;
-  cursor: crosshair;
+  cursor: default;
   user-select: none;
   font-family: 'SimSun', 'Microsoft YaHei', serif;
 }

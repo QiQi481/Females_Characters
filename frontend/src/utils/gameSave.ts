@@ -35,9 +35,11 @@ export interface GameSave {
 
 const SAVE_KEY = 'sanchao-shu-save'
 
+const storage = window.sessionStorage
+
 export function saveGame(save: GameSave): void {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save))
+    storage.setItem(SAVE_KEY, JSON.stringify(save))
   } catch {
     console.warn('游戏存档失败')
   }
@@ -45,7 +47,7 @@ export function saveGame(save: GameSave): void {
 
 export function loadGame(): GameSave | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
+    const raw = storage.getItem(SAVE_KEY)
     if (!raw) return null
     return JSON.parse(raw) as GameSave
   } catch {
@@ -54,9 +56,12 @@ export function loadGame(): GameSave | null {
 }
 
 export function hasSave(): boolean {
-  return loadGame() !== null
+  const save = loadGame()
+  if (!save) return false
+  // 校验存档必须包含必要字段，防止脏数据/残留数据误判为有效存档
+  return typeof save.phase === 'string' && typeof save.progress === 'number'
 }
 
 export function deleteSave(): void {
-  localStorage.removeItem(SAVE_KEY)
+  storage.removeItem(SAVE_KEY)
 }
